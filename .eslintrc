@@ -1,0 +1,73 @@
+{
+	"parser": "babel-eslint",
+	"extends": "airbnb-base",
+    "rules": {
+ 		"space-infix-ops": 0,
+		"no-unused-vars": [2, { "vars": "local", "args": "none" }],
+		"no-param-reassign": 0,
+		"quotes": 0,
+
+		"space-in-parens": 0,
+		"indent": [2, "tab", { "SwitchCase": 1 }],
+		"comma-dangle": [2, "never"],
+
+		"max-len": [1, 300],
+		"quote-props": [2, "consistent"],
+
+		"strict": 2,
+		"constructor-super": 0, // should be 2 - temp for now until es lint bug fixed
+		"prefer-const": 0,
+		"spaced-comment": 0,
+		"space-before-function-paren": [2, { "anonymous": "never", "named": "never" }],
+		"arrow-body-style": 0,
+		"no-useless-constructor": 0,
+		"prefer-template": 0,
+		"object-shorthand": 0,
+		"no-trailing-spaces": 0,
+		"no-console": 0, // temp to shut it up until we've added our own logging class
+		"no-unreachable": 0, // temp until we know how to deal with #ifdefs
+		"no-else-return": 0,
+
+		"dot-notation": 0,
+		"no-unused-expressions": [2, { "allowTernary": true }],
+		"func-names": 0,
+
+		// Only allow underscore dangling when part of an object
+		"no-underscore-dangle": ["error", { "allowAfterThis": true }],
+
+		"import/no-unresolved": 0,
+		"no-empty-function": 0,
+		"no-empty": 0,
+
+		// Same as airbnb config but with ForInStatement removed
+		"no-restricted-syntax": [
+			2,
+			"DebuggerStatement",
+			//		'ForInStatement',
+			"LabeledStatement",
+			"WithStatement"
+		],
+
+		"no-tabs": 0,
+		"import/extensions": 0,
+		"import/no-extraneous-dependencies": 0,
+		"no-plusplus": 0,
+		"no-lonely-if": 0,
+		"class-methods-use-this": 0,
+		"import/prefer-default-export": 0,
+		"no-prototype-builtins": 0,
+		"no-bitwise": 0,
+		"import/no-absolute-path": 0,
+		"no-continue": 0,
+		"linebreak-style": 0,
+		"no-mixed-operators": [
+			2,
+			{ "allowSamePrecedence": true }
+		]
+    },
+    "env": {
+        "es6": true,
+        "node": true,
+		"mocha": true
+    }
+}

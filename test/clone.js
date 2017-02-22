@@ -1,82 +1,42 @@
-import fs from 'fs-extra';
-import os from 'os';
-import path from 'path';
-import assert from 'assert';
-import uuid from 'uuid';
-import * as helpers from '../testutil/helpers.js';
-import caliber from '../';
+const fs = require('fs-extra');
+const os = require('os');
+const path = require('path');
+const assert = require('assert');
+const helpers = require('../testutil/helpers.js');
+const caliber = require('../');
 let { svn: svnTransport, git: gitTransport } = require('git-svn-interface');
 
 
 function defineTests(transport) {
-	describe(`${transport.name} install`, function() {
+	describe(`${transport.name} clone`, function() {
 		this.timeout(30 * 60 * 1000); // 30 minutes
 
-		helpers.test('single project install, no dependencies - should complete without doing anything', async (tempDir) => {
-			const result = await helpers.createRepoCheckout(
-				tempDir,
-				transport,
-				{
-					name: 'main',
-					version: '0.1.0-snapshot.0',
-					checkoutMainOnly: true,
-					files: [
-						{
-							path: 'file.txt',
-							contents: 'this is on the main project'
-						}
-					],
-					modules: []
-				}
-			);
-			await caliber.commands.install(
-				'',
-				{
-					cwd: result.checkoutDir
-				}
-			);
-			const filePath = path.join(result.checkoutDir, 'file.txt');
-			assert.ok(fs.existsSync(filePath), 'File exists');
-		});
+		// helpers.promiseIt('single project checkout, no dependencies', async (tempDir) => {
+			// const dir = helpers.createTempFolder(tempDir);
+			// const result = await helpers.createRepo(
+				// tempDir,
+				// transport,
+				// {
+					// name: 'main',
+					// version: '0.1.0-snapshot.0',
+					// files: [
+						// {
+							// path: 'file.txt',
+							// contents: 'this is on the main project'
+						// }
+					// ],
+					// modules: []
+				// },
+			// );
+			// await bowerex.commands.checkout({
+				// url: transport.formatBowerDependencyUrl(result.url),
+				// cwd: dir,
+				// pkgNameRandom: true
+			// });
+			// const filePath = path.join(dir, 'file.txt');
+			// assert.ok(fs.existsSync(filePath), 'File exists');
+		// });
 
-		helpers.test('project install, with 1 dependency', async (tempDir) => {
-			const result = await helpers.createRepoCheckout(
-				tempDir,
-				transport,
-				{
-					name: 'main',
-					version: '0.1.0-snapshot.0',
-					checkoutMainOnly: true,
-					files: [
-						{
-							path: 'file.txt',
-							contents: 'this is on the main project'
-						}
-					],
-					modules: [
-						{
-							name: 'dep1',
-							version: '1.0.0-snapshot.0',
-							files: [
-								{
-									path: 'file.txt',
-									contents: 'this is on a dep'
-								}
-							]
-						}
-					]
-				}
-			);
-			await caliber.commands.install(
-				'',
-				{
-					cwd: result.checkoutDir
-				}
-			);
-			const filePath = path.join(result.checkoutDir, 'caliber_modules', 'dep1', 'file.txt');
-			assert.ok(fs.existsSync(filePath), 'File exists');
-		});
-		
 		// helpers.promiseIt('single project checkout, no dependencies, no bower.json present', async (tempDir) => {
 			// const dir = helpers.createTempFolder(tempDir);
 			// const result = await helpers.createRepo(

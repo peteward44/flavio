@@ -1,15 +1,46 @@
 // Creates a local SVN repositiory using svnadmin to run tests against
-const fs = require('fs-extra');
-const path = require('path');
-const uuid = require('uuid');
-const bowerex = require('../js');
-const misc = require('../js/misc.js');
+import fs from 'fs-extra';
+import path from 'path';
+import os from 'os';
+import uuid from 'uuid';
+import caliber from '../';
+
+const tempRoot = path.join( os.tmpdir(), 'caliber' );
 
 
-export function createTempFolder(rootDir) {
-	return misc.getTempDir(rootDir);
+export function createTempFolder( name ) {
+	let p = tempRoot;
+	if ( name ) {
+		p = path.join( p, name );
+	}
+	p = path.join( p, uuid.v4() );
+	fs.ensureDirSync(p);
+	return p;
 }
 
+
+// replacement for mocha's it() method to return a promise instead of accept a callback
+export function test(name, func) {
+	it(name, () => {
+		const tempDir = path.join( tempRoot, uuid.v4() );
+		try {
+			fs.ensureDirSync( tempDir );
+			let prom = func( tempDir );
+			prom = prom.then(() => {
+				// only delete temp folder on successfull test
+				try {
+					fs.removeSync(tempDir);
+				} catch (err) {
+					console.error(`Could not delete temp folder for test '${name}'`);
+				}
+			});
+			return prom;
+		} catch (err) {
+			return Promise.reject(err);
+		}
+		return Promise.resolve();
+	});
+}
 
 export async function addProject(tempDir, transport, options, rootObj, rootBowerJson) {
 	options.name = options.name || 'default';
@@ -33,11 +64,10 @@ export async function addProject(tempDir, transport, options, rootObj, rootBower
 	};
 	rootObj = rootObj || result;
 
-	// create new bower.json based on deps
+	// create new caliber.json based on deps
 	const bowerJson = {
 		name: options.name,
 		version: options.version || '0.0.1-snapshot.0',
-		private: true,
 		dependencies: {}
 	};
 	if (!rootBowerJson) {
@@ -69,9 +99,9 @@ export async function addProject(tempDir, transport, options, rootObj, rootBower
 		}
 	}
 
-	// add bower.json
+	// add caliber.json
 	if (!options.nobowerjson) {
-		await transport.unCat(url, targetDesc, 'bower.json', JSON.stringify(bowerJson, null, '\t'), 'Creating repo: Adding bower.json');
+		await transport.unCat(url, targetDesc, 'caliber.json', JSON.stringify(bowerJson, null, '\t'), 'Creating repo: Adding caliber.json');
 	}
 
 	// add any files
@@ -86,16 +116,16 @@ export async function addProject(tempDir, transport, options, rootObj, rootBower
 	if (options.targetDesc && options.targetDesc.type === 'tag') {
 		const tagDir = createTempFolder(tempDir);
 		try {
-			await bowerex.commands.checkout({
+			await caliber.commands.clone({
 				cwd: tagDir,
 				url: transport.formatBowerDependencyUrl(url, targetDesc)
 			});
-			await bowerex.commands.tag([], {
+			await caliber.commands.tag([], {
 				cwd: tagDir,
 				tagName: options.targetDesc.name
 			});
 		} finally {
-			fs.deleteSync(tagDir);
+			fs.removeSync(tagDir);
 		}
 	}
 
@@ -120,18 +150,18 @@ export async function createRepoCheckout(tempDir, transport, options) {
 	result.checkoutDir = checkoutDir;
 
 	// execute checkout command
-	console.log(`Checking out ${result.url}`);
+	console.log(`Checking out to ${checkoutDir}`);
 	if (options.checkoutMainOnly) {
 		// only perform transport checkout on main project
 		await transport.checkout(result.url, options.targetDesc, checkoutDir);
 	} else {
 		// perform full checkout including all bower deps
-		await bowerex.commands.checkout({
-			name: options.name,
-			cwd: checkoutDir,
-			url: transport.formatBowerDependencyUrl(result.url, options.targetDesc),
-			reallyAutomaticClose: true
-		});
+		await caliber.commands.clone(
+			transport.formatBowerDependencyUrl(result.url, options.targetDesc),
+			{
+				cwd: checkoutDir
+			}
+		);
 	}
 	return result;
 }
@@ -139,9 +169,9 @@ export async function createRepoCheckout(tempDir, transport, options) {
 
 async function verifySingleCaliberJson(transport, command) {
 	const testname = command.name || '';
-	// cat contents of bower.json file and make sure the dependencies match up to the ones specified in the arguments
+	// cat contents of caliber.json file and make sure the dependencies match up to the ones specified in the arguments
 	const source = command.source;
-	const bowerJsonText = await transport.cat(source.url, source.targetDesc, 'bower.json');
+	const bowerJsonText = await transport.cat(source.url, source.targetDesc, 'caliber.json');
 	const json = JSON.parse(bowerJsonText);
 	const test = command.test;
 
