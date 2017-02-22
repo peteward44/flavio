@@ -1,10 +1,5 @@
-const fs = require('fs-extra');
-const os = require('os');
-const path = require('path');
-const assert = require('assert');
-const helpers = require('../testutil/helpers.js');
-const caliber = require('../');
-let { svn: svnTransport, git: gitTransport } = require('git-svn-interface');
+import os from 'os';
+import { svn as svnTransport, git as gitTransport } from 'git-svn-interface';
 
 
 function defineTests(transport) {

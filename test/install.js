@@ -2,11 +2,9 @@ import fs from 'fs-extra';
 import os from 'os';
 import path from 'path';
 import assert from 'assert';
-import uuid from 'uuid';
+import { svn as svnTransport, git as gitTransport } from 'git-svn-interface';
 import * as helpers from '../testutil/helpers.js';
 import caliber from '../';
-let { svn: svnTransport, git: gitTransport } = require('git-svn-interface');
-
 
 function defineTests(transport) {
 	describe(`${transport.name} install`, function() {

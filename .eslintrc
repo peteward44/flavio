@@ -6,6 +6,7 @@
 		"no-unused-vars": [2, { "vars": "local", "args": "none" }],
 		"no-param-reassign": 0,
 		"quotes": 0,
+		"no-await-in-loop": 0,
 
 		"space-in-parens": 0,
 		"indent": [2, "tab", { "SwitchCase": 1 }],

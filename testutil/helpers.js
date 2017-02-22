@@ -133,8 +133,8 @@ export async function addProject(tempDir, transport, options, rootObj, rootBower
 }
 
 
-export async function createRepo(tempDir, transport, options) {
-	return await addProject(tempDir, transport, options);
+export function createRepo(tempDir, transport, options) {
+	return addProject(tempDir, transport, options);
 }
 
 
@@ -173,50 +173,50 @@ async function verifySingleCaliberJson(transport, command) {
 	const source = command.source;
 	const bowerJsonText = await transport.cat(source.url, source.targetDesc, 'caliber.json');
 	const json = JSON.parse(bowerJsonText);
-	const test = command.test;
+	const testJson = command.test;
 
-	if (test) {
-		if (test.version) {
-			if (test.version !== json.version) {
-				console.error(`${testname}: Version actual ${json.version} expected ${test.version}`);
+	if (testJson) {
+		if (testJson.version) {
+			if (testJson.version !== json.version) {
+				console.error(`${testname}: Version actual ${json.version} expected ${testJson.version}`);
 				return false;
 			}
 		}
-		if (test.ex) {
+		if (testJson.ex) {
 			if (!json.ex) {
 				console.error(`${testname}: expected 'ex' object in JSON - not there!`);
 				return false;
 			}
-			if (typeof test.ex.tagLocalChanges !== 'undefined') {
-				if (test.ex.tagLocalChanges !== json.ex.tagLocalChanges) {
-					console.error(`${testname}: tagLocalChanges actual ${json.ex.tagLocalChanges.toString()} expected ${test.ex.tagLocalChanges}`);
+			if (typeof testJson.ex.tagLocalChanges !== 'undefined') {
+				if (testJson.ex.tagLocalChanges !== json.ex.tagLocalChanges) {
+					console.error(`${testname}: tagLocalChanges actual ${json.ex.tagLocalChanges.toString()} expected ${testJson.ex.tagLocalChanges}`);
 					return false;
 				}
 			}
-			if (typeof test.ex.tagTarget !== 'undefined') {
+			if (typeof testJson.ex.tagTarget !== 'undefined') {
 				if (!json.ex.tagTarget) {
-					console.error(`${testname}: tagTarget actual null expected ${JSON.stringify(test.ex.tagTarget)}`);
+					console.error(`${testname}: tagTarget actual null expected ${JSON.stringify(testJson.ex.tagTarget)}`);
 					return false;
 				}
 
-				if (test.ex.tagTarget.name !== 'undefined') {
-					if (test.ex.tagTarget.name !== json.ex.tagTarget.name) {
-						console.error(`${testname}: tagTarget.name actual ${json.ex.tagTarget.name} expected ${test.ex.tagTarget.name}`);
+				if (testJson.ex.tagTarget.name !== 'undefined') {
+					if (testJson.ex.tagTarget.name !== json.ex.tagTarget.name) {
+						console.error(`${testname}: tagTarget.name actual ${json.ex.tagTarget.name} expected ${testJson.ex.tagTarget.name}`);
 						return false;
 					}
 				}
-				if (test.ex.tagTarget.type !== 'undefined') {
-					if (test.ex.tagTarget.type !== json.ex.tagTarget.type) {
-						console.error(`${testname}: tagTarget.type actual ${json.ex.tagTarget.type} expected ${test.ex.tagTarget.type}`);
+				if (testJson.ex.tagTarget.type !== 'undefined') {
+					if (testJson.ex.tagTarget.type !== json.ex.tagTarget.type) {
+						console.error(`${testname}: tagTarget.type actual ${json.ex.tagTarget.type} expected ${testJson.ex.tagTarget.type}`);
 						return false;
 					}
 				}
 			}
 		}
-		if (test.deps && test.deps.length > 0) {
+		if (testJson.deps && testJson.deps.length > 0) {
 			if (json.dependencies) {
-				for (let i = 0; i < test.deps.length; ++i) {
-					const dep = test.deps[i];
+				for (let i = 0; i < testJson.deps.length; ++i) {
+					const dep = testJson.deps[i];
 					if (json.dependencies.hasOwnProperty(dep.name)) {
 						const url = json.dependencies[dep.name];
 						if (url !== dep.url) {
