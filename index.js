@@ -1,2 +1,4 @@
-import caliber from './lib/index.js';
-export default caliber;
+/* eslint-disable */
+require( 'babel-polyfill' );
+var caliber = require( './lib/index.js' );
+module.exports = caliber;
