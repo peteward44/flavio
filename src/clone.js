@@ -1,3 +1,4 @@
+import path from 'path';
 import * as util from './util.js';
 import * as resolve from './resolve.js';
 import caliber from './index.js';

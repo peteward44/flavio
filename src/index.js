@@ -9,7 +9,7 @@ const commands = {
 	install,
 	// update,
 	// tag,
-	clone,
+	clone
 	// branch,
 	// 'export': exportProject
 };

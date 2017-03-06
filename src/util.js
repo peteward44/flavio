@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import * as gsi from 'git-svn-interface';
-import semver from 'semver';
 
 /**
  * Loads the caliber.json from the given directory. If none exists, returns empty object
@@ -34,7 +33,7 @@ export function saveCaliberJson( cwd, json ) {
 		fs.saveFile( p, JSON.stringify( json, null, 2 ), 'utf-8', (err) => {
 			err ? reject( err ) : resolve();
 		} );
-	} )
+	} );
 }
 
 /**

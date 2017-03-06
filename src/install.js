@@ -1,7 +1,6 @@
 import _ from 'lodash';
 import fs from 'fs-extra';
 import path from 'path';
-import semver from 'semver';
 import * as util from './util.js';
 import * as resolve from './resolve.js';
 
@@ -132,12 +131,12 @@ async function install(repos, options) {
 	
 	// add new modules to the caliber.json
 	for ( const name of newModules ) {
+		const repo = repoMap.get( name );
 		if ( options.save ) {
 			caliberJsonChanged = true;
 			if ( !_.isObject( caliberJson.dependencies ) ) {
 				caliberJson.dependencies = {};
 			}
-			const repo = repoMap.get( name );
 			const latestVersion = await resolve.getLatestVersionFromUrl( repo );
 			caliberJson.dependencies[name] = util.formatDefaultRepoPath( repo, latestVersion );
 		} else if ( options['save-dev'] ) {

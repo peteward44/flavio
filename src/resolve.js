@@ -1,4 +1,3 @@
-import _ from 'lodash';
 import semver from 'semver';
 import * as util from './util.js';
 
@@ -72,7 +71,7 @@ export async function getTargetDescriptionFromRepoUrl( repo ) {
  * @param {Array.<string>} repos - Array of repository paths in "bower format"
  * @returns {string} - Whichever path in the 'repos' param is the latest version
  */
-async function getLatestVersion( repos ) {
+export async function getLatestVersion( repos ) {
 	// TODO:
 	return repos[0];
 }
