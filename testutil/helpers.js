@@ -114,16 +114,10 @@ export async function addProject(tempDir, transport, options, rootObj, rootBower
 	}
 
 	if (options.targetDesc && options.targetDesc.type === 'tag') {
-		const tagDir = createTempFolder(tempDir);
+		const tagDir = createTempFolder( uuid.v4() );
 		try {
-			await caliber.commands.clone({
-				cwd: tagDir,
-				url: transport.formatBowerDependencyUrl(url, targetDesc)
-			});
-			await caliber.commands.tag([], {
-				cwd: tagDir,
-				tagName: options.targetDesc.name
-			});
+			await transport.checkout( url, targetDesc, tagDir );
+			await transport.createTag( tagDir, url, { type: 'trunk', name: 'trunk' }, options.targetDesc.name, {} );
 		} finally {
 			fs.removeSync(tagDir);
 		}

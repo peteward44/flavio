@@ -74,127 +74,78 @@ function defineTests(transport) {
 			const filePath = path.join(result.checkoutDir, 'caliber_modules', 'dep1', 'file.txt');
 			assert.ok(fs.existsSync(filePath), 'File exists');
 		});
+
+		helpers.test('project install, with dependencies on branches', async (tempDir) => {
+			const result = await helpers.createRepoCheckout(
+				tempDir,
+				transport,
+				{
+					name: 'main',
+					version: '0.1.0-snapshot.0',
+					checkoutMainOnly: true,
+					modules: [
+						{
+							name: 'dep1',
+							targetDesc: {
+								name: 'branch1',
+								type: 'branch'
+							},
+							version: '1.0.0-snapshot.0',
+							files: [
+								{
+									path: 'file.txt',
+									contents: 'this is on a branch'
+								}
+							]
+						}
+					]
+				},
+			);
+			await caliber.commands.install(
+				'',
+				{
+					cwd: result.checkoutDir
+				}
+			);
+			const filePath = path.join(result.checkoutDir, 'caliber_modules', 'dep1', 'file.txt');
+			assert.ok(fs.existsSync(filePath), 'File exists');
+		});
 		
-		// helpers.promiseIt('single project checkout, no dependencies, no bower.json present', async (tempDir) => {
-			// const dir = helpers.createTempFolder(tempDir);
-			// const result = await helpers.createRepo(
-				// tempDir,
-				// transport,
-				// {
-					// name: 'main',
-					// version: '0.1.0-snapshot.0',
-					// files: [
-						// {
-							// path: 'file.txt',
-							// contents: 'this is on the main project'
-						// }
-					// ],
-					// nobowerjson: true,
-					// modules: []
-				// },
-			// );
-			// await bowerex.commands.checkout({
-				// url: transport.formatBowerDependencyUrl(result.url),
-				// cwd: dir,
-				// pkgNameRandom: true
-			// });
-			// const filePath = path.join(dir, 'file.txt');
-			// assert.ok(fs.existsSync(filePath), 'File exists');
-		// });
-
-		// helpers.promiseIt('single project checkout, with dependencies', async (tempDir) => {
-			// const dir = helpers.createTempFolder(tempDir);
-			// const result = await helpers.createRepo(
-				// tempDir,
-				// transport,
-				// {
-					// name: 'main',
-					// version: '0.1.0-snapshot.0',
-					// modules: [
-						// {
-							// name: 'dep1',
-							// version: '1.0.0-snapshot.0',
-							// files: [
-								// {
-									// path: 'file.txt',
-									// contents: 'this is on a dep'
-								// }
-							// ]
-						// }
-					// ]
-				// },
-			// );
-			// await bowerex.commands.checkout({
-				// url: transport.formatBowerDependencyUrl(result.url),
-				// cwd: dir,
-				// pkgNameRandom: true
-			// });
-			// const filePath = path.join(dir, 'bower_components', 'dep1', 'file.txt');
-			// assert.ok(fs.existsSync(filePath), 'File in trunk exists in bower_components');
-		// });
-
-		// helpers.promiseIt('single project checkout, with dependencies on branches', async (tempDir) => {
-			// const dir = helpers.createTempFolder(tempDir);
-			// const result = await helpers.createRepo(
-				// tempDir,
-				// transport,
-				// {
-					// name: 'main',
-					// version: '0.1.0-snapshot.0',
-					// modules: [
-						// {
-							// name: 'dep1',
-							// branch: 'branch1',
-							// version: '1.0.0-snapshot.0',
-							// files: [
-								// {
-									// path: 'file.txt',
-									// contents: 'this is on a branch'
-								// }
-							// ]
-						// }
-					// ]
-				// },
-			// );
-			// await bowerex.commands.checkout({
-				// url: transport.formatBowerDependencyUrl(result.url),
-				// cwd: dir,
-				// pkgNameRandom: true
-			// });
-			// const filePath = path.join(dir, 'bower_components', 'dep1', 'file.txt');
-			// assert.ok(fs.existsSync(filePath), 'File in branch exists in bower_components');
-		// });
-
-		// helpers.promiseIt('single project install, with dependencies', async (tempDir) => {
-			// const result = await helpers.createRepoCheckout(
-				// tempDir,
-				// transport,
-				// {
-					// name: 'main',
-					// version: '0.1.0-snapshot.0',
-					// checkoutMainOnly: true,
-					// modules: [
-						// {
-							// name: 'dep1',
-							// version: '1.0.0-snapshot.0',
-							// files: [
-								// {
-									// path: 'file.txt',
-									// contents: 'data'
-								// }
-							// ]
-						// }
-					// ]
-				// },
-			// );
-			// await bowerex.commands.install([], {
-				// cwd: result.checkoutDir,
-				// pkgNameRandom: true
-			// });
-			// const filePath = path.join(result.checkoutDir, 'bower_components', 'dep1', 'file.txt');
-			// assert.ok(fs.existsSync(filePath), 'File in exists in bower_components');
-		// });
-
+		helpers.test('project install, with dependencies on tags', async (tempDir) => {
+			const result = await helpers.createRepoCheckout(
+				tempDir,
+				transport,
+				{
+					name: 'main',
+					version: '0.1.0-snapshot.0',
+					checkoutMainOnly: true,
+					modules: [
+						{
+							name: 'dep1',
+							targetDesc: {
+								name: '1.0.0',
+								type: 'tag'
+							},
+							version: '1.0.0',
+							files: [
+								{
+									path: 'file.txt',
+									contents: 'this is on a tag'
+								}
+							]
+						}
+					]
+				},
+			);
+			await caliber.commands.install(
+				'',
+				{
+					cwd: result.checkoutDir
+				}
+			);
+			const filePath = path.join(result.checkoutDir, 'caliber_modules', 'dep1', 'file.txt');
+			assert.ok(fs.existsSync(filePath), 'File exists');
+		});
 
 		// helpers.promiseIt('checkout project on a tag', async (tempDir) => {
 			// const result = await helpers.createRepoCheckout(

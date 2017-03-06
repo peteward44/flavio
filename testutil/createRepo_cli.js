@@ -1,6 +1,4 @@
 // Intended to be able to quickly create test repo's from the command line for manual testing
-require('babel-register');
-
 const fs = require('fs-extra');
 const path = require('path');
 const yargs = require('yargs');

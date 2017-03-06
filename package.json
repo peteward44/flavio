@@ -9,10 +9,11 @@
     "caliber": "./bin/caliber"
   },
   "scripts": {
-    "start": "caliber",
+    "start": "node cli.js",
     "test": "mocha --require babel-register --require babel-polyfill",
     "lint": "eslint js test testutil",
-    "lintfix": "eslint js test testutil --fix"
+    "lintfix": "eslint js test testutil --fix",
+	"repo": "node -r babel-register -r babel-polyfill testutil/createRepo_cli.js"
   },
   "author": "Pete Ward <peteward44@gmail.com>",
   "license": "MIT",
