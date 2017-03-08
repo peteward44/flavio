@@ -55,7 +55,7 @@ export default function start() {
 				const options = subyargs
 					.usage('Usage: caliber tag <optional modules> [options]')
 					.example('caliber tag', 'Creates a tag for main project and all linked bower dependencies')
-					.example('caliber tag main', 'Creates a tag for main project only')
+//					.example('caliber tag main', 'Creates a tag for main project only')
 					.example('caliber tag my_module my_module2', 'Creates a tag for my_module and my_module2 only')
 					.help('help')
 					.option('cwd', {
@@ -79,14 +79,14 @@ export default function start() {
 						describe: 'semver pre-release name to increment version on master branch. Set to false for no pre-release name',
 						type: 'string'
 					})
-					.option('mergeLocalChanges', {
-						describe: 'if there are uncommited local changes on a checked out tag, automatically merge back to original branch',
-						type: 'boolean'
-					})
-					.option('commitLocalChanges', {
-						describe: 'if there are uncommited local changes, automatically commit',
-						type: 'boolean'
-					})
+					// .option('mergeLocalChanges', {
+						// describe: 'if there are uncommited local changes on a checked out tag, automatically merge back to original branch',
+						// type: 'boolean'
+					// })
+					// .option('commitLocalChanges', {
+						// describe: 'if there are uncommited local changes, automatically commit',
+						// type: 'boolean'
+					// })
 					.argv;
 				let names;
 				if (options._.length > 1) {

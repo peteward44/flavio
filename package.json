@@ -20,13 +20,14 @@
   "author": "Pete Ward <peteward44@gmail.com>",
   "license": "MIT",
   "dependencies": {
+    "babel-polyfill": "^6.23.0",
     "fs-extra": "^2.0.0",
     "git-svn-interface": "^0.1.8",
     "lodash": "^4.17.4",
     "semver": "^5.3.0",
     "uuid": "^3.0.1",
-    "yargs": "^6.6.0",
-    "babel-polyfill": "^6.23.0"
+    "winston": "^2.3.1",
+    "yargs": "^6.6.0"
   },
   "engines": {
     "node": ">=4.0.0"
