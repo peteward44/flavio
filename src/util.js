@@ -72,6 +72,10 @@ export function parseRepositoryUrl( url ) {
 	return result;
 }
 
+export function formatRepositoryUrl( scm, url, targetDesc ) {
+	return `${scm}+${url}#${targetDesc.name}`;
+}
+
 /**
  * @param {string} cwd - Working directory
  * @returns {Promise.<string>} - Root path to save all packages

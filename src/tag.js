@@ -209,6 +209,20 @@
 	// }
 // }
 
+
+function countPackagesRequiringTags(workDescriptor) {
+	let count = 0;
+	for (const pkgName in workDescriptor) {
+		if (workDescriptor.hasOwnProperty(pkgName)) {
+			const pkgWd = workDescriptor[pkgName];
+			if (pkgWd.doTag) {
+				count++;
+			}
+		}
+	}
+	return count;
+}
+
 /**
  * Executes tag command on project
  *
@@ -216,6 +230,8 @@
  * @param {Object} options - Command line options
  */
 export default async function tagProject(names = [], options = {}) {
+	const packageArray = await bowerTools.getProjectPackageList(options.cwd, names, _.extend({}, options, { includeRootProject: true }));
+
 	// for each package we are going to tag, scan the packages and see what name we should give the new tag for each package
 	const versionReport = await decideVersions(options, packageArray, workDescriptor);
 	let finishMessage;
