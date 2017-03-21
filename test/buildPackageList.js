@@ -55,11 +55,10 @@ function defineTests(transport) {
 			chai.expect( packages[0] ).to.have.property( 'path', result.checkoutDir );
 			chai.expect( packages[0] ).to.have.property( 'scm', transport.name );
 			chai.expect( packages[0].targetDesc ).to.deep.equal( { type: 'trunk', name: 'trunk' } );
-			
-			console.log( "result", JSON.stringify( result, null, 2 ) );
+
 			chai.expect( packages[1] ).to.have.property( 'name', 'dep1' );
 			chai.expect( packages[1] ).to.have.property( 'version', '1.0.0-snapshot.0' );
-			chai.expect( packages[1] ).to.have.property( 'path', result.deps.dep1.dir );
+			chai.expect( packages[1] ).to.have.property( 'path', path.join( result.checkoutDir, 'caliber_modules', 'dep1' ) );
 			chai.expect( packages[1] ).to.have.property( 'scm', transport.name );
 			chai.expect( packages[1].targetDesc ).to.deep.equal( { type: 'trunk', name: 'trunk' } );
 		});

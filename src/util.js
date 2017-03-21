@@ -2,6 +2,20 @@ import fs from 'fs';
 import path from 'path';
 import * as gsi from 'git-svn-interface';
 
+export async function getWorkingCopyRepoPath( cwd ) {
+	let transport;
+	let scm;
+	if ( gsi.git.isWorkingCopy( cwd ) ) {
+		transport = gsi.git;
+		scm = 'git';
+	} else {
+		transport = gsi.svn;
+		scm = 'svn';
+	}
+	const { name, url, targetDesc } = await transport.getWorkingCopyInfo( cwd );
+	return formatRepositoryUrl( scm, url, targetDesc );
+}
+
 /**
  * Loads the caliber.json from the given directory. If none exists, returns empty object
  *

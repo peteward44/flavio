@@ -75,6 +75,58 @@ function defineTests(transport) {
 			assert.ok(fs.existsSync(filePath), 'File exists');
 		});
 
+		helpers.test('project install, with a dependency that has dependencies', async (tempDir) => {
+			const result = await helpers.createRepoCheckout(
+				tempDir,
+				transport,
+				{
+					name: 'main',
+					version: '0.1.0-snapshot.0',
+					checkoutMainOnly: true,
+					files: [
+						{
+							path: 'file.txt',
+							contents: 'this is on the main project'
+						}
+					],
+					modules: [
+						{
+							name: 'dep1',
+							version: '1.0.0-snapshot.0',
+							files: [
+								{
+									path: 'file.txt',
+									contents: 'this is on dep1'
+								}
+							],
+							modules: [
+								{
+									name: 'dep2',
+									version: '2.0.0-snapshot.0',
+									files: [
+										{
+											path: 'file2.txt',
+											contents: 'this is on dep2'
+										}
+									]
+								}
+							]
+						}
+					]
+				}
+			);
+			await caliber.commands.install(
+				'',
+				{
+					cwd: result.checkoutDir
+				}
+			);
+			const filePath = path.join(result.checkoutDir, 'caliber_modules', 'dep1', 'file.txt');
+			assert.ok(fs.existsSync(filePath), 'File exists on 1st level dependency');
+			const filePath2 = path.join(result.checkoutDir, 'caliber_modules', 'dep2', 'file2.txt');
+			assert.ok(fs.existsSync(filePath2), 'File exists on 2nd level dependency');
+		});
+		
 		helpers.test('project install, with dependencies on branches', async (tempDir) => {
 			const result = await helpers.createRepoCheckout(
 				tempDir,

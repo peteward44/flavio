@@ -230,29 +230,29 @@ function countPackagesRequiringTags(workDescriptor) {
  * @param {Object} options - Command line options
  */
 export default async function tagProject(names = [], options = {}) {
-	const packageArray = await bowerTools.getProjectPackageList(options.cwd, names, _.extend({}, options, { includeRootProject: true }));
+	// const packageArray = await bowerTools.getProjectPackageList(options.cwd, names, _.extend({}, options, { includeRootProject: true }));
 
-	// for each package we are going to tag, scan the packages and see what name we should give the new tag for each package
-	const versionReport = await decideVersions(options, packageArray, workDescriptor);
-	let finishMessage;
-	if (countPackagesRequiringTags(workDescriptor) > 0) {
-		// then create the bower.json's we should store in each package's tag, as well as an updated one on the trunk of each package
-		await createBowerJsons(options, packageArray, workDescriptor);
-		if (await getUserConfirmation(options, workDescriptor)) {
-			// create the tags for each package
-			await createTags(packageArray, workDescriptor);
-			finishMessage = 'All tags created.';
-		} else {
-			winston.info('Operation cancelled');
-		}
-	} else {
-		// work out latest version of main project if no tag required, so user can use that instead
-		finishMessage = 'No packages require tagging.';
-	}
-	if (finishMessage) {
-		const transport = getTransport.fromWorkingCopy(options.cwd);
-		const info = await transport.getWorkingCopyInfo(options.cwd);
-		const bowerUrl = transport.formatBowerDependencyUrl(info.url, { type: 'tag', name: versionReport._ });
-		winston.info(`${finishMessage} ${bowerUrl}`);
-	}
+	// // for each package we are going to tag, scan the packages and see what name we should give the new tag for each package
+	// const versionReport = await decideVersions(options, packageArray, workDescriptor);
+	// let finishMessage;
+	// if (countPackagesRequiringTags(workDescriptor) > 0) {
+		// // then create the bower.json's we should store in each package's tag, as well as an updated one on the trunk of each package
+		// await createBowerJsons(options, packageArray, workDescriptor);
+		// if (await getUserConfirmation(options, workDescriptor)) {
+			// // create the tags for each package
+			// await createTags(packageArray, workDescriptor);
+			// finishMessage = 'All tags created.';
+		// } else {
+			// winston.info('Operation cancelled');
+		// }
+	// } else {
+		// // work out latest version of main project if no tag required, so user can use that instead
+		// finishMessage = 'No packages require tagging.';
+	// }
+	// if (finishMessage) {
+		// const transport = getTransport.fromWorkingCopy(options.cwd);
+		// const info = await transport.getWorkingCopyInfo(options.cwd);
+		// const bowerUrl = transport.formatBowerDependencyUrl(info.url, { type: 'tag', name: versionReport._ });
+		// winston.info(`${finishMessage} ${bowerUrl}`);
+	// }
 }

@@ -49,6 +49,81 @@ async function getDependencyNameFromRepoUrl( repo ) {
 }
 
 /**
+ * Creates tree structure of all dependencies
+ */
+async function buildDependencyTree( options, parentRepo, caliberJson, repos = [], isRoot = false ) {
+	let element = {
+		status: 'normal',
+		repo: parentRepo,
+		children: new Map()
+	};
+	async function addRepo( name, repoPath ) {
+		let childCaliberJson = {};
+		const rootDir = await util.getPackageRootPath( options.cwd );
+		const filePath = path.join( rootDir, name, 'caliber.json' );
+		if ( fs.existsSync( filePath ) ) {
+			const childCaliberJson = await util.loadCaliberJson( path.join( rootDir, name ) );
+			const child = await buildDependencyTree( options, repoPath, childCaliberJson );
+			element.children.set( name, child );
+		} else {
+			// check the repo directory
+			const repoUrl = util.parseRepositoryUrl( repoPath );
+			const scm = util.getSCM( repoUrl.scm );
+			try {
+				const childCaliberJson = JSON.parse( await scm.cat( repoUrl.url, repoUrl.targetDesc, 'caliber.json' ) );
+				const child = await buildDependencyTree( options, repoPath, childCaliberJson );
+				element.children.set( name, child );
+			} catch ( err ) {
+				element.children.set( name, { status: 'nojson', repo: repoPath } );
+			}
+		}
+	}
+	
+	// make sure all dependencies specified in caliber.json are installed and up-to-date
+	if ( _.isObject( caliberJson.dependencies ) ) {
+		for ( const name of Object.keys( caliberJson.dependencies ) ) {
+			const repoPath = caliberJson.dependencies[name];
+			await addRepo( name, repoPath );
+		}
+	}
+	if ( isRoot && !options.production && _.isObject( caliberJson.devDependencies ) ) {
+		for ( const name of Object.keys( caliberJson.devDependencies ) ) {
+			const repoPath = caliberJson.devDependencies[name];
+			await addRepo( name, repoPath );
+		}
+	}
+
+	// install each repo specified on command line
+	// array of new module names to add to the caliber.json
+	for ( const repo of repos ) {
+		if ( repo ) {
+			const name = await getDependencyNameFromRepoUrl( repo );
+			await addRepo( name, repo );
+		}
+	}
+	return element;
+}
+
+/**
+ * Builds a map of the repositories that require installing, resolves any conflicts that occur
+ */
+async function buildRepoMap( options, repos, caliberJson, newModules, repoMap ) {
+
+	// do any conflict resolution here
+	// TODO: look in caliber.json for 'resolutions' section to determine version of dep to use
+	options['force-latest'] = true;
+	if ( !options['force-latest'] ) {
+		for ( const [name, conflictArray] of conflicts ) {
+			// TODO: ask user to resolve conflict
+			console.log( `Conflict found` );
+		}
+	}
+	
+	// execute function again if any conflicts were found, and keep executing until all conflicts resolved
+	
+}
+
+/**
  * Executes install on given directory
  *
  * @param {Array.<string>|string} repos - Array of repository paths in "bower format" to add to the project, or empty to install all dependencies inside caliber.json
@@ -67,91 +142,42 @@ async function install(repos, options) {
 		throw new Error( `Invalid cwd argument ${options.cwd}` );
 	}
 	let caliberJson = await util.loadCaliberJson( options.cwd );
-	let caliberJsonChanged = false;
-	
-	// build list of modules to either clone fresh or update
-	// this way any conflicts can be detected before any downloading is done
-	// map of module names vs their 'bower' repository paths we should use
-	let repoMap = new Map();
-	// map of module names vs array of bower repository names, if there are multiple different versions of the same module specified
-	let conflicts = new Map();
-	
-	async function addRepo( name, repoPath ) {
-		if ( repoMap.has( name ) ) {
-			// repository name has already been added - add to conflict array to be resolved later
-			if ( !conflicts.has( name ) ) {
-				conflicts.set( name, [] );
-			}
-			if ( !conflicts.get( name ).includes( repoPath ) ) {
-				conflicts.get( name ).push( repoPath );
-				// if it's a new conflict, work out the latest version and keep that in the repoMap map
-				const latestVersion = await resolve.getLatestVersion( conflicts.get( name ) );
-				repoMap.set( name, latestVersion );
-			}
-		} else {
-			repoMap.set( name, repoPath );
-		}
-	}
-	
-	// make sure all dependencies specified in caliber.json are installed and up-to-date
-	if ( _.isObject( caliberJson.dependencies ) ) {
-		for ( const name of Object.keys( caliberJson.dependencies ) ) {
-			const repoPath = caliberJson.dependencies[name];
-			await addRepo( name, repoPath );
-		}
-	}
-	if ( !options.production && _.isObject( caliberJson.devDependencies ) ) {
-		for ( const name of Object.keys( caliberJson.devDependencies ) ) {
-			const repoPath = caliberJson.devDependencies[name];
-			await addRepo( name, repoPath );
-		}
-	}
 
-	// install each repo specified on command line
-	// array of new module names to add to the caliber.json
-	let newModules = [];
-	for ( const repo of repos ) {
-		if ( repo ) {
-			const name = await getDependencyNameFromRepoUrl( repo );
-			await addRepo( name, repo );
-			newModules.push( name );
-		}
-	}
-
-	// TODO: do any conflict resolution here
-	for ( const [name, conflictArray] of conflicts ) {
-		
-	}
+	const depTree = await buildDependencyTree( options, await util.getWorkingCopyRepoPath( options.cwd ), caliberJson, repos, true );
 	
-	// download/update modules
-	for ( const [name, repo] of repoMap ) {
-		console.log( `Updating ${name} [${repo}]...` );
-		await cloneUpdatePackage( options, name, repo );
-	}
+	// resolve conflicts in dep tree
 	
-	// add new modules to the caliber.json
-	for ( const name of newModules ) {
-		const repo = repoMap.get( name );
-		if ( options.save ) {
-			caliberJsonChanged = true;
-			if ( !_.isObject( caliberJson.dependencies ) ) {
-				caliberJson.dependencies = {};
-			}
-			const latestVersion = await resolve.getLatestVersionFromUrl( repo );
-			caliberJson.dependencies[name] = util.formatDefaultRepoPath( repo, latestVersion );
-		} else if ( options['save-dev'] ) {
-			caliberJsonChanged = true;
-			if ( !_.isObject( caliberJson.devDependencies ) ) {
-				caliberJson.devDependencies = {};
-			}
-			const latestVersion = await resolve.getLatestVersionFromUrl( repo );
-			caliberJson.devDependencies[name] = util.formatDefaultRepoPath( repo, latestVersion );
-		}
-	}
-	// save caliber.json if --save or --save-dev options specified
-	if ( caliberJsonChanged ) {
-		await util.saveCaliberJson( options.cwd, caliberJson );	
-	}
+	
+	// // download/update modules
+	// for ( const [name, repo] of repoMap ) {
+		// console.log( `Updating ${name} [${repo}]...` );
+		// await cloneUpdatePackage( options, name, repo );
+	// }
+	
+	// // add new modules to the caliber.json
+	// let caliberJsonChanged = false;
+	// for ( const name of newModules ) {
+		// const repo = repoMap.get( name );
+		// if ( options.save ) {
+			// caliberJsonChanged = true;
+			// if ( !_.isObject( caliberJson.dependencies ) ) {
+				// caliberJson.dependencies = {};
+			// }
+			// const latestVersion = await resolve.getLatestVersionFromUrl( repo );
+			// caliberJson.dependencies[name] = util.formatDefaultRepoPath( repo, latestVersion );
+		// } else if ( options['save-dev'] ) {
+			// caliberJsonChanged = true;
+			// if ( !_.isObject( caliberJson.devDependencies ) ) {
+				// caliberJson.devDependencies = {};
+			// }
+			// const latestVersion = await resolve.getLatestVersionFromUrl( repo );
+			// caliberJson.devDependencies[name] = util.formatDefaultRepoPath( repo, latestVersion );
+		// }
+	// }
+	// // save caliber.json if --save or --save-dev options specified
+	// if ( caliberJsonChanged ) {
+		// await util.saveCaliberJson( options.cwd, caliberJson );	
+	// }
 }
 
 export default install;
