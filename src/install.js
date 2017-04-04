@@ -36,9 +36,9 @@ async function updateMainProject( options ) {
  */
 export function saveCaliberJson( cwd, json ) {
 	const p = path.join( cwd, 'caliber.json' );
-	return new Promise( (resolve, reject) => {
+	return new Promise( (resolv, reject) => {
 		fs.writeFile( p, JSON.stringify( json, null, 2 ), 'utf-8', (err) => {
-			err ? reject( err ) : resolve();
+			err ? reject( err ) : resolv();
 		} );
 	} );
 }
@@ -48,7 +48,6 @@ async function updateOutofDate( children ) {
 		console.log( `Updating ${name} [${module.repo}]...` );
 		// check if the repo path resolves to a different target (ie. it was on a tag 0.1.0, but should now be 0.1.1).
 		// If it is, switch over to that. Otherwise, just do a basic pull
-		const repoUrl = util.parseRepositoryUrl( module.repo );
 		const targetObj = await resolve.getTargetFromRepoUrl( module.repo );
 		const targetCur = await git.getCurrentTarget( module.dir );
 		const targetChanged = targetObj.branch !== targetCur.branch || targetObj.tag !== targetCur.tag;

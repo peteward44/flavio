@@ -8,21 +8,6 @@ export async function getPackageRootPath( cwd ) {
 }
 
 /**
- * Takes a bower repository url, if there is no version or branch/tag name specified then it will add a default one (like npm does, like ^3.0.0)
- * This is used when --save or --save-dev option is specified and it is saving the repo path to caliber.json
- *
- * @param {string} repo - repository path in "bower format"
- * @returns {string} - Modified repository path (or same as 'repo' param if no modification required)
- */
-export function formatDefaultRepoPath( repo ) {
-	const repoUrl = parseRepositoryUrl( repo );
-	if ( repoUrl.target === 'master' ) {
-		repo = `${repoUrl.url}#master`;
-	}
-	return repo.replace( /\\/g, '/' );
-}
-
-/**
  * Takes a bower-style repository url and breaks it down
  *
  * @param {string} url - Repository url
@@ -43,6 +28,21 @@ export function parseRepositoryUrl( url ) {
 	result.url = url;
 
 	return result;
+}
+
+/**
+ * Takes a bower repository url, if there is no version or branch/tag name specified then it will add a default one (like npm does, like ^3.0.0)
+ * This is used when --save or --save-dev option is specified and it is saving the repo path to caliber.json
+ *
+ * @param {string} repo - repository path in "bower format"
+ * @returns {string} - Modified repository path (or same as 'repo' param if no modification required)
+ */
+export function formatDefaultRepoPath( repo ) {
+	const repoUrl = parseRepositoryUrl( repo );
+	if ( repoUrl.target === 'master' ) {
+		repo = `${repoUrl.url}#master`;
+	}
+	return repo.replace( /\\/g, '/' );
 }
 
 /** Attempts to guess the name of the project from the URL

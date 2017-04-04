@@ -262,7 +262,6 @@ export async function listTags( url ) {
 }
 
 
-
 /** Checks if a working copy is clean
  * @param {string} dir Working copy
  * @param {string|Array} [filename] Optional specific filename to check
@@ -287,9 +286,9 @@ export async function stash( dir ) {
 	let clean = await isWorkingCopyClean( dir );
 	const stashName = uuid.v4();
 	if ( !clean ) {
-		await executeGit( [ 'stash', 'save', stashName ], { cwd: dir } );
+		await executeGit( ['stash', 'save', stashName], { cwd: dir } );
 		// check if it got saved
-		const listOut = ( await executeGit( [ 'stash', 'list' ], { cwd: dir, captureStdout: true } ) ).out;
+		const listOut = ( await executeGit( ['stash', 'list'], { cwd: dir, captureStdout: true } ) ).out;
 		if ( !listOut.match( stashName ) ) {
 			clean = true;
 		}
@@ -300,21 +299,21 @@ export async function stash( dir ) {
 
 export async function stashPop( dir, stashName ) {
 	if ( stashName ) {
-		await executeGit( [ 'stash', 'pop' ], { cwd: dir } );
+		await executeGit( ['stash', 'pop'], { cwd: dir } );
 	}
 }
 
 
 export async function pull( dir ) {
-	await executeGit( [ 'pull' ], { cwd: dir } );
+	await executeGit( ['pull'], { cwd: dir } );
 	//await executeGit( [ 'push' ], { cwd: dir } );
 }
 
 export async function checkout( dir, target ) {
 	if ( target.branch ) {
-		await executeGit( [ 'checkout', target.branch ], { cwd: dir } );
+		await executeGit( ['checkout', target.branch], { cwd: dir } );
 	} else if ( target.tag ) {
-		await executeGit( [ 'checkout', `tags/${target.tag}` ], { cwd: dir } );
+		await executeGit( ['checkout', `tags/${target.tag}`], { cwd: dir } );
 	}
 }
 
