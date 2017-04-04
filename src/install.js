@@ -54,7 +54,8 @@ async function updateOutofDate( children ) {
 		
 		const stashName = await git.stash( module.dir );
 		if ( targetChanged ) {
-			await git.checkout( module.dir, targetCur );
+			console.log( `Switching package ${name} to ${targetObj.branch || targetObj.tag}` );
+			await git.checkout( module.dir, targetObj );
 		}
 		await git.pull( module.dir );
 		await git.stashPop( module.dir, stashName );

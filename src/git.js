@@ -180,13 +180,16 @@ export async function cat( url, filepath, options = {} ) {
 	fs.ensureDirSync( tempDir );
 	try {
 		let bname = 'master';
+		let checkoutName = 'master';
 		if ( options.tag ) {
 			bname = `tags/${options.tag}`;
+			checkoutName = options.tag;
 		} else if ( options.branch ) {
 			bname = options.branch;
+			checkoutName = options.branch;
 		}
 		// clone repo to temp dir first
-		await executeGit( ['clone', url, tempDir, '--no-checkout', '-b', bname] );
+		await executeGit( ['clone', url, tempDir, '--no-checkout', '-b', checkoutName] );
 		// checkout single file from repo
 		await executeGit( ['checkout', bname, filepath], { cwd: tempDir } );
 		// then read in file
@@ -305,8 +308,10 @@ export async function stashPop( dir, stashName ) {
 
 
 export async function pull( dir ) {
-	await executeGit( ['pull'], { cwd: dir } );
-	//await executeGit( [ 'push' ], { cwd: dir } );
+	const target = getCurrentTarget( dir );
+	if ( target.branch ) {
+		await executeGit( ['pull'], { cwd: dir } );
+	}
 }
 
 export async function checkout( dir, target ) {
@@ -322,13 +327,16 @@ export async function addRemoteFile( filePath, fileContents, url, target ) {
 	fs.ensureDirSync( tempDir );
 	try {
 		let bname = 'master';
-		if ( target.tag ) {
-			bname = `tags/${target.tag}`;
-		} else if ( target.branch ) {
-			bname = target.branch;
+		let checkoutName = 'master';
+		if ( options.tag ) {
+			bname = `tags/${options.tag}`;
+			checkoutName = options.tag;
+		} else if ( options.branch ) {
+			bname = options.branch;
+			checkoutName = options.branch;
 		}
 		// clone repo to temp dir first
-		await executeGit( ['clone', url, tempDir, '--no-checkout', '-b', bname] );
+		await executeGit( ['clone', url, tempDir, '--no-checkout', '-b', checkoutName] );
 		// create file
 		fs.writeFileSync( path.join( tempDir, filePath ), fileContents );
 		await executeGit( ['add', filePath], { cwd: tempDir } );
