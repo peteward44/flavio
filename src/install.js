@@ -1,4 +1,6 @@
 import _ from 'lodash';
+import path from 'path';
+import fs from 'fs';
 import calculateDependencyTree from './calculateDependencyTree.js';
 import * as util from './util.js';
 import * as git from './git.js';
@@ -35,7 +37,7 @@ async function updateMainProject( options ) {
 export function saveCaliberJson( cwd, json ) {
 	const p = path.join( cwd, 'caliber.json' );
 	return new Promise( (resolve, reject) => {
-		fs.saveFile( p, JSON.stringify( json, null, 2 ), 'utf-8', (err) => {
+		fs.writeFile( p, JSON.stringify( json, null, 2 ), 'utf-8', (err) => {
 			err ? reject( err ) : resolve();
 		} );
 	} );
@@ -101,6 +103,7 @@ async function install(repos, options, update = false) {
 	// add new modules to the caliber.json
 	if ( repos.length > 0 && ( options.save || options['save-dev'] ) ) {
 		let caliberJsonChanged = false;
+		let caliberJson = depTree.caliberJson;
 		for ( let repo of repos ) {
 			if ( repo ) {
 				let name;
@@ -111,7 +114,6 @@ async function install(repos, options, update = false) {
 				} else {
 					name = await util.getDependencyNameFromRepoUrl( repo );
 				}
-				let caliberJson = depTree.caliberJson;
 				if ( options.save ) {
 					caliberJsonChanged = true;
 					if ( !_.isObject( caliberJson.dependencies ) ) {
@@ -128,7 +130,7 @@ async function install(repos, options, update = false) {
 			}
 		}
 		if ( caliberJsonChanged ) {
-			await util.saveCaliberJson( options.cwd, caliberJson );	
+			await saveCaliberJson( options.cwd, caliberJson );	
 		}
 	}
 }

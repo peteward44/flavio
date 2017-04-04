@@ -51,6 +51,25 @@ export default function start() {
 					.then(resolve)
 					.catch(reject);
 			})
+			.command('update', 'Update dependencies', (subyargs) => {
+				const options = subyargs
+					.usage('Usage: caliber update [options]')
+					.example('caliber update', 'Updates all dependencies')
+					.help('help')
+					.option('cwd', {
+						describe: 'Working directory to use',
+						default: process.cwd()
+					})
+					.option('force-latest', {
+						describe: 'Force latest version on conflict',
+						alias: 'F',
+						default: false
+					})
+					.argv;
+				caliber.commands.update(options)
+					.then(resolve)
+					.catch(reject);
+			})
 			.command('tag', 'Tags main project as well as any dependencies', (subyargs) => {
 				const options = subyargs
 					.usage('Usage: caliber tag <optional modules> [options]')

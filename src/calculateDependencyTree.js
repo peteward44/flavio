@@ -26,8 +26,12 @@ function loadCaliberJson( cwd ) {
 async function getCaliberJsonFromRepo( repoPath ) {
 	const repoUrl = util.parseRepositoryUrl( repoPath );
 	const targetObj = await resolve.getTargetFromRepoUrl( repoPath );
-	const childCaliberJson = JSON.parse( await git.cat( repoUrl.url, 'caliber.json', targetObj ) );
-	return childCaliberJson;
+	try {
+		const childCaliberJson = JSON.parse( await git.cat( repoUrl.url, 'caliber.json', targetObj ) );
+		return childCaliberJson;
+	} catch ( err ) {
+		return null;
+	}
 }
 
 /**

@@ -16,11 +16,10 @@ export async function getPackageRootPath( cwd ) {
  */
 export function formatDefaultRepoPath( repo ) {
 	const repoUrl = parseRepositoryUrl( repo );
-	if ( !repoUrl.target ) {
-		return `${repoUrl.url}#^${latestVersion}`;
-	} else { // target already defined in url - return unaltered
-		return repo;
+	if ( repoUrl.target === 'master' ) {
+		repo = `${repoUrl.url}#master`;
 	}
+	return repo.replace( /\\/g, '/' );
 }
 
 /**
@@ -63,7 +62,7 @@ function guessProjectNameFromUrl( url ) {
 	}
 	const index = url.lastIndexOf( '/' );
 	if ( index >= 0 ) {
-		return url.substr( index );
+		return url.substr( index + 1 );
 	} else {
 		return url;
 	}
