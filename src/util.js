@@ -1,101 +1,10 @@
-import fs from 'fs';
 import path from 'path';
-import * as gsi from 'git-svn-interface';
+import * as git from './git.js';
+import * as resolve from './resolve.js';
 
-export async function getWorkingCopyRepoPath( cwd ) {
-	let transport;
-	let scm;
-	if ( gsi.git.isWorkingCopy( cwd ) ) {
-		transport = gsi.git;
-		scm = 'git';
-	} else {
-		transport = gsi.svn;
-		scm = 'svn';
-	}
-	const { name, url, targetDesc } = await transport.getWorkingCopyInfo( cwd );
-	return formatRepositoryUrl( scm, url, targetDesc );
-}
-
-/**
- * Loads the caliber.json from the given directory. If none exists, returns empty object
- *
- * @param {string} cwd - Working directory
- * @returns {Promise.<Object>} - JSON
- */
-export function loadCaliberJson( cwd ) {
-	const p = path.join( cwd, 'caliber.json' );
-	return new Promise( (resolve, reject) => {
-		fs.readFile( p, 'utf-8', (err, txt) => {
-			err ? resolve( '{}' ) : resolve( txt );
-		} );
-	} )
-	.then( (txt) => {
-		return JSON.parse( txt.toString() );
-	} );
-}
-
-/**
- * Saves the caliber.json to the given directory
- *
- * @param {string} cwd - Working directory
- * @param {Object} json - New caliber.json data object
- * @returns {Promise}
- */
-export function saveCaliberJson( cwd, json ) {
-	const p = path.join( cwd, 'caliber.json' );
-	return new Promise( (resolve, reject) => {
-		fs.saveFile( p, JSON.stringify( json, null, 2 ), 'utf-8', (err) => {
-			err ? reject( err ) : resolve();
-		} );
-	} );
-}
-
-/**
- * @typedef {Object} RepositoryUrl
- * @property {string} url - Repository unadorned url
- * @property {string} scm - Source control - either 'svn' or 'git'
- * @property {string} [target] - The bit after the # - so either specifies a semver range or branch/tag name
- */
-
-/**
- * Takes a bower-style repository url and breaks it down
- *
- * @param {string} url - Repository url
- * @returns {RepositoryUrl}
- */
-export function parseRepositoryUrl( url ) {
-	let result = {};
-	const plusIndex = url.indexOf('+');
-	if (plusIndex >= 0) {
-		// transport type specified at start of url
-		result.scm = url.substr(0, plusIndex);
-		url = url.substr(plusIndex + 1);
-	} else {
-		result.scm = 'git';
-	}
-
-	const hashIndex = url.indexOf('#');
-	if (hashIndex >= 0) {
-		// specified branch / tag at end
-		result.target = url.substr(hashIndex + 1);
-		url = url.substr(0, hashIndex);
-	}
-
-	result.url = url;
-
-	return result;
-}
-
-export function formatRepositoryUrl( scm, url, targetDesc ) {
-	return `${scm}+${url}#${targetDesc.name}`;
-}
-
-/**
- * @param {string} cwd - Working directory
- * @returns {Promise.<string>} - Root path to save all packages
- */
-export function getPackageRootPath( cwd ) {
-	return Promise.resolve( path.join( cwd, 'caliber_modules' ) );
+export async function getPackageRootPath( cwd ) {
+	// TODO: read from .caliberrc
+	return path.join( cwd, 'caliber_modules' );
 }
 
 /**
@@ -105,36 +14,74 @@ export function getPackageRootPath( cwd ) {
  * @param {string} repo - repository path in "bower format"
  * @returns {string} - Modified repository path (or same as 'repo' param if no modification required)
  */
-export function formatDefaultRepoPath( repo, latestVersion ) {
+export function formatDefaultRepoPath( repo ) {
 	const repoUrl = parseRepositoryUrl( repo );
 	if ( !repoUrl.target ) {
-		return `${repo}#^${latestVersion}`;
+		return `${repoUrl.url}#^${latestVersion}`;
 	} else { // target already defined in url - return unaltered
 		return repo;
 	}
 }
 
 /**
- * @param {string} dir - Directory path
- * @returns {boolean} - True if directory exists
+ * Takes a bower-style repository url and breaks it down
+ *
+ * @param {string} url - Repository url
+ * @returns {RepositoryUrl}
  */
-export function dirExists( dir ) {
-	// TODO: make better
-	return fs.existsSync( dir );
+export function parseRepositoryUrl( url ) {
+	let result = {};
+
+	const hashIndex = url.indexOf('#');
+	if (hashIndex >= 0) {
+		// specified branch / tag at end
+		result.target = url.substr(hashIndex + 1);
+		url = url.substr(0, hashIndex);
+	} else {
+		result.target = 'master';
+	}
+
+	result.url = url;
+
+	return result;
+}
+
+/** Attempts to guess the name of the project from the URL
+ * @param {string} url URL
+ * @returns {string} Project name
+ */
+function guessProjectNameFromUrl( url ) {
+	// remove .git at end of url if necessary
+	const suffix = '.git';
+	url = url.replace( /\\/g, '/' );
+	if ( url.endsWith( suffix ) ) {
+		url = url.substr( 0, url.length - suffix.length );
+	}
+	if ( url[url.length-1] === '/' ) {
+		// chop off trailing slash if there is one
+		url = url.substr( 0, url.length - 1 );
+	}
+	const index = url.lastIndexOf( '/' );
+	if ( index >= 0 ) {
+		return url.substr( index );
+	} else {
+		return url;
+	}
 }
 
 /**
- * @param {string} scm - Source control type string - either svn or git
- * @returns {*} - Object interface for the particular scm type from the git-svn-interface library
+ * Gets the project name from project's caliber.json
+ * @param {string} repo - Repository url
+ * @returns {string} - Project name either from the caliber.json or guessed from the url
  */
-export function getSCM( scm ) {
-	switch (scm) {
-		case 'git':
-			return gsi.git;
-		case 'svn':
-			return gsi.svn;
-		default:
-			throw new Error(`Unknown source control type '${scm}'`);
+export async function getDependencyNameFromRepoUrl( repo ) {
+	const repoUrl = parseRepositoryUrl( repo );
+	try {
+		const targetObj = await resolve.getTargetFromRepoUrl( repo );
+		const caliberJson = JSON.parse( await git.cat( repoUrl.url, 'caliber.json', targetObj ) );
+		return caliberJson.name;
+	} catch ( err ) {
+		return guessProjectNameFromUrl( repoUrl.url );
 	}
 }
 

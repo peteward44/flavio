@@ -1,5 +1,6 @@
 import semver from 'semver';
 import * as util from './util.js';
+import * as git from './git.js';
 
 
 /**
@@ -8,10 +9,9 @@ import * as util from './util.js';
  * @param {string} repo - Repository path in "bower format"
  * @returns {Promise.<TargetDescription>}
  */
-export async function getTargetDescriptionFromRepoUrl( repo ) {
+export async function getTargetFromRepoUrl( repo ) {
 	const repoUrl = util.parseRepositoryUrl( repo );
-	const scm = util.getSCM( repoUrl.scm );
-	const tags = await scm.listTags( repoUrl.url );
+	const tags = await git.listTags( repoUrl.url );
 	const target = repoUrl.target;
 	if ( !target ) {
 		// none specifed
@@ -19,23 +19,16 @@ export async function getTargetDescriptionFromRepoUrl( repo ) {
 		if ( tags.length > 0 ) {
 			const latest = semver.maxSatisfying( tags, '*' );
 			return {
-				name: latest,
-				type: 'tag'
+				tag: latest
 			};
 		}
-		// if no tags exist, use 'trunk' (master branch)
-		return {
-			name: 'trunk',
-			type: 'trunk'
-		};
+		// if no tags exist, use master branch
+		return { master: true };
 	} else {
 		// target specified
-		// check if it's trunk/master
-		if ( ( repoUrl.scm === 'svn' && target === 'trunk' ) || ( repoUrl.scm === 'git' && target === 'master' ) ) {
-			return {
-				name: 'trunk',
-				type: 'trunk'
-			};
+		// check if it's master
+		if ( target === 'master' ) {
+			return { master: true };
 		}
 		// check if it's a semver range
 		if ( tags.length > 0 ) {
@@ -43,24 +36,21 @@ export async function getTargetDescriptionFromRepoUrl( repo ) {
 				const latest = semver.maxSatisfying( tags, target );
 				if ( latest ) {
 					return {
-						name: latest,
-						type: 'tag'
+						tag: latest
 					};
 				}
 			}
 			// check if its the name of a tag
 			if ( tags.include( target ) ) {
 				return {
-					name: target,
-					type: 'tag'
+					tag: target
 				};
 			}
 		}
 		// otherwise check if it's the name of a branch
 		// TODO: make sure is valid, will need some kind of 'listBranches' or something in git-svn-interface
 		return {
-			name: target,
-			type: 'branch'
+			branch: target
 		};
 	}
 }

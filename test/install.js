@@ -1,300 +1,195 @@
 import fs from 'fs-extra';
-import os from 'os';
 import path from 'path';
-import assert from 'assert';
-import { svn as svnTransport, git as gitTransport } from 'git-svn-interface';
+import chai from 'chai';
 import * as helpers from '../testutil/helpers.js';
-import caliber from '../';
+import * as git from '../lib/git.js';
+import install from '../lib/install.js';
 
-function defineTests(transport) {
-	describe(`${transport.name} install`, function() {
-		this.timeout(30 * 60 * 1000); // 30 minutes
+describe(`install tests`, function() {
+	this.timeout(30 * 60 * 1000); // 30 minutes
 
-		helpers.test('single project install, no dependencies - should complete without doing anything', async (tempDir) => {
-			const result = await helpers.createRepoCheckout(
-				tempDir,
-				transport,
+	helpers.test('install basic', async (tempDir) => {
+		const result = await git.addProject( tempDir, {
+			name: 'main',
+			version: '0.1.0-snapshot.0',
+			files: [
 				{
-					name: 'main',
-					version: '0.1.0-snapshot.0',
-					checkoutMainOnly: true,
+					path: 'file.txt',
+					contents: 'this is on the main project'
+				}
+			],
+			modules: [
+				{
+					name: 'main2',
+					version: '0.2.0-snapshot.0',
 					files: [
 						{
-							path: 'file.txt',
-							contents: 'this is on the main project'
-						}
-					],
-					modules: []
-				}
-			);
-			await caliber.commands.install(
-				'',
-				{
-					cwd: result.checkoutDir
-				}
-			);
-			const filePath = path.join(result.checkoutDir, 'file.txt');
-			assert.ok(fs.existsSync(filePath), 'File exists');
-		});
-
-		helpers.test('project install, with 1 dependency', async (tempDir) => {
-			const result = await helpers.createRepoCheckout(
-				tempDir,
-				transport,
-				{
-					name: 'main',
-					version: '0.1.0-snapshot.0',
-					checkoutMainOnly: true,
-					files: [
-						{
-							path: 'file.txt',
-							contents: 'this is on the main project'
-						}
-					],
-					modules: [
-						{
-							name: 'dep1',
-							version: '1.0.0-snapshot.0',
-							files: [
-								{
-									path: 'file.txt',
-									contents: 'this is on a dep'
-								}
-							]
+							path: 'file2.txt',
+							contents: 'this is on the main2 project'
 						}
 					]
 				}
-			);
-			await caliber.commands.install(
-				'',
-				{
-					cwd: result.checkoutDir
-				}
-			);
-			const filePath = path.join(result.checkoutDir, 'caliber_modules', 'dep1', 'file.txt');
-			assert.ok(fs.existsSync(filePath), 'File exists');
-		});
+			]
+		} );
+		await install( [], { cwd: result.checkoutDir } );
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'caliber_modules', 'main2', 'file2.txt' ) ), 'main2 dependency installed' );
+	});
 
-		helpers.test('project install, with a dependency that has dependencies', async (tempDir) => {
-			const result = await helpers.createRepoCheckout(
-				tempDir,
-				transport,
+	helpers.test('install more complicated tree', async (tempDir) => {
+		const result = await git.addProject( tempDir, {
+			name: 'main',
+			version: '0.1.0-snapshot.0',
+			files: [
 				{
-					name: 'main',
-					version: '0.1.0-snapshot.0',
-					checkoutMainOnly: true,
+					path: 'file.txt',
+					contents: 'this is on the main project'
+				}
+			],
+			modules: [
+				{
+					name: 'main2',
+					version: '0.2.0-snapshot.0',
 					files: [
 						{
-							path: 'file.txt',
-							contents: 'this is on the main project'
+							path: 'file2.txt',
+							contents: 'this is on the main2 project'
 						}
 					],
 					modules: [
 						{
-							name: 'dep1',
-							version: '1.0.0-snapshot.0',
+							name: 'main3',
+							version: '0.3.0-snapshot.0',
 							files: [
 								{
-									path: 'file.txt',
-									contents: 'this is on dep1'
+									path: 'file3.txt',
+									contents: 'this is on the main3 project'
 								}
 							],
 							modules: [
 								{
-									name: 'dep2',
-									version: '2.0.0-snapshot.0',
+									name: 'main4',
+									version: '0.4.0-snapshot.0',
 									files: [
 										{
-											path: 'file2.txt',
-											contents: 'this is on dep2'
+											path: 'file4.txt',
+											contents: 'this is on the main4 project'
 										}
 									]
 								}
 							]
 						}
 					]
-				}
-			);
-			await caliber.commands.install(
-				'',
+				},
 				{
-					cwd: result.checkoutDir
-				}
-			);
-			const filePath = path.join(result.checkoutDir, 'caliber_modules', 'dep1', 'file.txt');
-			assert.ok(fs.existsSync(filePath), 'File exists on 1st level dependency');
-			const filePath2 = path.join(result.checkoutDir, 'caliber_modules', 'dep2', 'file2.txt');
-			assert.ok(fs.existsSync(filePath2), 'File exists on 2nd level dependency');
-		});
-		
-		helpers.test('project install, with dependencies on branches', async (tempDir) => {
-			const result = await helpers.createRepoCheckout(
-				tempDir,
-				transport,
-				{
-					name: 'main',
-					version: '0.1.0-snapshot.0',
-					checkoutMainOnly: true,
+					name: 'main5',
+					version: '0.5.0-snapshot.0',
+					files: [
+						{
+							path: 'file5.txt',
+							contents: 'this is on the main5 project'
+						}
+					],
 					modules: [
 						{
-							name: 'dep1',
-							targetDesc: {
-								name: 'branch1',
-								type: 'branch'
-							},
-							version: '1.0.0-snapshot.0',
+							name: 'main6',
+							version: '0.6.0-snapshot.0',
 							files: [
 								{
-									path: 'file.txt',
-									contents: 'this is on a branch'
+									path: 'file6.txt',
+									contents: 'this is on the main6 project'
 								}
 							]
 						}
 					]
-				},
-			);
-			await caliber.commands.install(
-				'',
-				{
-					cwd: result.checkoutDir
 				}
-			);
-			const filePath = path.join(result.checkoutDir, 'caliber_modules', 'dep1', 'file.txt');
-			assert.ok(fs.existsSync(filePath), 'File exists');
-		});
-		
-		helpers.test('project install, with dependencies on tags', async (tempDir) => {
-			const result = await helpers.createRepoCheckout(
-				tempDir,
-				transport,
-				{
-					name: 'main',
-					version: '0.1.0-snapshot.0',
-					checkoutMainOnly: true,
-					modules: [
-						{
-							name: 'dep1',
-							targetDesc: {
-								name: '1.0.0',
-								type: 'tag'
-							},
-							version: '1.0.0',
-							files: [
-								{
-									path: 'file.txt',
-									contents: 'this is on a tag'
-								}
-							]
-						}
-					]
-				},
-			);
-			await caliber.commands.install(
-				'',
-				{
-					cwd: result.checkoutDir
-				}
-			);
-			const filePath = path.join(result.checkoutDir, 'caliber_modules', 'dep1', 'file.txt');
-			assert.ok(fs.existsSync(filePath), 'File exists');
-		});
-
-		// helpers.promiseIt('checkout project on a tag', async (tempDir) => {
-			// const result = await helpers.createRepoCheckout(
-				// tempDir,
-				// transport,
-				// {
-					// name: 'main',
-					// version: '0.1.0-snapshot.0',
-					// modules: [
-						// {
-							// name: 'dep1',
-							// version: '1.0.0-snapshot.0',
-							// files: [
-								// {
-									// path: 'file.txt',
-									// contents: 'data'
-								// }
-							// ]
-						// }
-					// ]
-				// },
-			// );
-			// await bowerex.commands.tag([], {
-				// "cwd": result.checkoutDir,
-				// 'config.interactive': false
-			// });
-			// const checkoutDir = helpers.createTempFolder(tempDir);
-			// await bowerex.commands.checkout({
-				// cwd: checkoutDir,
-				// url: transport.formatBowerDependencyUrl(result.url, {
-					// type: 'tag',
-					// name: '0.1.0'
-				// })
-			// });
-			// const filePath = path.join(checkoutDir, 'bower_components', 'dep1', 'file.txt');
-			// assert.ok(fs.existsSync(filePath), 'File in exists in bower_components');
-		// });
-
-
-		// helpers.promiseIt('single project checkout, with dependency that should be automatically linked', async (tempDir) => {
-			// const dir = helpers.createTempFolder(tempDir);
-			// const result = await helpers.createRepo(
-				// tempDir,
-				// transport,
-				// {
-					// name: 'main',
-					// version: '0.1.0-snapshot.0',
-					// modules: [
-						// {
-							// name: 'dep1',
-							// version: '1.0.0-snapshot.0',
-							// files: [
-								// {
-									// path: 'file.txt',
-									// contents: 'this is on a dep'
-								// }
-							// ]
-						// }
-					// ]
-				// },
-			// );
-			// await bowerex.commands.checkout({
-				// url: transport.formatBowerDependencyUrl(result.url),
-				// cwd: dir
-			// });
-			// const filePath = path.join(dir, 'bower_checkouts', 'dep1', 'file.txt');
-			// assert.ok(fs.existsSync(filePath), 'File in trunk exists in bower_components');
-		// });
-
-		// it('single project checkout, with dependencies that have dependencies', function(done) {
-			// done();
-		// } );
-
-		// it('single project checkout, from a branch', function(done) {
-			// done();
-		// } );
-
-		// it('single project checkout, with dependencies on branches', function(done) {
-			// done();
-		// } );
-
-		// it('single project checkout, from a tag', function(done) {
-			// done();
-		// } );
-
-		// it('single project checkout, with dependencies on tags', function(done) {
-			// done();
-		// } );
-
-		// it('single project checkout, with mixed dependencies', function(done) {
-			// done();
-		// } );
+			]
+		} );
+		await install( [], { cwd: result.checkoutDir } );
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'caliber_modules', 'main2', 'file2.txt' ) ), 'main2 dependency installed' );
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'caliber_modules', 'main3', 'file3.txt' ) ), 'main3 dependency installed' );
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'caliber_modules', 'main4', 'file4.txt' ) ), 'main4 dependency installed' );
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'caliber_modules', 'main5', 'file5.txt' ) ), 'main5 dependency installed' );
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'caliber_modules', 'main6', 'file6.txt' ) ), 'main6 dependency installed' );		
 	});
-}
+	
 
-defineTests(svnTransport);
-if (os.platform() !== 'win32') {
-	defineTests(gitTransport);
-}
-
+	helpers.test('install add repo on CLI', async (tempDir) => {
+		const result = await git.addProject( tempDir, {
+			name: 'main',
+			version: '0.1.0-snapshot.0',
+			files: [
+				{
+					path: 'file.txt',
+					contents: 'this is on the main project'
+				}
+			],
+			modules: [
+				{
+					name: 'main2',
+					version: '0.2.0-snapshot.0',
+					files: [
+						{
+							path: 'file2.txt',
+							contents: 'this is on the main2 project'
+						}
+					]
+				}
+			]
+		} );
+		const result2 = await git.addProject( tempDir, {
+			name: 'main3',
+			version: '0.3.0-snapshot.0',
+			files: [
+				{
+					path: 'file3.txt',
+					contents: 'this is on the main3 project'
+				}
+			],
+			modules: [
+				{
+					name: 'main4',
+					version: '0.4.0-snapshot.0',
+					files: [
+						{
+							path: 'file4.txt',
+							contents: 'this is on the main4 project'
+						}
+					]
+				}
+			]
+		} );
+		
+		await install( [`main3,${result2.repoDir}#master`], { cwd: result.checkoutDir } );
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'caliber_modules', 'main2', 'file2.txt' ) ), 'main2 dependency installed' );
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'caliber_modules', 'main3', 'file3.txt' ) ), 'main3 dependency installed' );
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'caliber_modules', 'main4', 'file4.txt' ) ), 'main4 dependency installed' );
+	});
+	
+	helpers.test('install basic branch', async (tempDir) => {
+		const result = await git.addProject( tempDir, {
+			name: 'main',
+			version: '0.1.0-snapshot.0',
+			files: [
+				{
+					path: 'file.txt',
+					contents: 'this is on the main project'
+				}
+			],
+			modules: [
+				{
+					name: 'main2',
+					branch: 'branchname',
+					version: '0.2.0-snapshot.0',
+					files: [
+						{
+							path: 'file2.txt',
+							contents: 'this is on the main2 project'
+						}
+					]
+				}
+			]
+		} );
+		await install( [], { cwd: result.checkoutDir } );
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'caliber_modules', 'main2', 'file2.txt' ) ), 'main2 dependency installed' );
+	});
+});
