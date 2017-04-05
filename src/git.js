@@ -211,7 +211,7 @@ export async function getCurrentTarget( dir ) {
 		if ( result.code === 0 && name.length > 0 ) {
 			return { branch: name };
 		}
-	}	catch ( e ) {}
+	} catch ( e ) {}
 
 	const tag = await executeGit( ['describe', '--tags', '--exact-match'], { cwd: dir, captureStdout: true } );
 	return { tag: tag.out.trim() };

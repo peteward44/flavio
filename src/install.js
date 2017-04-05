@@ -53,10 +53,11 @@ async function updateOutofDate( children ) {
 		const targetObj = await resolve.getTargetFromRepoUrl( module.repo );
 		const targetCur = await git.getCurrentTarget( module.dir );
 		const targetChanged = targetObj.branch !== targetCur.branch || targetObj.tag !== targetCur.tag;
+		const validTarget = targetObj.branch || targetObj.tag;
 		
 		const stashName = await git.stash( module.dir );
-		if ( targetChanged ) {
-			console.log( `Switching package ${name} to ${targetObj.branch || targetObj.tag}` );
+		if ( targetChanged && validTarget ) {
+			console.log( `Switching package ${name} to ${validTarget}` );
 			await git.checkout( module.dir, targetObj );
 		}
 		await git.pull( module.dir );
