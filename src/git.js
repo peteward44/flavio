@@ -308,7 +308,7 @@ export async function stashPop( dir, stashName ) {
 
 
 export async function pull( dir ) {
-	const target = getCurrentTarget( dir );
+	const target = await getCurrentTarget( dir );
 	if ( target.branch ) {
 		await executeGit( ['pull'], { cwd: dir } );
 	}
@@ -327,16 +327,13 @@ export async function addRemoteFile( filePath, fileContents, url, target ) {
 	fs.ensureDirSync( tempDir );
 	try {
 		let bname = 'master';
-		let checkoutName = 'master';
-		if ( options.tag ) {
-			bname = `tags/${options.tag}`;
-			checkoutName = options.tag;
-		} else if ( options.branch ) {
-			bname = options.branch;
-			checkoutName = options.branch;
+		if ( target.tag ) {
+			throw new Error( `Can not commit a new file to a tag` );
+		} else if ( target.branch && target.branch !== 'master' ) {
+			bname = target.branch;
 		}
 		// clone repo to temp dir first
-		await executeGit( ['clone', url, tempDir, '--no-checkout', '-b', checkoutName] );
+		await executeGit( ['clone', url, tempDir, '--no-checkout', '-b', bname] );
 		// create file
 		fs.writeFileSync( path.join( tempDir, filePath ), fileContents );
 		await executeGit( ['add', filePath], { cwd: tempDir } );

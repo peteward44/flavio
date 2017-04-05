@@ -23,7 +23,9 @@ async function installMissing( children ) {
 }
 
 async function updateMainProject( options ) {
+	const stashName = await git.stash( options.cwd );
 	await git.pull( options.cwd );
+	await git.stashPop( options.cwd, stashName );
 }
 
 
@@ -59,7 +61,7 @@ async function updateOutofDate( children ) {
 		}
 		await git.pull( module.dir );
 		await git.stashPop( module.dir, stashName );
-		// TODO: detect conflicts and report if any
+		// TODO: detect local change conflicts and report if any
 		console.log( `Complete` );
 		if ( module.children ) {
 			await updateOutofDate( module.children );

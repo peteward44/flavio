@@ -14,6 +14,7 @@ describe(`update tests`, function() {
 			name: 'main',
 			version: '0.1.0-snapshot.0'
 		} );
+		await install( [], { cwd: result.checkoutDir } );
 		chai.assert.ok( !fs.existsSync( path.join( result.checkoutDir, 'file.txt' ) ) );
 		await git.addRemoteFile( 'file.txt', 'file contents', result.repoDir, { branch: 'master' } );
 		await update( { cwd: result.checkoutDir } );
@@ -31,6 +32,8 @@ describe(`update tests`, function() {
 				}
 			]
 		} );
+		
+		await install( [], { cwd: result.checkoutDir } );
 		
 		chai.assert.ok( !fs.existsSync( path.join( result.checkoutDir, 'file.txt' ) ) );
 		chai.assert.ok( !fs.existsSync( path.join( result.checkoutDir, 'caliber_modules', 'main2', 'file.txt' ) ) );
