@@ -3,6 +3,7 @@ import fs from 'fs-extra';
 import uuid from 'uuid';
 import os from 'os';
 import { spawn } from 'child_process';
+import * as util from './util.js';
 
 function getTempDir() {
 	const p = path.join( os.tmpdir(), uuid.v4() );
@@ -22,6 +23,7 @@ function executeGit( args, options ) {
 	options = options || {};
 	return new Promise( ( resolve, reject ) => {
 		let stdo = '';
+		console.log( `Executing git ${args.join(" ")}` );
 		let proc = spawn( 'git', args, { cwd: options.cwd ? options.cwd : process.cwd(), stdio: ['ignore', 'pipe', 'ignore'] } );
 
 		function unpipe() {
@@ -157,7 +159,7 @@ export async function addProject( tempDir, project, rootObj = null ) {
 	// add caliber.json
 	const files = Array.isArray( project.files ) ? project.files.slice(0) : [];
 	if (!project.nocaliberjson) {
-		files.push( { path: 'caliber.json', contents: JSON.stringify( caliberJson, null, '\t' ) } );
+		files.push( { path: util.getCaliberJsonFileName(), contents: JSON.stringify( caliberJson, null, '\t' ) } );
 	}
 
 	await createRepo( repoDir, checkoutDir, { files, branch: project.branch, tag: project.tag } );
@@ -189,7 +191,7 @@ export async function cat( url, filepath, options = {} ) {
 			checkoutName = options.branch;
 		}
 		// clone repo to temp dir first
-		await executeGit( ['clone', url, tempDir, '--no-checkout', '-b', checkoutName] );
+		await executeGit( ['clone', url, tempDir, '--no-checkout', '--depth=1', '-b', checkoutName] );
 		// checkout single file from repo
 		await executeGit( ['checkout', bname, filepath], { cwd: tempDir } );
 		// then read in file
@@ -233,7 +235,7 @@ export async function getWorkingCopyUrl( dir ) {
 export async function clone( url, dir, options = {} ) {
 	dir = path.resolve( dir );
 	fs.ensureDirSync( dir );
-	await executeGit( ['clone', url, dir, ...( options.minimal ? ['--no-checkout'] : [] )] );
+	await executeGit( ['clone', url, dir, ...( options.minimal ? ['--no-checkout', '--depth=1'] : [] )] );
 	if ( options.tag ) {
 		await executeGit( ['checkout', `tags/${options.tag}`], { cwd: dir } );
 	} else if ( options.branch ) {
@@ -333,7 +335,7 @@ export async function addRemoteFile( filePath, fileContents, url, target ) {
 			bname = target.branch;
 		}
 		// clone repo to temp dir first
-		await executeGit( ['clone', url, tempDir, '--no-checkout', '-b', bname] );
+		await executeGit( ['clone', url, tempDir, '--no-checkout', '--depth=1', '-b', bname] );
 		// create file
 		fs.writeFileSync( path.join( tempDir, filePath ), fileContents );
 		await executeGit( ['add', filePath], { cwd: tempDir } );

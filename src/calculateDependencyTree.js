@@ -12,7 +12,7 @@ import * as resolve from './resolve.js';
  * @returns {Promise.<Object>} - JSON
  */
 function loadCaliberJson( cwd ) {
-	const p = path.join( cwd, 'caliber.json' );
+	const p = path.join( cwd, util.getCaliberJsonFileName() );
 	return new Promise( (resolv, reject) => {
 		fs.readFile( p, 'utf-8', (err, txt) => {
 			err ? resolv( '{}' ) : resolv( txt );
@@ -27,7 +27,7 @@ async function getCaliberJsonFromRepo( repoPath ) {
 	const repoUrl = util.parseRepositoryUrl( repoPath );
 	const targetObj = await resolve.getTargetFromRepoUrl( repoPath );
 	try {
-		const childCaliberJson = JSON.parse( await git.cat( repoUrl.url, 'caliber.json', targetObj ) );
+		const childCaliberJson = JSON.parse( await git.cat( repoUrl.url, util.getCaliberJsonFileName(), targetObj ) );
 		return childCaliberJson;
 	} catch ( err ) {
 		return null;

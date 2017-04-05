@@ -37,7 +37,7 @@ async function updateMainProject( options ) {
  * @returns {Promise}
  */
 export function saveCaliberJson( cwd, json ) {
-	const p = path.join( cwd, 'caliber.json' );
+	const p = path.join( cwd, util.getCaliberJsonFileName() );
 	return new Promise( (resolv, reject) => {
 		fs.writeFile( p, JSON.stringify( json, null, 2 ), 'utf-8', (err) => {
 			err ? reject( err ) : resolv();
@@ -87,6 +87,7 @@ async function install(repos, options, update = false) {
 	if ( !_.isString( options.cwd ) ) {
 		throw new Error( `Invalid cwd argument ${options.cwd}` );
 	}
+	await util.readConfigFile( options.cwd );
 	if ( update ) {
 		// if updating, update main project first
 		console.log( `Updating main project...` );

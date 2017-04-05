@@ -1,10 +1,37 @@
+import _ from 'lodash';
+import fs from 'fs';
 import path from 'path';
 import * as git from './git.js';
 import * as resolve from './resolve.js';
 
+let g_config = {};
+
+export async function readConfigFile( cwd ) {
+	try {
+		const rc = path.join( cwd, '.caliberrc' );
+		if ( fs.existsSync( rc ) ) {
+			g_config = JSON.parse( fs.readFileSync( rc ) );
+		}
+	} catch ( err ) {
+		g_config = {};
+	}
+}
+
+
 export async function getPackageRootPath( cwd ) {
-	// TODO: read from .caliberrc
+	// read from .caliberrc
+	if ( _.isString( g_config.directory ) ) {
+		return path.join( cwd, g_config.directory );
+	}
 	return path.join( cwd, 'caliber_modules' );
+}
+
+export function getCaliberJsonFileName() {
+	// read from .caliberrc
+	if ( _.isString( g_config.filename ) ) {
+		return g_config.filename;
+	}
+	return 'caliber.json';
 }
 
 /**
@@ -15,6 +42,12 @@ export async function getPackageRootPath( cwd ) {
  */
 export function parseRepositoryUrl( url ) {
 	let result = {};
+	
+	// strip any git+ or svn+ on the front to keep bower compatibility
+	const plusIndex = url.indexOf( '+' );
+	if ( plusIndex >= 0 ) {
+		url = url.substring( plusIndex + 1 );
+	}
 
 	const hashIndex = url.indexOf('#');
 	if (hashIndex >= 0) {
@@ -77,7 +110,7 @@ export async function getDependencyNameFromRepoUrl( repo ) {
 	const repoUrl = parseRepositoryUrl( repo );
 	try {
 		const targetObj = await resolve.getTargetFromRepoUrl( repo );
-		const caliberJson = JSON.parse( await git.cat( repoUrl.url, 'caliber.json', targetObj ) );
+		const caliberJson = JSON.parse( await git.cat( repoUrl.url, getCaliberJsonFileName(), targetObj ) );
 		return caliberJson.name;
 	} catch ( err ) {
 		return guessProjectNameFromUrl( repoUrl.url );
