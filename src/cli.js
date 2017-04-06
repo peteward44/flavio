@@ -70,6 +70,18 @@ export default function start() {
 					.then(resolve)
 					.catch(reject);
 			})
+			.command('status', 'Prints out dependency status to console', (subyargs) => {
+				const options = subyargs
+					.usage('Usage: caliber status [options]')
+					.example('caliber status', 'Prints out dependency status')
+					.help('help')
+					.option('cwd', {
+						describe: 'Working directory to use',
+						default: process.cwd()
+					})
+					.argv;
+				caliber.commands.status(options);
+			})
 			.command('tag', 'Tags main project as well as any dependencies', (subyargs) => {
 				const options = subyargs
 					.usage('Usage: caliber tag <optional modules> [options]')
