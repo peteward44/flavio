@@ -1,6 +1,6 @@
 import calculateDependencyTree from './calculateDependencyTree.js';
 
-async printStatus( name, module ) {
+async function printStatus( name, module ) {
 	// TODO: 
 	// git status --porcelain --branch
 	// prints out behind / ahead information
