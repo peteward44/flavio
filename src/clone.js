@@ -2,7 +2,7 @@ import path from 'path';
 import * as util from './util.js';
 import * as resolve from './resolve.js';
 import * as git from './git.js';
-import caliber from './index.js';
+import flavio from './index.js';
 
 /**
  *
@@ -17,7 +17,7 @@ async function clone( repo, options = {} ) {
 	}
 	await git.clone( repoUrl.url, cwd, targetObj );
 	options.cwd = cwd;
-	await caliber.commands.install( [], options );
+	await flavio.commands.install( [], options );
 }
 
 export default clone;

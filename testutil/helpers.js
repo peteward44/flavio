@@ -4,7 +4,7 @@ import path from 'path';
 import os from 'os';
 import uuid from 'uuid';
 
-const tempRoot = path.join( os.tmpdir(), 'caliber' );
+const tempRoot = path.join( os.tmpdir(), 'flavio' );
 
 
 export function createTempFolder( name ) {

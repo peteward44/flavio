@@ -6,13 +6,13 @@ import * as util from './util.js';
 import * as resolve from './resolve.js';
 
 /**
- * Loads the caliber.json from the given directory. If none exists, returns empty object
+ * Loads the flavio.json from the given directory. If none exists, returns empty object
  *
  * @param {string} cwd - Working directory
  * @returns {Promise.<Object>} - JSON
  */
-function loadCaliberJson( cwd ) {
-	const p = path.join( cwd, util.getCaliberJsonFileName() );
+function loadflavioJson( cwd ) {
+	const p = path.join( cwd, util.getflavioJsonFileName() );
 	return new Promise( (resolv, reject) => {
 		fs.readFile( p, 'utf-8', (err, txt) => {
 			err ? resolv( '{}' ) : resolv( txt );
@@ -23,12 +23,11 @@ function loadCaliberJson( cwd ) {
 	} );
 }
 
-async function getCaliberJsonFromRepo( repoPath ) {
+async function getflavioJsonFromRepo( repoPath ) {
 	const repoUrl = util.parseRepositoryUrl( repoPath );
 	const targetObj = await resolve.getTargetFromRepoUrl( repoPath );
 	try {
-		const childCaliberJson = JSON.parse( await git.cat( repoUrl.url, util.getCaliberJsonFileName(), targetObj ) );
-		return childCaliberJson;
+		return JSON.parse( await git.cat( repoUrl.url, util.getflavioJsonFileName(), targetObj ) );
 	} catch ( err ) {
 		return null;
 	}
@@ -37,79 +36,54 @@ async function getCaliberJsonFromRepo( repoPath ) {
 /**
  * Creates tree structure of all dependencies
  */
-async function buildTree( options, parentRepo, caliberJson, dir, installed = true, repos = [], isRoot = false, update = false ) {
+async function buildTree( options, parentRepo, flavioJson, dir, installed = true, repos = [], isRoot = false, update = false ) {
+	const rootPath = await util.getPackageRootPath( options.cwd );
 	let element = {
 		installed,
 		dir,
 		repo: parentRepo,
-		caliberJson: caliberJson ? _.clone( caliberJson ) : caliberJson,
+		flavioJson: _.isObjectLike( flavioJson ) ? _.cloneDeep( flavioJson ) : undefined,
 		children: new Map()
 	};
-	async function addRepo( name, repoPath ) {
-		const pkgDir = path.join( await util.getPackageRootPath( options.cwd ), name );
-		const filePath = path.join( pkgDir, '.git' );
-		if ( fs.existsSync( filePath ) ) {
-			// check locally checked out files
-			let childCaliberJson;
-			if ( !update ) {
-				childCaliberJson = await loadCaliberJson( pkgDir );
-			} else {
-				childCaliberJson = await getCaliberJsonFromRepo( repoPath );
-			}
-			const child = await buildTree( options, repoPath, childCaliberJson, pkgDir, true, [], false, update );
-			element.children.set( name, child );
-		} else {
-			// else module isn't installed, check the remote repo
-			try {
-				const childCaliberJson = await getCaliberJsonFromRepo( repoPath );
-				const child = await buildTree( options, repoPath, childCaliberJson, pkgDir, false, [], false, update );
+
+	// make sure all dependencies specified in flavio.json are installed and up-to-date
+	if ( flavioJson && _.isObject( flavioJson.dependencies ) ) {
+		for ( const name of Object.keys( flavioJson.dependencies ) ) {
+			const repoPath = flavioJson.dependencies[name];
+			const pkgDir = path.join( rootPath, name );
+			const filePath = path.join( pkgDir, '.git' );
+			if ( fs.existsSync( filePath ) ) {
+				// check locally checked out files
+				let childflavioJson;
+				if ( !update ) {
+					childflavioJson = await loadflavioJson( pkgDir );
+				} else {
+					childflavioJson = await getflavioJsonFromRepo( repoPath );
+				}
+				const child = await buildTree( options, repoPath, childflavioJson, pkgDir, true, [], false, update );
 				element.children.set( name, child );
-			} catch ( err ) {
-				// no caliber.json present in module
-				element.children.set( name, { installed: false, dir: pkgDir, repo: repoPath } );
+			} else {
+				// else module isn't installed, check the remote repo
+				try {
+					const childflavioJson = await getflavioJsonFromRepo( repoPath );
+					const child = await buildTree( options, repoPath, childflavioJson, pkgDir, false, [], false, update );
+					element.children.set( name, child );
+				} catch ( err ) {
+					// no flavio.json present in module
+					element.children.set( name, { installed: false, dir: pkgDir, repo: repoPath } );
+				}
 			}
-		}
-	}
-	
-	// make sure all dependencies specified in caliber.json are installed and up-to-date
-	if ( caliberJson && _.isObject( caliberJson.dependencies ) ) {
-		for ( const name of Object.keys( caliberJson.dependencies ) ) {
-			const repoPath = caliberJson.dependencies[name];
-			await addRepo( name, repoPath );
-		}
-	}
-	if ( isRoot && !options.production && caliberJson && _.isObject( caliberJson.devDependencies ) ) {
-		for ( const name of Object.keys( caliberJson.devDependencies ) ) {
-			const repoPath = caliberJson.devDependencies[name];
-			await addRepo( name, repoPath );
 		}
 	}
 
-	// install each repo specified on command line
-	// array of new module names to add to the caliber.json
-	if ( isRoot ) {
-		for ( let repo of repos ) {
-			if ( repo ) {
-				let name;
-				const index = repo.indexOf( ',' );
-				if ( index > 0 ) {
-					name = repo.substr( 0, index );
-					repo = repo.substr( index + 1 );
-				} else {
-					name = await util.getDependencyNameFromRepoUrl( repo );
-				}
-				await addRepo( name, repo );
-			}
-		}
-	}
 	return element;
 }
 
 
 async function calculateDependencyTree( options, repos = [], update ) {
-	let caliberJson;
+	let flavioJson;
 	try {
-		caliberJson = await loadCaliberJson( options.cwd );
+		flavioJson = await loadflavioJson( options.cwd );
 	} catch ( err ) {
 	}
 	let repoUrl;
@@ -117,7 +91,7 @@ async function calculateDependencyTree( options, repos = [], update ) {
 		repoUrl = await git.getWorkingCopyUrl( options.cwd );
 	} catch ( err ) {
 	}
-	const tree = await buildTree( options, repoUrl, caliberJson, options.cwd, true, repos, true, update );	
+	const tree = await buildTree( options, repoUrl, flavioJson, options.cwd, true, repos, true, update );	
 	return tree;
 }
 

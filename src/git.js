@@ -119,8 +119,8 @@ export async function addProject( tempDir, project, rootObj = null ) {
 	const repoDir = path.resolve( path.join( tempDir, uuid.v4() ) );
 	const checkoutDir = path.resolve( path.join( tempDir, uuid.v4() ) );
 
-	// create new caliber.json based on deps
-	const caliberJson = {
+	// create new flavio.json based on deps
+	const flavioJson = {
 		name: project.name,
 		version: project.version || '0.0.1-snapshot.0',
 		dependencies: {}
@@ -149,17 +149,17 @@ export async function addProject( tempDir, project, rootObj = null ) {
 				} else if ( mod.branch ) {
 					target = mod.branch;
 				}
-				caliberJson.dependencies[mod.name] = `${moduleResult.repoDir}#${target}`;
+				flavioJson.dependencies[mod.name] = `${moduleResult.repoDir}#${target}`;
 			}
 			result.deps[mod.name] = moduleResult;
 			rootObj.alldeps[mod.name] = moduleResult; // add dependency to root result object for easy access of dependencies-of-dependencies in unit tests
 		}
 	}
 
-	// add caliber.json
+	// add flavio.json
 	const files = Array.isArray( project.files ) ? project.files.slice(0) : [];
-	if (!project.nocaliberjson) {
-		files.push( { path: util.getCaliberJsonFileName(), contents: JSON.stringify( caliberJson, null, '\t' ) } );
+	if (!project.noflaviojson) {
+		files.push( { path: util.getflavioJsonFileName(), contents: JSON.stringify( flavioJson, null, '\t' ) } );
 	}
 
 	await createRepo( repoDir, checkoutDir, { files, branch: project.branch, tag: project.tag } );
@@ -190,10 +190,16 @@ export async function cat( url, filepath, options = {} ) {
 			bname = options.branch;
 			checkoutName = options.branch;
 		}
-		// clone repo to temp dir first
-		await executeGit( ['clone', url, tempDir, '--no-checkout', '--depth=1', '-b', checkoutName] );
-		// checkout single file from repo
-		await executeGit( ['checkout', bname, filepath], { cwd: tempDir } );
+		await executeGit( ['init', tempDir] );
+		await executeGit( ['remote', 'add', '-f', 'origin', url], { cwd: tempDir } );
+		await executeGit( ['config', 'core.sparseCheckout', 'true'], { cwd: tempDir } ); // Note: Requires git 1.7+
+		let checkoutPath = filepath.replace( /\\/g, '/' );
+		if ( checkoutPath.length <= 0 || checkoutPath[0] !== '/' ) {
+			checkoutPath = `/${checkoutPath}`;
+		}
+		fs.writeFileSync( path.join( tempDir, '.git', 'info', 'sparse-checkout' ), filepath );
+		await executeGit( ['fetch', '--depth', '1'], { cwd: tempDir } );
+		await executeGit( ['checkout', bname], { cwd: tempDir } );
 		// then read in file
 		text = fs.readFileSync( path.join( tempDir, filepath ), 'utf8' );
 	}	finally {

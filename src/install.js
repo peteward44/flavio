@@ -30,14 +30,14 @@ async function updateMainProject( options ) {
 
 
 /**
- * Saves the caliber.json to the given directory
+ * Saves the flavio.json to the given directory
  *
  * @param {string} cwd - Working directory
- * @param {Object} json - New caliber.json data object
+ * @param {Object} json - New flavio.json data object
  * @returns {Promise}
  */
-export function saveCaliberJson( cwd, json ) {
-	const p = path.join( cwd, util.getCaliberJsonFileName() );
+export function saveflavioJson( cwd, json ) {
+	const p = path.join( cwd, util.getflavioJsonFileName() );
 	return new Promise( (resolv, reject) => {
 		fs.writeFile( p, JSON.stringify( json, null, 2 ), 'utf-8', (err) => {
 			err ? reject( err ) : resolv();
@@ -73,28 +73,27 @@ async function updateOutofDate( children ) {
 /**
  * Executes install on given directory
  *
- * @param {Array.<string>|string} repos - Array of repository paths in "bower format" to add to the project, or empty to install all dependencies inside caliber.json
+ * @param {Array.<string>|string} repos - Array of repository paths in "bower format" to add to the project, or empty to install all dependencies inside flavio.json
  * @param {Object} options - Command line options
  * @param {string} options.cwd - Working directory
  * @param {boolean} [options.force-latest=false] - Force latest version on conflict
- * @param {boolean} [options.production=false] - If true, does not install devDependencies
- * @param {boolean} [options.save=false] - Save any specified modules to the caliber.json dependencies
- * @param {boolean} [options.save-dev=false] - Saves any specified modules to the caliber.json devDependencies
  */
-async function install(repos, options, update = false) {
+async function install(repos, options) {
 	if ( !Array.isArray( repos ) ) {
 		repos = [repos];
 	}
 	if ( !_.isString( options.cwd ) ) {
 		throw new Error( `Invalid cwd argument ${options.cwd}` );
 	}
+	// update main project first
+	console.log( `Updating main project...` );
+	await updateMainProject( options );
+	console.log( `Complete` );
 	await util.readConfigFile( options.cwd );
-	if ( update ) {
-		// if updating, update main project first
-		console.log( `Updating main project...` );
-		await updateMainProject( options );
-		console.log( `Complete` );
-	}
+	
+	// update / clone any dependencies
+	
+	
 	const depTree = await calculateDependencyTree( options, repos, update );
 	
 	// TODO: resolve any conflicts in dep tree
@@ -104,10 +103,10 @@ async function install(repos, options, update = false) {
 	if ( update ) {
 		await updateOutofDate( depTree.children );
 	}
-	// add new modules to the caliber.json
-	if ( repos.length > 0 && ( options.save || options['save-dev'] ) ) {
-		let caliberJsonChanged = false;
-		let caliberJson = depTree.caliberJson;
+	// add new modules to the flavio.json
+	if ( repos.length > 0 ) {
+		let flavioJsonChanged = false;
+		let flavioJson = depTree.flavioJson;
 		for ( let repo of repos ) {
 			if ( repo ) {
 				let name;
@@ -118,23 +117,23 @@ async function install(repos, options, update = false) {
 				} else {
 					name = await util.getDependencyNameFromRepoUrl( repo );
 				}
-				if ( options.save ) {
-					caliberJsonChanged = true;
-					if ( !_.isObject( caliberJson.dependencies ) ) {
-						caliberJson.dependencies = {};
+				if ( options['save-dev'] ) {
+					flavioJsonChanged = true;
+					if ( !_.isObject( flavioJson.devDependencies ) ) {
+						flavioJson.devDependencies = {};
 					}
-					caliberJson.dependencies[name] = util.formatDefaultRepoPath( repo );
-				} else if ( options['save-dev'] ) {
-					caliberJsonChanged = true;
-					if ( !_.isObject( caliberJson.devDependencies ) ) {
-						caliberJson.devDependencies = {};
+					flavioJson.devDependencies[name] = util.formatDefaultRepoPath( repo );
+				} else {
+					flavioJsonChanged = true;
+					if ( !_.isObject( flavioJson.dependencies ) ) {
+						flavioJson.dependencies = {};
 					}
-					caliberJson.devDependencies[name] = util.formatDefaultRepoPath( repo );
-				}			
+					flavioJson.dependencies[name] = util.formatDefaultRepoPath( repo );
+				}				
 			}
 		}
-		if ( caliberJsonChanged ) {
-			await saveCaliberJson( options.cwd, caliberJson );	
+		if ( flavioJsonChanged ) {
+			await saveflavioJson( options.cwd, flavioJson );	
 		}
 	}
 }

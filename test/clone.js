@@ -35,6 +35,6 @@ describe(`clone tests`, function() {
 		const checkoutDir = path.join( tempDir, uuid.v4() );
 		await clone( result.repoDir, { cwd: checkoutDir } );
 		chai.assert.ok( fs.existsSync( path.join( checkoutDir, 'file.txt' ) ), 'main project cloned' );
-		chai.assert.ok( fs.existsSync( path.join( checkoutDir, 'caliber_modules', 'main2', 'file2.txt' ) ), 'main2 dependency installed' );
+		chai.assert.ok( fs.existsSync( path.join( checkoutDir, 'flavio_modules', 'main2', 'file2.txt' ) ), 'main2 dependency installed' );
 	});
 });

@@ -32,7 +32,7 @@ describe(`install tests`, function() {
 			]
 		} );
 		await install( [], { cwd: result.checkoutDir } );
-		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'caliber_modules', 'main2', 'file2.txt' ) ), 'main2 dependency installed' );
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.txt' ) ), 'main2 dependency installed' );
 	});
 
 	helpers.test('install more complicated tree', async (tempDir) => {
@@ -105,11 +105,11 @@ describe(`install tests`, function() {
 			]
 		} );
 		await install( [], { cwd: result.checkoutDir } );
-		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'caliber_modules', 'main2', 'file2.txt' ) ), 'main2 dependency installed' );
-		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'caliber_modules', 'main3', 'file3.txt' ) ), 'main3 dependency installed' );
-		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'caliber_modules', 'main4', 'file4.txt' ) ), 'main4 dependency installed' );
-		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'caliber_modules', 'main5', 'file5.txt' ) ), 'main5 dependency installed' );
-		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'caliber_modules', 'main6', 'file6.txt' ) ), 'main6 dependency installed' );		
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.txt' ) ), 'main2 dependency installed' );
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main3', 'file3.txt' ) ), 'main3 dependency installed' );
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main4', 'file4.txt' ) ), 'main4 dependency installed' );
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main5', 'file5.txt' ) ), 'main5 dependency installed' );
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main6', 'file6.txt' ) ), 'main6 dependency installed' );		
 	});
 	
 
@@ -160,9 +160,9 @@ describe(`install tests`, function() {
 		} );
 		
 		await install( [`main3,${result2.repoDir}#master`], { cwd: result.checkoutDir } );
-		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'caliber_modules', 'main2', 'file2.txt' ) ), 'main2 dependency installed' );
-		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'caliber_modules', 'main3', 'file3.txt' ) ), 'main3 dependency installed' );
-		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'caliber_modules', 'main4', 'file4.txt' ) ), 'main4 dependency installed' );
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.txt' ) ), 'main2 dependency installed' );
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main3', 'file3.txt' ) ), 'main3 dependency installed' );
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main4', 'file4.txt' ) ), 'main4 dependency installed' );
 	});
 	
 	helpers.test('install basic branch', async (tempDir) => {
@@ -190,6 +190,6 @@ describe(`install tests`, function() {
 			]
 		} );
 		await install( [], { cwd: result.checkoutDir } );
-		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'caliber_modules', 'main2', 'file2.txt' ) ), 'main2 dependency installed' );
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.txt' ) ), 'main2 dependency installed' );
 	});
 });

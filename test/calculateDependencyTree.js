@@ -37,12 +37,12 @@ describe(`calculateDependencyTree tests`, function() {
 /* result should look like
 {
         "status": "normal",
-        "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\caliber\\0fa26f39-45c7-4b0d-a541-d7848c1332de\\b45477d9-90ca-4420-87b6-06815bae4433#master",
-        "caliberJson": {
+        "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\0fa26f39-45c7-4b0d-a541-d7848c1332de\\b45477d9-90ca-4420-87b6-06815bae4433#master",
+        "flavioJson": {
                 "name": "main",
                 "version": "0.1.0-snapshot.0",
                 "dependencies": {
-                        "main2": "C:\\Users\\pete\\AppData\\Local\\Temp\\caliber\\0fa26f39-45c7-4b0d-a541-d7848c1332de\\5286761e-03c0-4f07-b25f-aa6f752c3af8#master"
+                        "main2": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\0fa26f39-45c7-4b0d-a541-d7848c1332de\\5286761e-03c0-4f07-b25f-aa6f752c3af8#master"
                 }
         },
         "children": [
@@ -50,8 +50,8 @@ describe(`calculateDependencyTree tests`, function() {
                         "main2",
                         {
                                 "status": "normal",
-                                "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\caliber\\0fa26f39-45c7-4b0d-a541-d7848c1332de\\5286761e-03c0-4f07-b25f-aa6f752c3af8#master",
-                                "caliberJson": {
+                                "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\0fa26f39-45c7-4b0d-a541-d7848c1332de\\5286761e-03c0-4f07-b25f-aa6f752c3af8#master",
+                                "flavioJson": {
                                         "name": "main2",
                                         "version": "0.2.0-snapshot.0",
                                         "dependencies": {}
@@ -139,13 +139,13 @@ describe(`calculateDependencyTree tests`, function() {
 /* result should look like
 {
         "status": "normal",
-        "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\caliber\\21ca82f1-0310-40ea-bce2-63ac82b728ba\\ea4d5a8c-fecf-41ee-aeaa-fe2aa1e4b61f#master",
-        "caliberJson": {
+        "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\21ca82f1-0310-40ea-bce2-63ac82b728ba\\ea4d5a8c-fecf-41ee-aeaa-fe2aa1e4b61f#master",
+        "flavioJson": {
                 "name": "main",
                 "version": "0.1.0-snapshot.0",
                 "dependencies": {
-                        "main2": "C:\\Users\\pete\\AppData\\Local\\Temp\\caliber\\21ca82f1-0310-40ea-bce2-63ac82b728ba\\3e020a9d-3bce-4054-9223-5ffcac185f8b#master",
-                        "main5": "C:\\Users\\pete\\AppData\\Local\\Temp\\caliber\\21ca82f1-0310-40ea-bce2-63ac82b728ba\\5facbbfb-5711-4508-ba40-cc636d6695c4#master"
+                        "main2": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\21ca82f1-0310-40ea-bce2-63ac82b728ba\\3e020a9d-3bce-4054-9223-5ffcac185f8b#master",
+                        "main5": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\21ca82f1-0310-40ea-bce2-63ac82b728ba\\5facbbfb-5711-4508-ba40-cc636d6695c4#master"
                 }
         },
         "children": [
@@ -153,12 +153,12 @@ describe(`calculateDependencyTree tests`, function() {
                         "main2",
                         {
                                 "status": "normal",
-                                "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\caliber\\21ca82f1-0310-40ea-bce2-63ac82b728ba\\3e020a9d-3bce-4054-9223-5ffcac185f8b#master",
-                                "caliberJson": {
+                                "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\21ca82f1-0310-40ea-bce2-63ac82b728ba\\3e020a9d-3bce-4054-9223-5ffcac185f8b#master",
+                                "flavioJson": {
                                         "name": "main2",
                                         "version": "0.2.0-snapshot.0",
                                         "dependencies": {
-                                                "main3": "C:\\Users\\pete\\AppData\\Local\\Temp\\caliber\\21ca82f1-0310-40ea-bce2-63ac82b728ba\\7255f316-1b92-4713-8e6d-f9cb5a14de30#master"
+                                                "main3": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\21ca82f1-0310-40ea-bce2-63ac82b728ba\\7255f316-1b92-4713-8e6d-f9cb5a14de30#master"
                                         }
                                 },
                                 "children": [
@@ -166,12 +166,12 @@ describe(`calculateDependencyTree tests`, function() {
                                                 "main3",
                                                 {
                                                         "status": "normal",
-                                                        "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\caliber\\21ca82f1-0310-40ea-bce2-63ac82b728ba\\7255f316-1b92-4713-8e6d-f9cb5a14de30#master",
-                                                        "caliberJson": {
+                                                        "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\21ca82f1-0310-40ea-bce2-63ac82b728ba\\7255f316-1b92-4713-8e6d-f9cb5a14de30#master",
+                                                        "flavioJson": {
                                                                 "name": "main3",
                                                                 "version": "0.3.0-snapshot.0",
                                                                 "dependencies": {
-                                                                        "main4": "C:\\Users\\pete\\AppData\\Local\\Temp\\caliber\\21ca82f1-0310-40ea-bce2-63ac82b728ba\\e0ccc00d-e2bc-4de9-9b23-6abe78aaca63#master"
+                                                                        "main4": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\21ca82f1-0310-40ea-bce2-63ac82b728ba\\e0ccc00d-e2bc-4de9-9b23-6abe78aaca63#master"
                                                                 }
                                                         },
                                                         "children": [
@@ -179,8 +179,8 @@ describe(`calculateDependencyTree tests`, function() {
                                                                         "main4",
                                                                         {
                                                                                 "status": "normal",
-                                                                                "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\caliber\\21ca82f1-0310-40ea-bce2-63ac82b728ba\\e0ccc00d-e2bc-4de9-9b23-6abe78aaca63#master",
-                                                                                "caliberJson": {
+                                                                                "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\21ca82f1-0310-40ea-bce2-63ac82b728ba\\e0ccc00d-e2bc-4de9-9b23-6abe78aaca63#master",
+                                                                                "flavioJson": {
                                                                                         "name": "main4",
                                                                                         "version": "0.4.0-snapshot.0",
                                                                                         "dependencies": {}
@@ -198,12 +198,12 @@ describe(`calculateDependencyTree tests`, function() {
                         "main5",
                         {
                                 "status": "normal",
-                                "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\caliber\\21ca82f1-0310-40ea-bce2-63ac82b728ba\\5facbbfb-5711-4508-ba40-cc636d6695c4#master",
-                                "caliberJson": {
+                                "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\21ca82f1-0310-40ea-bce2-63ac82b728ba\\5facbbfb-5711-4508-ba40-cc636d6695c4#master",
+                                "flavioJson": {
                                         "name": "main5",
                                         "version": "0.5.0-snapshot.0",
                                         "dependencies": {
-                                                "main6": "C:\\Users\\pete\\AppData\\Local\\Temp\\caliber\\21ca82f1-0310-40ea-bce2-63ac82b728ba\\8affa5b2-d000-4801-b435-d972c0499dc8#master"
+                                                "main6": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\21ca82f1-0310-40ea-bce2-63ac82b728ba\\8affa5b2-d000-4801-b435-d972c0499dc8#master"
                                         }
                                 },
                                 "children": [
@@ -211,8 +211,8 @@ describe(`calculateDependencyTree tests`, function() {
                                                 "main6",
                                                 {
                                                         "status": "normal",
-                                                        "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\caliber\\21ca82f1-0310-40ea-bce2-63ac82b728ba\\8affa5b2-d000-4801-b435-d972c0499dc8#master",
-                                                        "caliberJson": {
+                                                        "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\21ca82f1-0310-40ea-bce2-63ac82b728ba\\8affa5b2-d000-4801-b435-d972c0499dc8#master",
+                                                        "flavioJson": {
                                                                 "name": "main6",
                                                                 "version": "0.6.0-snapshot.0",
                                                                 "dependencies": {}
@@ -282,12 +282,12 @@ describe(`calculateDependencyTree tests`, function() {
 /* result should look like
 {
         "installed": true,
-        "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\caliber\\599474f6-885d-4d18-afc7-b01a36002092\\218fcdcc-2bfa-4f61-a314-0367f68476a3#master",
-        "caliberJson": {
+        "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\599474f6-885d-4d18-afc7-b01a36002092\\218fcdcc-2bfa-4f61-a314-0367f68476a3#master",
+        "flavioJson": {
                 "name": "main",
                 "version": "0.1.0-snapshot.0",
                 "dependencies": {
-                        "main2": "C:\\Users\\pete\\AppData\\Local\\Temp\\caliber\\599474f6-885d-4d18-afc7-b01a36002092\\5b6c22b3-4a48-4e98-8933-1f1ef06affde#master"
+                        "main2": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\599474f6-885d-4d18-afc7-b01a36002092\\5b6c22b3-4a48-4e98-8933-1f1ef06affde#master"
                 }
         },
         "children": [
@@ -295,8 +295,8 @@ describe(`calculateDependencyTree tests`, function() {
                         "main2",
                         {
                                 "installed": false,
-                                "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\caliber\\599474f6-885d-4d18-afc7-b01a36002092\\5b6c22b3-4a48-4e98-8933-1f1ef06affde#master",
-                                "caliberJson": {
+                                "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\599474f6-885d-4d18-afc7-b01a36002092\\5b6c22b3-4a48-4e98-8933-1f1ef06affde#master",
+                                "flavioJson": {
                                         "name": "main2",
                                         "version": "0.2.0-snapshot.0",
                                         "dependencies": {}
@@ -308,12 +308,12 @@ describe(`calculateDependencyTree tests`, function() {
                         "main3",
                         {
                                 "installed": false,
-                                "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\caliber\\599474f6-885d-4d18-afc7-b01a36002092\\72350852-cc85-4815-a11e-bf8689c9db0e#master",
-                                "caliberJson": {
+                                "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\599474f6-885d-4d18-afc7-b01a36002092\\72350852-cc85-4815-a11e-bf8689c9db0e#master",
+                                "flavioJson": {
                                         "name": "main3",
                                         "version": "0.3.0-snapshot.0",
                                         "dependencies": {
-                                                "main4": "C:\\Users\\pete\\AppData\\Local\\Temp\\caliber\\599474f6-885d-4d18-afc7-b01a36002092\\872eff89-453f-4aad-8a1c-acb623d38524#master"
+                                                "main4": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\599474f6-885d-4d18-afc7-b01a36002092\\872eff89-453f-4aad-8a1c-acb623d38524#master"
                                         }
                                 },
                                 "children": [
@@ -321,8 +321,8 @@ describe(`calculateDependencyTree tests`, function() {
                                                 "main4",
                                                 {
                                                         "installed": false,
-                                                        "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\caliber\\599474f6-885d-4d18-afc7-b01a36002092\\872eff89-453f-4aad-8a1c-acb623d38524#master",
-                                                        "caliberJson": {
+                                                        "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\599474f6-885d-4d18-afc7-b01a36002092\\872eff89-453f-4aad-8a1c-acb623d38524#master",
+                                                        "flavioJson": {
                                                                 "name": "main4",
                                                                 "version": "0.4.0-snapshot.0",
                                                                 "dependencies": {}

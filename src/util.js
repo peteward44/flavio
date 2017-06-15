@@ -8,7 +8,7 @@ let g_config = {};
 
 export async function readConfigFile( cwd ) {
 	try {
-		const rc = path.join( cwd, '.caliberrc' );
+		const rc = path.join( cwd, '.flaviorc' );
 		if ( fs.existsSync( rc ) ) {
 			g_config = JSON.parse( fs.readFileSync( rc ) );
 		}
@@ -19,19 +19,19 @@ export async function readConfigFile( cwd ) {
 
 
 export async function getPackageRootPath( cwd ) {
-	// read from .caliberrc
+	// read from .flaviorc
 	if ( _.isString( g_config.directory ) ) {
 		return path.join( cwd, g_config.directory );
 	}
-	return path.join( cwd, 'caliber_modules' );
+	return path.join( cwd, 'flavio_modules' );
 }
 
-export function getCaliberJsonFileName() {
-	// read from .caliberrc
+export function getflavioJsonFileName() {
+	// read from .flaviorc
 	if ( _.isString( g_config.filename ) ) {
 		return g_config.filename;
 	}
-	return 'caliber.json';
+	return 'flavio.json';
 }
 
 /**
@@ -65,7 +65,7 @@ export function parseRepositoryUrl( url ) {
 
 /**
  * Takes a bower repository url, if there is no version or branch/tag name specified then it will add a default one (like npm does, like ^3.0.0)
- * This is used when --save or --save-dev option is specified and it is saving the repo path to caliber.json
+ * This is used when --save or --save-dev option is specified and it is saving the repo path to flavio.json
  *
  * @param {string} repo - repository path in "bower format"
  * @returns {string} - Modified repository path (or same as 'repo' param if no modification required)
@@ -102,16 +102,16 @@ function guessProjectNameFromUrl( url ) {
 }
 
 /**
- * Gets the project name from project's caliber.json
+ * Gets the project name from project's flavio.json
  * @param {string} repo - Repository url
- * @returns {string} - Project name either from the caliber.json or guessed from the url
+ * @returns {string} - Project name either from the flavio.json or guessed from the url
  */
 export async function getDependencyNameFromRepoUrl( repo ) {
 	const repoUrl = parseRepositoryUrl( repo );
 	try {
 		const targetObj = await resolve.getTargetFromRepoUrl( repo );
-		const caliberJson = JSON.parse( await git.cat( repoUrl.url, getCaliberJsonFileName(), targetObj ) );
-		return caliberJson.name;
+		const flavioJson = JSON.parse( await git.cat( repoUrl.url, getflavioJsonFileName(), targetObj ) );
+		return flavioJson.name;
 	} catch ( err ) {
 		return guessProjectNameFromUrl( repoUrl.url );
 	}
