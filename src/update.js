@@ -71,17 +71,13 @@ async function updateOutofDate( children ) {
 }
 
 /**
- * Executes install on given directory
+ * Executes update on given directory
  *
- * @param {Array.<string>|string} repos - Array of repository paths in "bower format" to add to the project, or empty to install all dependencies inside flavio.json
  * @param {Object} options - Command line options
  * @param {string} options.cwd - Working directory
  * @param {boolean} [options.force-latest=false] - Force latest version on conflict
  */
-async function install(repos, options) {
-	if ( !Array.isArray( repos ) ) {
-		repos = [repos];
-	}
+async function update( options ) {
 	if ( !_.isString( options.cwd ) ) {
 		throw new Error( `Invalid cwd argument ${options.cwd}` );
 	}
@@ -94,48 +90,13 @@ async function install(repos, options) {
 	// update / clone any dependencies
 	
 	
-	const depTree = await calculateDependencyTree( options, repos, update );
+	const depTree = await calculateDependencyTree( options );
 	
 	// TODO: resolve any conflicts in dep tree
 
 	await installMissing( depTree.children );
-	
-	if ( update ) {
-		await updateOutofDate( depTree.children );
-	}
-	// add new modules to the flavio.json
-	if ( repos.length > 0 ) {
-		let flavioJsonChanged = false;
-		let flavioJson = depTree.flavioJson;
-		for ( let repo of repos ) {
-			if ( repo ) {
-				let name;
-				const index = repo.indexOf( ',' );
-				if ( index > 0 ) {
-					name = repo.substr( 0, index );
-					repo = repo.substr( index + 1 );
-				} else {
-					name = await util.getDependencyNameFromRepoUrl( repo );
-				}
-				if ( options['save-dev'] ) {
-					flavioJsonChanged = true;
-					if ( !_.isObject( flavioJson.devDependencies ) ) {
-						flavioJson.devDependencies = {};
-					}
-					flavioJson.devDependencies[name] = util.formatDefaultRepoPath( repo );
-				} else {
-					flavioJsonChanged = true;
-					if ( !_.isObject( flavioJson.dependencies ) ) {
-						flavioJson.dependencies = {};
-					}
-					flavioJson.dependencies[name] = util.formatDefaultRepoPath( repo );
-				}				
-			}
-		}
-		if ( flavioJsonChanged ) {
-			await saveflavioJson( options.cwd, flavioJson );	
-		}
-	}
+	await updateOutofDate( depTree.children );
+
 }
 
-export default install;
+export default update;

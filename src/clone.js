@@ -17,7 +17,7 @@ async function clone( repo, options = {} ) {
 	}
 	await git.clone( repoUrl.url, cwd, targetObj );
 	options.cwd = cwd;
-	await flavio.commands.install( [], options );
+	await flavio.commands.update( options );
 }
 
 export default clone;

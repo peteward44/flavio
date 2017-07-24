@@ -36,7 +36,7 @@ async function getflavioJsonFromRepo( repoPath ) {
 /**
  * Creates tree structure of all dependencies
  */
-async function buildTree( options, parentRepo, flavioJson, dir, installed = true, repos = [], isRoot = false, update = false ) {
+async function buildTree( options, parentRepo, flavioJson, dir, installed = true, repos = [], isRoot = false ) {
 	const rootPath = await util.getPackageRootPath( options.cwd );
 	let element = {
 		installed,
@@ -54,19 +54,14 @@ async function buildTree( options, parentRepo, flavioJson, dir, installed = true
 			const filePath = path.join( pkgDir, '.git' );
 			if ( fs.existsSync( filePath ) ) {
 				// check locally checked out files
-				let childflavioJson;
-				if ( !update ) {
-					childflavioJson = await loadflavioJson( pkgDir );
-				} else {
-					childflavioJson = await getflavioJsonFromRepo( repoPath );
-				}
-				const child = await buildTree( options, repoPath, childflavioJson, pkgDir, true, [], false, update );
+				const childflavioJson = await loadflavioJson( pkgDir );
+				const child = await buildTree( options, repoPath, childflavioJson, pkgDir, true, [], false );
 				element.children.set( name, child );
 			} else {
 				// else module isn't installed, check the remote repo
 				try {
 					const childflavioJson = await getflavioJsonFromRepo( repoPath );
-					const child = await buildTree( options, repoPath, childflavioJson, pkgDir, false, [], false, update );
+					const child = await buildTree( options, repoPath, childflavioJson, pkgDir, false, [], false );
 					element.children.set( name, child );
 				} catch ( err ) {
 					// no flavio.json present in module
@@ -80,7 +75,7 @@ async function buildTree( options, parentRepo, flavioJson, dir, installed = true
 }
 
 
-async function calculateDependencyTree( options, repos = [], update ) {
+async function calculateDependencyTree( options, repos = [] ) {
 	let flavioJson;
 	try {
 		flavioJson = await loadflavioJson( options.cwd );
@@ -91,7 +86,7 @@ async function calculateDependencyTree( options, repos = [], update ) {
 		repoUrl = await git.getWorkingCopyUrl( options.cwd );
 	} catch ( err ) {
 	}
-	const tree = await buildTree( options, repoUrl, flavioJson, options.cwd, true, repos, true, update );	
+	const tree = await buildTree( options, repoUrl, flavioJson, options.cwd, true, repos, true );	
 	return tree;
 }
 
