@@ -1,4 +1,4 @@
-import calculateDependencyTree from './calculateDependencyTree.js';
+import * as depTree from './depTree.js';
 
 async function printStatus( name, module ) {
 	// TODO: 
@@ -33,7 +33,7 @@ And for both:
 }
 
 async function status( options ) {
-	const depTree = await calculateDependencyTree( options );
+	const depTree = await depTree.calculate( options );
 	await printStatus( "main", depTree );
 }
 

@@ -36,30 +36,32 @@ describe(`calculateDependencyTree tests`, function() {
 		// TODO: assert
 /* result should look like
 {
-        "status": "normal",
-        "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\0fa26f39-45c7-4b0d-a541-d7848c1332de\\b45477d9-90ca-4420-87b6-06815bae4433#master",
+  "installed": true,
+  "dir": "C:\\Users\\PETE~1.WAR\\AppData\\Local\\Temp\\flavio\\6f368412-db00-45f9-ab05-1c9c90e14287\\cf8e5916-b8b5-476a-b16e-7d6ce4df9b93",
+  "repo": "C:\\Users\\PETE~1.WAR\\AppData\\Local\\Temp\\flavio\\6f368412-db00-45f9-ab05-1c9c90e14287\\2ebdd847-71ca-4878-8441-52c46017a6cb#master",
+  "flavioJson": {
+    "name": "main",
+    "version": "0.1.0-snapshot.0",
+    "dependencies": {
+      "main2": "C:\\Users\\PETE~1.WAR\\AppData\\Local\\Temp\\flavio\\6f368412-db00-45f9-ab05-1c9c90e14287\\c5961e48-064a-45b5-8d39-dc9c928f6946#master"
+    }
+  },
+  "children": [
+    [
+      "main2",
+      {
+        "installed": false,
+        "dir": "C:\\Users\\PETE~1.WAR\\AppData\\Local\\Temp\\flavio\\6f368412-db00-45f9-ab05-1c9c90e14287\\cf8e5916-b8b5-476a-b16e-7d6ce4df9b93\\flavio_modules\\main2",
+        "repo": "C:\\Users\\PETE~1.WAR\\AppData\\Local\\Temp\\flavio\\6f368412-db00-45f9-ab05-1c9c90e14287\\c5961e48-064a-45b5-8d39-dc9c928f6946#master",
         "flavioJson": {
-                "name": "main",
-                "version": "0.1.0-snapshot.0",
-                "dependencies": {
-                        "main2": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\0fa26f39-45c7-4b0d-a541-d7848c1332de\\5286761e-03c0-4f07-b25f-aa6f752c3af8#master"
-                }
+          "name": "main2",
+          "version": "0.2.0-snapshot.0",
+          "dependencies": {}
         },
-        "children": [
-                [
-                        "main2",
-                        {
-                                "status": "normal",
-                                "repo": "C:\\Users\\pete\\AppData\\Local\\Temp\\flavio\\0fa26f39-45c7-4b0d-a541-d7848c1332de\\5286761e-03c0-4f07-b25f-aa6f752c3af8#master",
-                                "flavioJson": {
-                                        "name": "main2",
-                                        "version": "0.2.0-snapshot.0",
-                                        "dependencies": {}
-                                },
-                                "children": []
-                        }
-                ]
-        ]
+        "children": []
+      }
+    ]
+  ]
 }
 */
 	});
@@ -136,6 +138,7 @@ describe(`calculateDependencyTree tests`, function() {
 		
 		const tree = await calculateDependencyTree( { cwd: result.checkoutDir } );
 		chai.assert.ok( !!tree );
+		console.log( "tree", JSON.stringify( tree, null, 2 ) );
 /* result should look like
 {
         "status": "normal",

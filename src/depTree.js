@@ -23,23 +23,13 @@ function loadflavioJson( cwd ) {
 	} );
 }
 
-async function getflavioJsonFromRepo( repoPath ) {
-	const repoUrl = util.parseRepositoryUrl( repoPath );
-	const targetObj = await resolve.getTargetFromRepoUrl( repoPath );
-	try {
-		return JSON.parse( await git.cat( repoUrl.url, util.getflavioJsonFileName(), targetObj ) );
-	} catch ( err ) {
-		return null;
-	}
-}
-
 /**
  * Creates tree structure of all dependencies
  */
-async function buildTree( options, parentRepo, flavioJson, dir, installed = true, repos = [], isRoot = false ) {
+async function buildTree( options, parentRepo, flavioJson, dir, isRoot = false ) {
 	const rootPath = await util.getPackageRootPath( options.cwd );
 	let element = {
-		installed,
+		status: 'installed',
 		dir,
 		repo: parentRepo,
 		flavioJson: _.isObjectLike( flavioJson ) ? _.cloneDeep( flavioJson ) : undefined,
@@ -51,22 +41,14 @@ async function buildTree( options, parentRepo, flavioJson, dir, installed = true
 		for ( const name of Object.keys( flavioJson.dependencies ) ) {
 			const repoPath = flavioJson.dependencies[name];
 			const pkgDir = path.join( rootPath, name );
-			const filePath = path.join( pkgDir, '.git' );
-			if ( fs.existsSync( filePath ) ) {
+			if ( fs.existsSync( path.join( pkgDir, '.git' ) ) ) {
 				// check locally checked out files
 				const childflavioJson = await loadflavioJson( pkgDir );
-				const child = await buildTree( options, repoPath, childflavioJson, pkgDir, true, [], false );
+				const child = await buildTree( options, repoPath, childflavioJson, pkgDir, false );
 				element.children.set( name, child );
 			} else {
-				// else module isn't installed, check the remote repo
-				try {
-					const childflavioJson = await getflavioJsonFromRepo( repoPath );
-					const child = await buildTree( options, repoPath, childflavioJson, pkgDir, false, [], false );
-					element.children.set( name, child );
-				} catch ( err ) {
-					// no flavio.json present in module
-					element.children.set( name, { installed: false, dir: pkgDir, repo: repoPath } );
-				}
+				// module not checked out
+				element.children.set( name, { status: 'missing', dir: pkgDir, repo: repoPath } );
 			}
 		}
 	}
@@ -74,8 +56,8 @@ async function buildTree( options, parentRepo, flavioJson, dir, installed = true
 	return element;
 }
 
-
-async function calculateDependencyTree( options, repos = [] ) {
+// calculates tree structure
+async function calculate( options ) {
 	let flavioJson;
 	try {
 		flavioJson = await loadflavioJson( options.cwd );
@@ -86,8 +68,43 @@ async function calculateDependencyTree( options, repos = [] ) {
 		repoUrl = await git.getWorkingCopyUrl( options.cwd );
 	} catch ( err ) {
 	}
-	const tree = await buildTree( options, repoUrl, flavioJson, options.cwd, true, repos, true );	
+	const tree = await buildTree( options, repoUrl, flavioJson, options.cwd, true );	
 	return tree;
 }
 
-export default calculateDependencyTree;
+
+async function _listChildren( children, found, options ) {
+	for ( const [name, module] of children ) {
+		if ( options.missing === false && module.status === 'missing' ) {
+			continue;
+		}
+		if ( !found.has( name ) ) {
+			found.set( name, module );
+		} else {
+			// TODO: check for version/branch required, see if it matches the one already checked out
+		}
+		if ( module.children ) {
+			await _listChildren( module.children, found, options );
+		}
+	}
+}
+
+/**
+ * builds a list of unique dependencies from a tree calculated previously by .calculate()
+ *
+ * @param {Object} tree - Dependency tree
+ * @param {Object} [options] - List options
+ * @param {boolean} [options.missing=true] - Include missing modules
+ */
+async function listChildren( tree, options = {} ) {
+	let found = new Map();
+	await _listChildren( tree.children, found, options );
+	let children = [];
+	for ( const [name, module] of found ) {
+		module.name = name;
+		children.push( module );
+	}
+	return children;
+}
+
+export { calculate, listChildren };

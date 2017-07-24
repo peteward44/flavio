@@ -1,31 +1,31 @@
 import _ from 'lodash';
 import path from 'path';
 import fs from 'fs';
-import calculateDependencyTree from './calculateDependencyTree.js';
+import * as depTree from './depTree.js';
 import * as util from './util.js';
 import * as git from './git.js';
 import * as resolve from './resolve.js';
 
-async function installMissing( children ) {
+async function installMissing( modules ) {
 	// download/update modules
-	for ( const [name, module] of children ) {
-		if ( !module.installed ) {
-			console.log( `Installing ${name} [${module.repo}]...` );
+	let count = 0;
+	for ( const module of modules ) {
+		if ( module.status === 'missing' ) {
+			console.log( `Installing ${module.name} [${module.repo}]...` );
 			const repoUrl = util.parseRepositoryUrl( module.repo );
 			const targetObj = await resolve.getTargetFromRepoUrl( module.repo );
 			await git.clone( repoUrl.url, module.dir, targetObj );
 			console.log( `Complete` );
-		}
-		if ( module.children ) {
-			await installMissing( module.children );
+			count++;
 		}
 	}
+	return count;
 }
 
-async function updateMainProject( options ) {
-	const stashName = await git.stash( options.cwd );
-	await git.pull( options.cwd );
-	await git.stashPop( options.cwd, stashName );
+async function updateProject( dir ) {
+	const stashName = await git.stash( dir );
+	await git.pull( dir );
+	await git.stashPop( dir, stashName );
 }
 
 
@@ -83,19 +83,33 @@ async function update( options ) {
 	}
 	// update main project first
 	console.log( `Updating main project...` );
-	await updateMainProject( options );
+	await updateProject( options.cwd );
 	console.log( `Complete` );
 	await util.readConfigFile( options.cwd );
-	
-	// update / clone any dependencies
-	
-	
-	const depTree = await calculateDependencyTree( options );
-	
-	// TODO: resolve any conflicts in dep tree
 
-	await installMissing( depTree.children );
-	await updateOutofDate( depTree.children );
+	// get current tree
+	let tree = await depTree.calculate( options );
+	
+	// pull all modules already cloned
+	let modules = await depTree.listChildren( tree );
+	for ( const module of modules ) {
+		if ( module.status === 'installed' ) {
+			console.log( `Updating ${ path.basename( module.dir ) }` );
+			await updateProject( module.dir );
+		}
+	}
+
+	// TODO: resolve any conflicts in dep tree
+	
+	// keep installing missing modules until no more found
+	let missingCount = 0;
+	do {
+		missingCount = await installMissing( modules );
+		tree = await depTree.calculate( options );
+		modules = await depTree.listChildren( tree );
+	} while ( missingCount > 0 );
+
+//	await updateOutofDate( tree.children );
 
 }
 
