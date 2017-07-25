@@ -24,7 +24,7 @@ function executeGit( args, options ) {
 	return new Promise( ( resolve, reject ) => {
 		let stdo = '';
 		console.log( `Executing git ${args.join(" ")}` );
-		let proc = spawn( 'git', args, { cwd: options.cwd ? options.cwd : process.cwd(), stdio: ['ignore', 'pipe', 'ignore'] } );
+		let proc = spawn( 'git', args, { cwd: options.cwd ? options.cwd : process.cwd(), stdio: ['ignore', 'pipe', 'inherit'] } );
 
 		function unpipe() {
 		}
@@ -69,54 +69,89 @@ function touchFile( filepath, contents ) {
 
 
 export async function createRepo( dir, checkoutDir, options = {} ) {
-	// see http://stackoverflow.com/questions/2337281/how-do-i-do-an-initial-push-to-a-remote-repository-with-git
-	fs.ensureDirSync( dir );
-	fs.ensureDirSync( checkoutDir );
-	// init bare repo
-	await executeGit( ['init', '--bare', dir] );
-	// init checkout repo
-	await executeGit( ['init', checkoutDir] );
+	const alreadyExists = fs.existsSync( dir );
 	
-	// create empty .gitignore file as we need one file to create the HEAD revision
-	await touchFile( path.join( checkoutDir, '.gitignore' ), '' );
-	
-	// do add
-	await executeGit( ['add', '.'], { cwd: checkoutDir } );
-	// then perform a commit so the HEAD revision exists on master
-	await executeGit( ['commit', '-m', 'Creating repo: Initial commit'], { cwd: checkoutDir } );
+	if ( !alreadyExists ) {
+		// see http://stackoverflow.com/questions/2337281/how-do-i-do-an-initial-push-to-a-remote-repository-with-git
+		fs.ensureDirSync( dir );
+		fs.ensureDirSync( checkoutDir );
 
-	// add remote origin
-	await executeGit( ['remote', 'add', 'origin', dir], { cwd: checkoutDir } );
-	await executeGit( ['push', '-u', 'origin', 'master'], { cwd: checkoutDir } );
+		// init bare repo
+		await executeGit( ['init', '--bare', dir] );
+		// init checkout repo
+		await executeGit( ['init', checkoutDir] );
+	
+		// create empty .gitignore file as we need one file to create the HEAD revision
+		await touchFile( path.join( checkoutDir, '.gitignore' ), '' );
+		
+		// do add
+		await executeGit( ['add', '.'], { cwd: checkoutDir } );
+		// then perform a commit so the HEAD revision exists on master
+		await executeGit( ['commit', '-m', 'Creating repo: Initial commit'], { cwd: checkoutDir } );
+
+		// add remote origin
+		await executeGit( ['remote', 'add', 'origin', dir], { cwd: checkoutDir } );
+		await executeGit( ['push', '-u', 'origin', 'master'], { cwd: checkoutDir } );
+	} else {
+		console.log( `Already exists ${dir} ${checkoutDir}` );
+		fs.ensureDirSync( checkoutDir );
+		await executeGit( ['clone', dir, checkoutDir] );
+	}
+	
+	let tempTagBranchName;
 	
 	if ( options.branch ) {
+		// switch to branch before adding files
 		await executeGit( ['checkout', '-b', options.branch], { cwd: checkoutDir } );
+	} else if ( options.tag ) {
+		// if a tag is defined, create temporary branch to put files on
+		tempTagBranchName = uuid.v4();
+		await executeGit( ['checkout', '-b', tempTagBranchName], { cwd: checkoutDir } );
 	}
 	
 	// add any files
 	if ( Array.isArray(options.files) && options.files.length > 0 ) {
+		let added = 0;
 		for (let i = 0; i < options.files.length; ++i) {
 			const file = options.files[i];
-			console.log('Adding file', file.path);
-			await touchFile( path.join( checkoutDir, file.path ), file.contents || '' );
+			const fullPath = path.join( checkoutDir, file.path );
+			if ( !fs.existsSync( fullPath ) ) {
+				console.log('Adding file', file.path);
+				await touchFile( fullPath, file.contents || '' );
+				added++;
+			}
 		}
 		// do add
-		await executeGit( ['add', '.'], { cwd: checkoutDir } );
-		await executeGit( ['commit', '-m', 'Creating repo: Adding files'], { cwd: checkoutDir } );
+		if ( added > 0 ) {
+			await executeGit( ['add', '.'], { cwd: checkoutDir } );
+			await executeGit( ['commit', '-m', 'Creating repo: Adding files'], { cwd: checkoutDir } );
+		}
 	}
 	
 	if ( options.tag ) {
 		await executeGit( ['tag', '-a', options.tag, '-m', `Creating repo: Creating tag ${options.tag}`], { cwd: checkoutDir } );			
 	}
+	if ( tempTagBranchName ) {
+		// delete local branch for tag
+		await executeGit( ['checkout', 'master'], { cwd: checkoutDir } );
+		await executeGit( ['branch', '-D', tempTagBranchName], { cwd: checkoutDir } );
+	}
 	// push
 	//await executeGit( [ 'push', '-u', 'origin', name ], { cwd: checkoutDir } );
 	await executeGit( ['push', '--all'], { cwd: checkoutDir } );
+	if ( options.tag ) {
+		await executeGit( ['push', 'origin', options.tag], { cwd: checkoutDir } );
+	}
 }
 
 
-export async function addProject( tempDir, project, rootObj = null ) {
+export async function addProject( tempDir, project, rootObj = null, repoMap = new Map() ) {
 	project.name = project.name || 'default';
-	const repoDir = path.resolve( path.join( tempDir, uuid.v4() ) );
+	if ( !repoMap.has( project.name ) ) {
+		repoMap.set( project.name, uuid.v4() );
+	}
+	const repoId = repoMap.get( project.name );
+	const repoDir = path.resolve( path.join( tempDir, repoId ) );
 	const checkoutDir = path.resolve( path.join( tempDir, uuid.v4() ) );
 
 	// create new flavio.json based on deps
@@ -141,7 +176,7 @@ export async function addProject( tempDir, project, rootObj = null ) {
 		for (let i = 0; i < project.modules.length; ++i) {
 			const mod = project.modules[i];
 			// create repo for the module
-			const moduleResult = await addProject( tempDir, mod, rootObj );
+			const moduleResult = await addProject( tempDir, mod, rootObj, repoMap );
 			if (!mod.dontAddToParent) {
 				let target = 'master';
 				if ( mod.tag ) {

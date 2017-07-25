@@ -1,13 +1,13 @@
 import chai from 'chai';
 import * as helpers from '../testutil/helpers.js';
 import * as git from '../lib/git.js';
-import calculateDependencyTree from '../lib/calculateDependencyTree.js';
+import * as depTree from '../lib/depTree.js';
 
 
-describe(`calculateDependencyTree tests`, function() {
+describe(`depTree tests`, function() {
 	this.timeout(30 * 60 * 1000); // 30 minutes
 
-	helpers.test('calculateDependencyTree basic', async (tempDir) => {
+	helpers.test('basic', async (tempDir) => {
 		const result = await git.addProject( tempDir, {
 			name: 'main',
 			version: '0.1.0-snapshot.0',
@@ -31,7 +31,7 @@ describe(`calculateDependencyTree tests`, function() {
 			]
 		} );
 		
-		const tree = await calculateDependencyTree( { cwd: result.checkoutDir } );
+		const tree = await depTree.calculate( { cwd: result.checkoutDir } );
 		chai.assert.ok( !!tree );
 		// TODO: assert
 /* result should look like
@@ -66,7 +66,7 @@ describe(`calculateDependencyTree tests`, function() {
 */
 	});
 
-	helpers.test('calculateDependencyTree more complicated tree', async (tempDir) => {
+	helpers.test('more complicated tree', async (tempDir) => {
 		const result = await git.addProject( tempDir, {
 			name: 'main',
 			version: '0.1.0-snapshot.0',
@@ -136,7 +136,7 @@ describe(`calculateDependencyTree tests`, function() {
 			]
 		} );
 		
-		const tree = await calculateDependencyTree( { cwd: result.checkoutDir } );
+		const tree = await depTree.calculate( { cwd: result.checkoutDir } );
 		chai.assert.ok( !!tree );
 		console.log( "tree", JSON.stringify( tree, null, 2 ) );
 /* result should look like
@@ -232,7 +232,7 @@ describe(`calculateDependencyTree tests`, function() {
 	});
 	
 
-	helpers.test('calculateDependencyTree add repo on CLI', async (tempDir) => {
+	helpers.test('add repo on CLI', async (tempDir) => {
 		const result = await git.addProject( tempDir, {
 			name: 'main',
 			version: '0.1.0-snapshot.0',
@@ -278,7 +278,7 @@ describe(`calculateDependencyTree tests`, function() {
 			]
 		} );
 		
-		const tree = await calculateDependencyTree( { cwd: result.checkoutDir }, [`${result2.repoDir}#master`] );
+		const tree = await depTree.calculate( { cwd: result.checkoutDir }, [`${result2.repoDir}#master`] );
 		chai.assert.ok( !!tree );
 		//console.log( "Tree", JSON.stringify( tree, null, '\t' ) );
 		// TODO: assert
@@ -339,5 +339,57 @@ describe(`calculateDependencyTree tests`, function() {
         ]
 }
 */
+	});
+
+	helpers.test('depTree.listConflicts', async (tempDir) => {
+		const result = await git.addProject( tempDir, {
+			name: 'main',
+			version: '0.1.0-snapshot.0',
+			files: [
+				{
+					path: 'file.txt',
+					contents: 'this is on the main project'
+				}
+			],
+			modules: [
+				{
+					name: 'main2',
+					version: '0.2.0-snapshot.0',
+					files: [
+						{
+							path: 'file2.txt',
+							contents: 'this is on the main2 project'
+						}
+					],
+					modules: [
+						{
+							name: 'main3',
+							version: '0.5.0-snapshot.0'
+						}
+					]
+				},
+				{
+					name: 'main4',
+					version: '0.2.0-snapshot.0',
+					files: [
+						{
+							path: 'file2.txt',
+							contents: 'this is on the main2 project'
+						}
+					],
+					modules: [
+						{
+							name: 'main3',
+							version: '0.5.0-snapshot.0'
+						}
+					]
+				}
+			]
+		} );
+		
+		const tree = await depTree.calculate( { cwd: result.checkoutDir } );
+		chai.assert.ok( !!tree );
+		const conflicts = await depTree.listConflicts( tree );
+		console.log( "conflicts", conflicts );
 	});
 });

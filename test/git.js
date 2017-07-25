@@ -92,6 +92,7 @@ describe(`git tests`, function() {
 		// TODO: perform checks on remote git repo that the files exist
 	} );
 	
+	// TODO: addProject branches, tags, more complicated trees
 	// TODO: listTags
 	// TODO: clone
 });

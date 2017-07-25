@@ -5,10 +5,26 @@ import * as helpers from '../testutil/helpers.js';
 import * as git from '../lib/git.js';
 import update from '../lib/update.js';
 
-describe(`install tests`, function() {
+describe(`update tests`, function() {
 	this.timeout(30 * 60 * 1000); // 30 minutes
-
-	helpers.test('install basic', async (tempDir) => {
+	
+	helpers.test('no dependencies', async (tempDir) => {
+		const result = await git.addProject( tempDir, {
+			name: 'main',
+			version: '0.1.0-snapshot.0',
+			files: [
+				{
+					path: 'file.txt',
+					contents: 'this is on the main project'
+				}
+			],
+			modules: [
+			]
+		} );
+		await update( { cwd: result.checkoutDir } );
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'file.txt' ) ), '' );
+	});
+	helpers.test('one dependency', async (tempDir) => {
 		const result = await git.addProject( tempDir, {
 			name: 'main',
 			version: '0.1.0-snapshot.0',
@@ -35,7 +51,7 @@ describe(`install tests`, function() {
 		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.txt' ) ), 'main2 dependency installed' );
 	});
 
-	helpers.test('install more complicated tree', async (tempDir) => {
+	helpers.test('more complicated tree', async (tempDir) => {
 		const result = await git.addProject( tempDir, {
 			name: 'main',
 			version: '0.1.0-snapshot.0',
@@ -112,7 +128,45 @@ describe(`install tests`, function() {
 		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main6', 'file6.txt' ) ), 'main6 dependency installed' );		
 	});
 	
-
+	helpers.test('conflict between same repo with different versions resolved automatically', async (tempDir) => {
+		const result = await git.addProject( tempDir, {
+			name: 'main',
+			version: '0.1.0-snapshot.0',
+			files: [
+				{
+					path: 'file.txt',
+					contents: 'this is on the main project'
+				}
+			],
+			modules: [
+				{
+					name: 'main2',
+					tag: '0.1.0',
+					version: '0.1.0',
+					files: [
+						{
+							path: 'file2.txt',
+							contents: 'this is on the main2 project v0.1.0'
+						}
+					]
+				},
+				{
+					name: 'main2',
+					tag: '0.2.0',
+					version: '0.2.0',
+					files: [
+						{
+							path: 'file3.txt',
+							contents: 'this is on the main2 project v0.2.0'
+						}
+					]
+				}
+			]
+		} );
+		await update( { cwd: result.checkoutDir } );
+		//chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.txt' ) ), 'main2 dependency installed' );
+	});
+	
 	// helpers.test('update add repo on CLI', async (tempDir) => {
 		// const result = await git.addProject( tempDir, {
 			// name: 'main',
@@ -165,7 +219,7 @@ describe(`install tests`, function() {
 		// chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main4', 'file4.txt' ) ), 'main4 dependency installed' );
 	// });
 	
-	helpers.test('update basic branch', async (tempDir) => {
+	helpers.test('one dependency on a branch', async (tempDir) => {
 		const result = await git.addProject( tempDir, {
 			name: 'main',
 			version: '0.1.0-snapshot.0',

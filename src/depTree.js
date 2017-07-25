@@ -107,4 +107,48 @@ async function listChildren( tree, options = {} ) {
 	return children;
 }
 
-export { calculate, listChildren };
+async function _listConflicts( children, found ) {
+	for ( const [name, module] of children ) {
+		console.log( "listConflicts", name );
+		if ( !found.has( name ) ) {
+			found.set( name, [module] );
+		} else {
+			found.get( name ).push( module );
+		}
+		if ( module.children ) {
+			await _listConflicts( module.children, found );
+		}
+	}
+}
+
+function filterModules( modules_ ) {
+	let modules = modules_.slice( 0 );
+	for ( let i=0; i<modules.length; ++i ) {
+		const lhs = modules[i];
+		console.log( "lhs", JSON.stringify( lhs, null, 2 ) );
+		for ( let j=i+1; j<modules.length; ++j ) {
+			const rhs = modules[j];
+		}
+	}
+	return modules;
+}
+
+async function listConflicts( tree ) {
+	let found = new Map();
+	await _listConflicts( tree.children, found );
+	// remove any modules which don't have multiple versions
+	let filtered = new Map();
+	for ( const [name, modules] of found ) {
+		console.log( "found=", name );
+		if ( modules.length > 1 ) {
+			// in the modules array, remove any that are pointing to the same tag or branch
+			const filteredModules = filterModules( modules );
+			if ( filteredModules.length > 1 ) {
+				filtered.set( name, modules );
+			}
+		}
+	}
+	return filtered;
+}
+
+export { calculate, listChildren, listConflicts };
