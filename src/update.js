@@ -91,8 +91,8 @@ async function update( options ) {
 	let tree = await depTree.calculate( options );
 	
 	// pull all modules already cloned
-	let report = await depTree.listChildren( tree );
-	for ( const module of report.modules ) {
+	let modules = await depTree.listChildren( tree );
+	for ( const module of modules ) {
 		if ( module.status === 'installed' ) {
 			console.log( `Updating ${ path.basename( module.dir ) }` );
 			await updateProject( module.dir );
@@ -105,9 +105,9 @@ async function update( options ) {
 	// keep installing missing modules until no more found
 	let missingCount = 0;
 	do {
-		missingCount = await installMissing( report.modules );
+		missingCount = await installMissing( modules );
 		tree = await depTree.calculate( options );
-		report = await depTree.listChildren( tree );
+		modules = await depTree.listChildren( tree );
 	} while ( missingCount > 0 );
 }
 
