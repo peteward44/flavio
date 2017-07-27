@@ -22,9 +22,27 @@ async function installMissing( modules ) {
 	return count;
 }
 
-async function updateProject( dir ) {
+async function updateProject( dir, repo = null ) {
 	const stashName = await git.stash( dir );
 	await git.pull( dir );
+	
+	if ( repo ) {
+		const repoUrl = util.parseRepositoryUrl( repo );
+		const localUrl = await git.getWorkingCopyUrl( dir, true );
+		if ( localUrl !== repoUrl.url ) {
+			// Repository URL has changed - throw error
+			throw new Error( `Repository url for repo ${path.basename( dir )} has changed! Aborting operation...` );
+		}
+		const targetObj = await resolve.getTargetFromRepoUrl( repo );
+		const targetCur = await git.getCurrentTarget( dir );
+		const targetChanged = targetObj.branch !== targetCur.branch || targetObj.tag !== targetCur.tag;
+		const validTarget = targetObj.branch || targetObj.tag;
+		if ( targetChanged && validTarget ) {
+			console.log( `Switching package ${name} to ${validTarget}` );
+			await git.checkout( dir, targetObj );
+			console.log( `Complete` );
+		}
+	}
 	await git.stashPop( dir, stashName );
 }
 
@@ -95,7 +113,7 @@ async function update( options ) {
 	for ( const module of modules ) {
 		if ( module.status === 'installed' ) {
 			console.log( `Updating ${ path.basename( module.dir ) }` );
-			await updateProject( module.dir );
+			await updateProject( module.dir, module.repo );
 		}
 	}
 

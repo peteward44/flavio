@@ -260,16 +260,18 @@ export async function getCurrentTarget( dir ) {
 
 
 /** Gets information on a working copy
- * @param {string} dir Working copy directory
+ *
+ * @param {string} dir - Working copy directory
+ * @param {boolean} [bare=false] - If true, just return URL without target on end
  * @returns {string} Repo url
  */
-export async function getWorkingCopyUrl( dir ) {
+export async function getWorkingCopyUrl( dir, bare = false ) {
 	// git is a bit more complicated than svn as a repo can have multiple remotes.
 	// always assume 'origin' - TODO: allow an option to change this behaviour
 	const result = await executeGit( ['config', '--get', 'remote.origin.url'], { cwd: dir, captureStdout: true } );
 	const url = result.out.trim();
 	const target = await getCurrentTarget( dir );
-	return `${url}#${target.branch || target.tag}`;
+	return bare ? url : `${url}#${target.branch || target.tag}`;
 }
 
 
