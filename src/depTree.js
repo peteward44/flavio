@@ -4,6 +4,7 @@ import path from 'path';
 import * as git from './git.js';
 import * as util from './util.js';
 import * as resolve from './resolve.js';
+import uuid from 'uuid';
 
 /**
  * Loads the flavio.json from the given directory. If none exists, returns empty object
@@ -14,7 +15,7 @@ import * as resolve from './resolve.js';
 function loadflavioJson( cwd ) {
 	const p = path.join( cwd, util.getflavioJsonFileName() );
 	return new Promise( (resolv, reject) => {
-		fs.readFile( p, 'utf-8', (err, txt) => {
+		fs.readFile( p, 'utf8', (err, txt) => {
 			err ? resolv( '{}' ) : resolv( txt );
 		} );
 	} )
@@ -29,6 +30,7 @@ function loadflavioJson( cwd ) {
 async function buildTree( options, parentRepo, flavioJson, dir, isRoot = false ) {
 	const rootPath = await util.getPackageRootPath( options.cwd );
 	let element = {
+		id: uuid.v4(),
 		status: 'installed',
 		dir,
 		repo: parentRepo,
@@ -68,6 +70,7 @@ async function calculate( options ) {
 		repoUrl = await git.getWorkingCopyUrl( options.cwd );
 	} catch ( err ) {
 	}
+
 	const tree = await buildTree( options, repoUrl, flavioJson, options.cwd, true );	
 	return tree;
 }

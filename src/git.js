@@ -237,7 +237,7 @@ export async function cat( url, filepath, options = {} ) {
 		await executeGit( ['checkout', bname], { cwd: tempDir } );
 		// then read in file
 		text = fs.readFileSync( path.join( tempDir, filepath ), 'utf8' );
-	}	finally {
+	} finally {
 		fs.removeSync( tempDir );
 	}
 	return text;
