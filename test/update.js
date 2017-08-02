@@ -143,6 +143,7 @@ describe(`update tests`, function() {
 				{
 					name: 'main2',
 					version: '0.1.0',
+					tag: '0.1.0',
 					files: [
 						{
 							path: 'file2.txt',
@@ -163,6 +164,7 @@ describe(`update tests`, function() {
 						{
 							name: 'main2',
 							version: '0.2.0',
+							tag: '0.2.0',
 							files: [
 								{
 									path: 'file2.txt',

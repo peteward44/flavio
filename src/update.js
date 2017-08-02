@@ -80,6 +80,7 @@ async function update( options ) {
 	// get current tree
 	let tree = await depTree.calculate( options, repoCache );
 	
+	console.log( JSON.stringify( tree, null, 2 ) );
 	await repoCache.resolveConflicts();
 	
 	
