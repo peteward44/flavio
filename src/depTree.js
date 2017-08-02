@@ -27,7 +27,7 @@ function loadflavioJson( cwd ) {
 /**
  * Creates tree structure of all dependencies
  */
-async function buildTree( options, parentRepo, flavioJson, dir, isRoot = false ) {
+async function buildTree( options, parentRepo, flavioJson, dir, isRoot = false, repoCache ) {
 	const rootPath = await util.getPackageRootPath( options.cwd );
 	let element = {
 		id: uuid.v4(),
@@ -42,16 +42,28 @@ async function buildTree( options, parentRepo, flavioJson, dir, isRoot = false )
 	if ( flavioJson && _.isObject( flavioJson.dependencies ) ) {
 		for ( const name of Object.keys( flavioJson.dependencies ) ) {
 			const repoPath = flavioJson.dependencies[name];
-			const pkgDir = path.join( rootPath, name );
-			if ( fs.existsSync( path.join( pkgDir, '.git' ) ) ) {
-				// check locally checked out files
-				const childflavioJson = await loadflavioJson( pkgDir );
-				const child = await buildTree( options, repoPath, childflavioJson, pkgDir, false );
-				element.children.set( name, child );
-			} else {
-				// module not checked out
-				element.children.set( name, { status: 'missing', dir: pkgDir, repo: repoPath } );
-			}
+			const childModule = {
+				repo: repoPath,
+				dir: name,
+				id: uuid.v4()
+			};
+			const pkgDir = await repoCache.add( name, childModule );
+			
+			console.log( `Dependency ${name} checked out to ${pkgDir}` );
+			
+			const childflavioJson = await loadflavioJson( pkgDir );
+			const child = await buildTree( options, repoPath, childflavioJson, pkgDir, false, repoCache );
+			element.children.set( name, child );
+			
+			// if ( fs.existsSync( path.join( pkgDir, '.git' ) ) ) {
+				// // check locally checked out files
+				// const childflavioJson = await loadflavioJson( pkgDir );
+				// const child = await buildTree( options, repoPath, childflavioJson, pkgDir, false, repoCache );
+				// element.children.set( name, child );
+			// } else {
+				// // module not checked out
+				// element.children.set( name, { status: 'missing', dir: pkgDir, repo: repoPath } );
+			// }
 		}
 	}
 
@@ -59,7 +71,7 @@ async function buildTree( options, parentRepo, flavioJson, dir, isRoot = false )
 }
 
 // calculates tree structure
-async function calculate( options ) {
+async function calculate( options, repoCache ) {
 	let flavioJson;
 	try {
 		flavioJson = await loadflavioJson( options.cwd );
@@ -71,7 +83,7 @@ async function calculate( options ) {
 	} catch ( err ) {
 	}
 
-	const tree = await buildTree( options, repoUrl, flavioJson, options.cwd, true );	
+	const tree = await buildTree( options, repoUrl, flavioJson, options.cwd, true, repoCache );	
 	return tree;
 }
 
@@ -110,48 +122,48 @@ async function listChildren( tree, options = {} ) {
 	return children;
 }
 
-async function _listConflicts( children, found ) {
-	for ( const [name, module] of children ) {
-		console.log( "listConflicts", name );
-		if ( !found.has( name ) ) {
-			found.set( name, [module] );
-		} else {
-			found.get( name ).push( module );
-		}
-		if ( module.children ) {
-			await _listConflicts( module.children, found );
-		}
-	}
-}
+// async function _listConflicts( children, found ) {
+	// for ( const [name, module] of children ) {
+		// console.log( "listConflicts", name );
+		// if ( !found.has( name ) ) {
+			// found.set( name, [module] );
+		// } else {
+			// found.get( name ).push( module );
+		// }
+		// if ( module.children ) {
+			// await _listConflicts( module.children, found );
+		// }
+	// }
+// }
 
-function filterModules( modules_ ) {
-	let modules = modules_.slice( 0 );
-	for ( let i=0; i<modules.length; ++i ) {
-		const lhs = modules[i];
-		console.log( "lhs", JSON.stringify( lhs, null, 2 ) );
-		for ( let j=i+1; j<modules.length; ++j ) {
-			const rhs = modules[j];
-		}
-	}
-	return modules;
-}
+// function filterModules( modules_ ) {
+	// let modules = modules_.slice( 0 );
+	// for ( let i=0; i<modules.length; ++i ) {
+		// const lhs = modules[i];
+		// console.log( "lhs", JSON.stringify( lhs, null, 2 ) );
+		// for ( let j=i+1; j<modules.length; ++j ) {
+			// const rhs = modules[j];
+		// }
+	// }
+	// return modules;
+// }
 
-async function listConflicts( tree ) {
-	let found = new Map();
-	await _listConflicts( tree.children, found );
-	// remove any modules which don't have multiple versions
-	let filtered = new Map();
-	for ( const [name, modules] of found ) {
-		console.log( "found=", name );
-		if ( modules.length > 1 ) {
-			// in the modules array, remove any that are pointing to the same tag or branch
-			const filteredModules = filterModules( modules );
-			if ( filteredModules.length > 1 ) {
-				filtered.set( name, modules );
-			}
-		}
-	}
-	return filtered;
-}
+// async function listConflicts( tree ) {
+	// let found = new Map();
+	// await _listConflicts( tree.children, found );
+	// // remove any modules which don't have multiple versions
+	// let filtered = new Map();
+	// for ( const [name, modules] of found ) {
+		// console.log( "found=", name );
+		// if ( modules.length > 1 ) {
+			// // in the modules array, remove any that are pointing to the same tag or branch
+			// const filteredModules = filterModules( modules );
+			// if ( filteredModules.length > 1 ) {
+				// filtered.set( name, modules );
+			// }
+		// }
+	// }
+	// return filtered;
+// }
 
-export { calculate, listChildren, listConflicts };
+export { calculate, listChildren/*, listConflicts */};

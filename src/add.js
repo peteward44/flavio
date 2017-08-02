@@ -2,6 +2,23 @@ import _ from 'lodash';
 import path from 'path';
 import fs from 'fs';
 
+
+/**
+ * Saves the flavio.json to the given directory
+ *
+ * @param {string} cwd - Working directory
+ * @param {Object} json - New flavio.json data object
+ * @returns {Promise}
+ */
+export function saveflavioJson( cwd, json ) {
+	const p = path.join( cwd, util.getflavioJsonFileName() );
+	return new Promise( (resolv, reject) => {
+		fs.writeFile( p, JSON.stringify( json, null, 2 ), 'utf-8', (err) => {
+			err ? reject( err ) : resolv();
+		} );
+	} );
+}
+
 /**
  * Adds a repo to the flavio.json
  *

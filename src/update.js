@@ -5,22 +5,7 @@ import * as depTree from './depTree.js';
 import * as util from './util.js';
 import * as git from './git.js';
 import * as resolve from './resolve.js';
-
-async function installMissing( modules ) {
-	// download/update modules
-	let count = 0;
-	for ( const module of modules ) {
-		if ( module.status === 'missing' ) {
-			console.log( `Installing ${module.name} [${module.repo}]...` );
-			const repoUrl = util.parseRepositoryUrl( module.repo );
-			const targetObj = await resolve.getTargetFromRepoUrl( module.repo );
-			await git.clone( repoUrl.url, module.dir, targetObj );
-			console.log( `Complete` );
-			count++;
-		}
-	}
-	return count;
-}
+import RepoCloneCache from './RepoCloneCache.js';
 
 async function updateProject( dir, repo = null ) {
 	const stashName = await git.stash( dir );
@@ -46,22 +31,6 @@ async function updateProject( dir, repo = null ) {
 	await git.stashPop( dir, stashName );
 }
 
-
-/**
- * Saves the flavio.json to the given directory
- *
- * @param {string} cwd - Working directory
- * @param {Object} json - New flavio.json data object
- * @returns {Promise}
- */
-export function saveflavioJson( cwd, json ) {
-	const p = path.join( cwd, util.getflavioJsonFileName() );
-	return new Promise( (resolv, reject) => {
-		fs.writeFile( p, JSON.stringify( json, null, 2 ), 'utf-8', (err) => {
-			err ? reject( err ) : resolv();
-		} );
-	} );
-}
 
 async function updateOutofDate( children ) {
 	for ( const [name, module] of children ) {
@@ -104,29 +73,16 @@ async function update( options ) {
 	await updateProject( options.cwd );
 	console.log( `Complete` );
 	await util.readConfigFile( options.cwd );
+	
+	let repoCache = new RepoCloneCache( options );
+	await repoCache.init();
 
 	// get current tree
-	let tree = await depTree.calculate( options );
+	let tree = await depTree.calculate( options, repoCache );
 	
-	// pull all modules already cloned
-	let modules = await depTree.listChildren( tree );
-	for ( const module of modules ) {
-		if ( module.status === 'installed' ) {
-			console.log( `Updating ${ path.basename( module.dir ) }` );
-			await updateProject( module.dir, module.repo );
-		}
-	}
-
-	// TODO: resolve any conflicts in dep tree
+	await repoCache.resolveConflicts();
 	
 	
-	// keep installing missing modules until no more found
-	let missingCount = 0;
-	do {
-		missingCount = await installMissing( modules );
-		tree = await depTree.calculate( options );
-		modules = await depTree.listChildren( tree );
-	} while ( missingCount > 0 );
 }
 
 export default update;
