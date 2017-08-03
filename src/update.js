@@ -7,6 +7,24 @@ import * as git from './git.js';
 import * as resolve from './resolve.js';
 import RepoCloneCache from './RepoCloneCache.js';
 
+/**
+ * Loads the flavio.json from the given directory. If none exists, returns empty object
+ *
+ * @param {string} cwd - Working directory
+ * @returns {Promise.<Object>} - JSON
+ */
+function loadflavioJson( cwd ) {
+	const p = path.join( cwd, util.getflavioJsonFileName() );
+	return new Promise( (resolv, reject) => {
+		fs.readFile( p, 'utf8', (err, txt) => {
+			err ? resolv( '{}' ) : resolv( txt );
+		} );
+	} )
+	.then( (txt) => {
+		return JSON.parse( txt.toString() );
+	} );
+}
+
 async function updateProject( dir, repo = null ) {
 	const stashName = await git.stash( dir );
 	await git.pull( dir );
@@ -75,14 +93,12 @@ async function update( options ) {
 	await util.readConfigFile( options.cwd );
 	
 	let repoCache = new RepoCloneCache( options );
-	await repoCache.init();
+	await repoCache.init( await loadflavioJson( options.cwd ) );
 
 	// get current tree
 	let tree = await depTree.calculate( options, repoCache );
 	
 	console.log( JSON.stringify( tree, null, 2 ) );
-	await repoCache.resolveConflicts();
-	
 	
 }
 
