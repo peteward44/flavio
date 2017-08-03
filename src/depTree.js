@@ -1,16 +1,13 @@
 import _ from 'lodash';
-import fs from 'fs-extra';
 import path from 'path';
 import * as git from './git.js';
 import * as util from './util.js';
-import * as resolve from './resolve.js';
-import uuid from 'uuid';
 
 
 /**
  * Creates tree structure of all dependencies
  */
-async function buildTree( options, parentRepo, flavioJson, dir, isRoot = false, repoCache ) {
+async function buildTree( options, parentRepo, flavioJson, dir, isRoot = false, nodeCallback ) {
 	const rootPath = await util.getPackageRootPath( options.cwd );
 	let element = {
 		dir,
@@ -27,12 +24,13 @@ async function buildTree( options, parentRepo, flavioJson, dir, isRoot = false, 
 				repo: repoPath,
 				dir: name
 			};
-			const pkgDir = await repoCache.add( name, childModule );
+			const pkgDir = path.join( rootPath, name );
+			await nodeCallback( name, childModule );
 			
 			console.log( `Dependency ${name} checked out to ${pkgDir}` );
 			
 			const childflavioJson = await util.loadFlavioJson( pkgDir );
-			const child = await buildTree( options, repoPath, childflavioJson, pkgDir, false, repoCache );
+			const child = await buildTree( options, repoPath, childflavioJson, pkgDir, false, nodeCallback );
 			element.children.set( name, child );
 		}
 	}
@@ -41,7 +39,7 @@ async function buildTree( options, parentRepo, flavioJson, dir, isRoot = false, 
 }
 
 // calculates tree structure
-async function traverse( options, repoCache ) {
+async function traverse( options, nodeCallback ) {
 	let flavioJson;
 	try {
 		flavioJson = await util.loadFlavioJson( options.cwd );
@@ -53,7 +51,7 @@ async function traverse( options, repoCache ) {
 	} catch ( err ) {
 	}
 
-	const tree = await buildTree( options, repoUrl, flavioJson, options.cwd, true, repoCache );	
+	const tree = await buildTree( options, repoUrl, flavioJson, options.cwd, true, nodeCallback );	
 	return tree;
 }
 

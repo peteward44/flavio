@@ -4,32 +4,32 @@ import path from 'path';
 import * as git from './git.js';
 import * as resolve from './resolve.js';
 
-let g_config = {};
+let gConfig = {};
 
 export async function readConfigFile( cwd ) {
 	try {
 		const rc = path.join( cwd, '.flaviorc' );
 		if ( fs.existsSync( rc ) ) {
-			g_config = JSON.parse( fs.readFileSync( rc ) );
+			gConfig = JSON.parse( fs.readFileSync( rc ) );
 		}
 	} catch ( err ) {
-		g_config = {};
+		gConfig = {};
 	}
 }
 
 
 export async function getPackageRootPath( cwd ) {
 	// read from .flaviorc
-	if ( _.isString( g_config.directory ) ) {
-		return path.join( cwd, g_config.directory );
+	if ( _.isString( gConfig.directory ) ) {
+		return path.join( cwd, gConfig.directory );
 	}
 	return path.join( cwd, 'flavio_modules' );
 }
 
 export function getflavioJsonFileName() {
 	// read from .flaviorc
-	if ( _.isString( g_config.filename ) ) {
-		return g_config.filename;
+	if ( _.isString( gConfig.filename ) ) {
+		return gConfig.filename;
 	}
 	return 'flavio.json';
 }
@@ -119,7 +119,7 @@ export async function getDependencyNameFromRepoUrl( repo ) {
 
 
 export function getGitProjectNameFromUrl( repo ) {
-	const match = repo.match( /\/([^\/]*?)\.git/i );
+	const match = repo.match( /\/([^/]*?)\.git/i );
 	if ( match ) {
 		return match[1];
 	}

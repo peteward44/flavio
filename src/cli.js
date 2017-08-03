@@ -32,7 +32,7 @@ export default function start() {
 			.example('flavio add user@server:/var/repo.git', 'clones/checks out repo.git and any dependencies, adds repo.git to dependency list')
 			.help('help')
 			.version(() => pkgJson.version)
-			.command('update', 'Installs and updates all dependencies', ( subyargs ) => doInstall( subyargs, resolve, reject ) )
+			.command('update', 'Installs and updates all dependencies', subyargs => doInstall( subyargs, resolve, reject ) )
 			.command('add', 'Adds a new dependency', ( subyargs ) => {
 				const options = subyargs
 					.usage('Usage: flavio add [options] <repo>')

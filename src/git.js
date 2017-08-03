@@ -5,12 +5,6 @@ import os from 'os';
 import { spawn } from 'child_process';
 import * as util from './util.js';
 
-function getTempDir() {
-	const p = path.join( os.tmpdir(), uuid.v4() );
-	fs.ensureDirSync( p );
-	return p;
-}
-
 
 function printError( err, args ) {
 	let argsString = args.join( " " );
@@ -23,7 +17,7 @@ function executeGit( args, options ) {
 	options = options || {};
 	return new Promise( ( resolve, reject ) => {
 		let stdo = '';
-		console.log( `Executing git ${args.join(" ")}` );
+//		console.log( `Executing git ${args.join(" ")}` );
 		let proc = spawn( 'git', args, { cwd: options.cwd ? options.cwd : process.cwd(), stdio: ['ignore', 'pipe', 'inherit'] } );
 
 		function unpipe() {
@@ -217,13 +211,10 @@ export async function cat( url, filepath, options = {} ) {
 	fs.ensureDirSync( tempDir );
 	try {
 		let bname = 'master';
-		let checkoutName = 'master';
 		if ( options.tag ) {
 			bname = `tags/${options.tag}`;
-			checkoutName = options.tag;
 		} else if ( options.branch ) {
 			bname = options.branch;
-			checkoutName = options.branch;
 		}
 		await executeGit( ['init', tempDir] );
 		await executeGit( ['remote', 'add', '-f', 'origin', url], { cwd: tempDir } );

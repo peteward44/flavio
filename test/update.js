@@ -230,7 +230,7 @@ describe(`update tests`, function() {
 			]
 		} );
 		// do force-latest to make sure we get v1.1.0 of main2
-		await update( { cwd: result.checkoutDir, 'force-latest': true } );
+		await update( { 'cwd': result.checkoutDir, 'force-latest': true } );
 		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.1.1.0.txt' ) ), 'main2 dependency installed' );
 		chai.assert.ok( !fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.0.2.0.txt' ) ), 'main2 dependency installed' );
 		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main3', 'file3.txt' ) ), 'main3 dependency installed' );
@@ -238,10 +238,10 @@ describe(`update tests`, function() {
 		// now change main2 reference in root flavio.json to 0.2.0, and see if that works
 		const rootFlavioJson = JSON.parse( fs.readFileSync( path.join( result.checkoutDir, 'flavio.json' ), 'utf8' ) );
 		const main2url = util.parseRepositoryUrl( rootFlavioJson.dependencies.main2 );
-		rootFlavioJson.dependencies.main2 = `${main2url.url}#0.2.0`
+		rootFlavioJson.dependencies.main2 = `${main2url.url}#0.2.0`;
 		fs.writeFileSync( path.join( result.checkoutDir, 'flavio.json' ), JSON.stringify( rootFlavioJson, null, 2 ), 'utf8' );
 		
-		await update( { cwd: result.checkoutDir, 'force-latest': true } );
+		await update( { 'cwd': result.checkoutDir, 'force-latest': true } );
 		
 		chai.assert.ok( !fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.1.1.0.txt' ) ), 'main2 dependency installed' );
 		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.0.2.0.txt' ) ), 'main2 dependency installed' );

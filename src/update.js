@@ -1,36 +1,8 @@
 import _ from 'lodash';
-import path from 'path';
-import fs from 'fs';
 import * as depTree from './depTree.js';
 import * as util from './util.js';
 import * as git from './git.js';
-import * as resolve from './resolve.js';
 import RepoCloneCache from './RepoCloneCache.js';
-
-
-async function updateProject( dir, repo = null ) {
-	const stashName = await git.stash( dir );
-	await git.pull( dir );
-	
-	if ( repo ) {
-		const repoUrl = util.parseRepositoryUrl( repo );
-		const localUrl = await git.getWorkingCopyUrl( dir, true );
-		if ( localUrl !== repoUrl.url ) {
-			// Repository URL has changed - throw error
-			throw new Error( `Repository url for repo ${path.basename( dir )} has changed! Aborting operation...` );
-		}
-		const targetObj = await resolve.getTargetFromRepoUrl( repo, dir );
-		const targetCur = await git.getCurrentTarget( dir );
-		const targetChanged = targetObj.branch !== targetCur.branch || targetObj.tag !== targetCur.tag;
-		const validTarget = targetObj.branch || targetObj.tag;
-		if ( targetChanged && validTarget ) {
-			console.log( `Switching package ${name} to ${validTarget}` );
-			await git.checkout( dir, targetObj );
-			console.log( `Complete` );
-		}
-	}
-	await git.stashPop( dir, stashName );
-}
 
 /**
  * Executes update on given directory
@@ -45,18 +17,17 @@ async function update( options ) {
 	}
 	// update main project first
 	console.log( `Updating main project...` );
-	await updateProject( options.cwd );
+	const stashName = await git.stash( options.cwd );
+	await git.pull( options.cwd );
+	await git.stashPop( options.cwd, stashName );
 	console.log( `Complete` );
 	await util.readConfigFile( options.cwd );
 	
 	let repoCache = new RepoCloneCache( options );
 	await repoCache.init( await util.loadFlavioJson( options.cwd ) );
 
-	// get current tree
-	let tree = await depTree.traverse( options, repoCache );
-	
-	console.log( JSON.stringify( tree, null, 2 ) );
-	
+	// traverse tree, checking out / updating modules as we go
+	await depTree.traverse( options, ( name, childModule ) => repoCache.add( name, childModule ) );
 }
 
 export default update;

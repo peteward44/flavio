@@ -1,10 +1,8 @@
 import _ from 'lodash';
 import path from 'path';
-import fs from 'fs-extra';
 import inquirer from 'inquirer';
 import semver from 'semver';
 import * as git from './git.js';
-import * as resolve from './resolve.js';
 import * as util from './util.js';
 
 
@@ -62,7 +60,7 @@ async function handleConflict( options, name, module, rootFlavioJson ) {
 			],
 			default: latest === localUrl ? 0 : 1
 		};
-		const answer = await inquirer.prompt( [ question ] );
+		const answer = await inquirer.prompt( [question] );
 		return isSameRepo ? `${localRepoUrl.url}#${answer.q}` : answer.q;
 	}
 	// always fall back to the pre-existing repo if no other alternative can be found

@@ -1,26 +1,9 @@
-import _ from 'lodash';
 import path from 'path';
 import fs from 'fs-extra';
 import * as git from './git.js';
 import * as resolve from './resolve.js';
 import * as util from './util.js';
 import handleConflict from './handleConflict.js';
-
-
-function getDirs( root ) {
-	if ( !fs.existsSync( root ) ) {
-		return [];
-	}
-	const leaves = fs.readdirSync( root );
-	let dirs = [];
-	for ( const leaf of leaves ) {
-		const fullPath = path.join( root, leaf );
-		if ( fs.statSync( fullPath ).isDirectory() ) {
-			dirs.push( fullPath );
-		}
-	}
-	return dirs;
-}
 
 
 function findNewRepoDir( pkgdir ) {
