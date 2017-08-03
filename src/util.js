@@ -139,10 +139,10 @@ export async function hasRepoChanged( repo, dir ) {
 		return 'url';
 	}
 	const targetCur = await git.getCurrentTarget( dir );
-	if ( targetCur.tag === repoUrl.target ) {
+	if ( targetCur.tag && targetCur.tag !== repoUrl.target ) {
 		return 'target';
 	}
-	if ( targetCur.branch === repoUrl.target ) {
+	if ( targetCur.branch && targetCur.branch !== repoUrl.target ) {
 		return 'target';
 	}
 	return '';
