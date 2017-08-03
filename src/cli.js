@@ -2,7 +2,7 @@ import yargs from 'yargs';
 import pkgJson from '../package.json';
 import flavio from './index.js';
 
-function doInstall( subyargs ) {
+function doInstall( subyargs, resolve, reject ) {
 	const options = subyargs
 		.usage(`Usage: flavio update [options]`)
 		.example('flavio update', 'Installs and updates all dependencies')
@@ -32,7 +32,7 @@ export default function start() {
 			.example('flavio add user@server:/var/repo.git', 'clones/checks out repo.git and any dependencies, adds repo.git to dependency list')
 			.help('help')
 			.version(() => pkgJson.version)
-			.command('update', 'Installs and updates all dependencies', ( subyargs ) => doInstall( subyargs ) )
+			.command('update', 'Installs and updates all dependencies', ( subyargs ) => doInstall( subyargs, resolve, reject ) )
 			.command('add', 'Adds a new dependency', ( subyargs ) => {
 				const options = subyargs
 					.usage('Usage: flavio add [options] <repo>')

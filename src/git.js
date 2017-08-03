@@ -290,21 +290,15 @@ export async function clone( url, dir, options = {} ) {
 /** Lists all the tags that are part of the repository
  * @param {string} url URL
  */
-export async function listTags( url ) {
-	let tempDir = getTempDir();
+export async function listTags( url, localClonePath ) {
 	let result = [];
-	try {
-		await clone( url, tempDir, { minimal: true } );
-		let out = ( await executeGit( ['tag'], { cwd: tempDir, captureStdout: true } ) ).out.trim();
-		let array = out.split( '\n' );
-		for ( let i=0; i<array.length; ++i ) {
-			let t = array[i].trim();
-			if ( t.length > 0 ) {
-				result.push( t );
-			}
+	let out = ( await executeGit( ['tag'], { cwd: localClonePath, captureStdout: true } ) ).out.trim();
+	let array = out.split( '\n' );
+	for ( let i=0; i<array.length; ++i ) {
+		let t = array[i].trim();
+		if ( t.length > 0 ) {
+			result.push( t );
 		}
-	}	finally {
-		fs.removeSync( tempDir );
 	}
 	return result;
 }

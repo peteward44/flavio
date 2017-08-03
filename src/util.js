@@ -118,6 +118,15 @@ export async function getDependencyNameFromRepoUrl( repo ) {
 }
 
 
+export function getGitProjectNameFromUrl( repo ) {
+	const match = repo.match( /\/([^\/]*?)\.git/i );
+	if ( match ) {
+		return match[1];
+	}
+	return '';
+}
+
+
 /**
  * @returns {Promise.<string>} - Either 'url', 'target' or empty string, depending what has changed on the repo
  */
@@ -129,10 +138,11 @@ export async function hasRepoChanged( repo, dir ) {
 		// Repository URL is different to pre-existing module "name"
 		return 'url';
 	}
-	const targetObj = await resolve.getTargetFromRepoUrl( repo );
 	const targetCur = await git.getCurrentTarget( dir );
-	const targetChanged = targetObj.branch !== targetCur.branch || targetObj.tag !== targetCur.tag;
-	if ( targetChanged ) {
+	if ( targetCur.tag === repoUrl.target ) {
+		return 'target';
+	}
+	if ( targetCur.branch === repoUrl.target ) {
 		return 'target';
 	}
 	return '';

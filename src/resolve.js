@@ -7,11 +7,12 @@ import * as git from './git.js';
  * Returns a target description object used by the git-svn-interface library from a repo url
  *
  * @param {string} repo - Repository path in "bower format"
+ * @param {string} localClonePath - Path to directory where a local clone has already been made to prevent temporary checkout
  * @returns {Promise.<TargetDescription>}
  */
-export async function getTargetFromRepoUrl( repo ) {
+export async function getTargetFromRepoUrl( repo, localClonePath ) {
 	const repoUrl = util.parseRepositoryUrl( repo );
-	const tags = await git.listTags( repoUrl.url );
+	const tags = await git.listTags( repoUrl.url, localClonePath );
 	const target = repoUrl.target;
 	if ( !target ) {
 		// none specifed

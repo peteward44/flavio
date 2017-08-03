@@ -36,15 +36,17 @@ function findNewRepoDir( pkgdir ) {
 
 async function changeRepo( pkgdir, repo ) {
 	const repoUrl = util.parseRepositoryUrl( repo );
-	const targetObj = await resolve.getTargetFromRepoUrl( repo );
 	const repoState = await util.hasRepoChanged( repo, pkgdir );
 	if ( repoState === 'url' ) {
 		// completely different repo - rename old directory to preverse data
 		const newPkgDir = findNewRepoDir( pkgdir );
 		fs.renameSync( pkgdir, newPkgDir );
 		// then clone new one
-		await git.clone( repoUrl.url, pkgdir, targetObj );
+		await git.clone( repoUrl.url, pkgdir, { master: true } );
+		const targetObj = await resolve.getTargetFromRepoUrl( repo, pkgdir );
+		await git.checkout( pkgdir, targetObj );
 	} else if ( repoState === 'target' ) {
+		const targetObj = await resolve.getTargetFromRepoUrl( repo, pkgdir );
 		await git.checkout( pkgdir, targetObj );
 	}
 }
@@ -72,8 +74,9 @@ class RepoCloneCache {
 		const pkgdir = path.join( rootPath, module.dir );
 		if ( !fs.existsSync( pkgdir ) ) {
 			// fresh checkout
-			const targetObj = await resolve.getTargetFromRepoUrl( module.repo );
-			await git.clone( repoUrl.url, pkgdir, targetObj );
+			await git.clone( repoUrl.url, pkgdir, { master: true } );
+			const targetObj = await resolve.getTargetFromRepoUrl( module.repo, pkgdir );
+			await git.checkout( pkgdir, targetObj );
 		} else {
 			const repoState = await util.hasRepoChanged( module.repo, pkgdir );
 			if ( repoState === 'url' ) {
@@ -83,7 +86,7 @@ class RepoCloneCache {
 			} else if ( repoState === 'target' ) {
 				if ( !this._lockedDirs.has( module.dir ) ) {
 					// already existing version has not been used already, use that cloned repo to do a switch
-					const targetObj = await resolve.getTargetFromRepoUrl( module.repo );
+					const targetObj = await resolve.getTargetFromRepoUrl( module.repo, pkgdir );
 					const stashName = await git.stash( pkgdir );
 					await git.pull( pkgdir );
 					if ( !options.pullOnly ) {
