@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import path from 'path';
+import fs from 'fs';
 import * as git from './git.js';
 import * as util from './util.js';
 
@@ -25,10 +26,20 @@ async function buildTree( options, parentRepo, flavioJson, dir, isRoot = false, 
 				dir: name
 			};
 			const pkgDir = path.join( rootPath, name );
+			if ( fs.existsSync( pkgDir ) ) {
+				const repoState = await util.hasRepoChanged( repoPath, pkgDir );
+				if ( repoState === 'url' ) {
+					childModule.status = 'conflict-url';
+				} else if ( repoState === 'target' ) {
+					childModule.status = 'conflict-target';
+				} else {
+					childModule.status = 'installed';
+				}
+			} else {
+				childModule.status = 'missing';
+			}
 			await nodeCallback( name, childModule );
-			
-			console.log( `Dependency ${name} checked out to ${pkgDir}` );
-			
+
 			const childflavioJson = await util.loadFlavioJson( pkgDir );
 			const child = await buildTree( options, repoPath, childflavioJson, pkgDir, false, nodeCallback );
 			element.children.set( name, child );

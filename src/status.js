@@ -1,4 +1,4 @@
-//import * as depTree from './depTree.js';
+import * as depTree from './depTree.js';
 
 // async function printStatus( name, module ) {
 	// // TODO: 
@@ -33,6 +33,21 @@
 // }
 
 async function status( options ) {
+	let modules = new Map();
+	await depTree.traverse( options, ( name, childModule ) => {
+		if ( !modules.has( name ) ) {
+			modules.set( name, [] );
+		}
+		modules.get( name ).push( childModule );
+	} );
+	
+	console.log( `${modules.size} dependencies found` );
+	
+	for ( const [name, moduleArray] of modules ) {
+		console.log( `${name}` );
+		console.log( `${JSON.stringify( moduleArray[0] )}` );
+	}
+	
 //	const depTree = await depTree.calculate( options );
 //	await printStatus( "main", depTree );
 }

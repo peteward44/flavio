@@ -198,43 +198,6 @@ export async function addProject( tempDir, project, rootObj = null, repoMap = ne
 }
 
 
-/** Gets the contents of a file
- * @param {string} url URL
- * @param {object} [targetDesc] Target description
- * @param {string} filepath Path of file to create
- * @returns {string} File contents
- */
-export async function cat( url, filepath, options = {} ) {
-	// http://stackoverflow.com/questions/2466735/how-to-checkout-only-one-file-from-git-repository
-	let text = '';
-	const tempDir = path.join( os.tmpdir(), uuid.v4() );
-	fs.ensureDirSync( tempDir );
-	try {
-		let bname = 'master';
-		if ( options.tag ) {
-			bname = `tags/${options.tag}`;
-		} else if ( options.branch ) {
-			bname = options.branch;
-		}
-		await executeGit( ['init', tempDir] );
-		await executeGit( ['remote', 'add', '-f', 'origin', url], { cwd: tempDir } );
-		await executeGit( ['config', 'core.sparseCheckout', 'true'], { cwd: tempDir } ); // Note: Requires git 1.7+
-		let checkoutPath = filepath.replace( /\\/g, '/' );
-		if ( checkoutPath.length <= 0 || checkoutPath[0] !== '/' ) {
-			checkoutPath = `/${checkoutPath}`;
-		}
-		fs.writeFileSync( path.join( tempDir, '.git', 'info', 'sparse-checkout' ), filepath );
-		await executeGit( ['fetch', '--depth', '1'], { cwd: tempDir } );
-		await executeGit( ['checkout', bname], { cwd: tempDir } );
-		// then read in file
-		text = fs.readFileSync( path.join( tempDir, filepath ), 'utf8' );
-	} finally {
-		fs.removeSync( tempDir );
-	}
-	return text;
-}
-
-
 export async function getCurrentTarget( dir ) {
 	// from http://stackoverflow.com/questions/18659425/get-git-current-branch-tag-name
 	try {
