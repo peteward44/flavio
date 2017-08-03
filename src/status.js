@@ -33,8 +33,8 @@ And for both:
 }
 
 async function status( options ) {
-	const depTree = await depTree.calculate( options );
-	await printStatus( "main", depTree );
+//	const depTree = await depTree.calculate( options );
+//	await printStatus( "main", depTree );
 }
 
 export default status;

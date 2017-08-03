@@ -147,3 +147,21 @@ export async function hasRepoChanged( repo, dir ) {
 	}
 	return '';
 }
+
+/**
+ * Loads the flavio.json from the given directory. If none exists, returns empty object
+ *
+ * @param {string} cwd - Working directory
+ * @returns {Promise.<Object>} - JSON
+ */
+export function loadFlavioJson( cwd ) {
+	const p = path.join( cwd, getflavioJsonFileName() );
+	return new Promise( (resolv, reject) => {
+		fs.readFile( p, 'utf8', (err, txt) => {
+			err ? resolv( '{}' ) : resolv( txt );
+		} );
+	} )
+	.then( (txt) => {
+		return JSON.parse( txt.toString() );
+	} );
+}
