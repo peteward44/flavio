@@ -7,7 +7,7 @@ import * as depTree from '../lib/depTree.js';
 describe(`depTree tests`, function() {
 	this.timeout(30 * 60 * 1000); // 30 minutes
 
-	helpers.test('basic', async (tempDir) => {
+	helpers.testSkip('basic', async (tempDir) => {
 		const result = await git.addProject( tempDir, {
 			name: 'main',
 			version: '0.1.0-snapshot.0',
@@ -66,7 +66,7 @@ describe(`depTree tests`, function() {
 */
 	});
 
-	helpers.test('more complicated tree', async (tempDir) => {
+	helpers.testSkip('more complicated tree', async (tempDir) => {
 		const result = await git.addProject( tempDir, {
 			name: 'main',
 			version: '0.1.0-snapshot.0',
@@ -232,7 +232,7 @@ describe(`depTree tests`, function() {
 	});
 	
 
-	helpers.test('add repo on CLI', async (tempDir) => {
+	helpers.testSkip('add repo on CLI', async (tempDir) => {
 		const result = await git.addProject( tempDir, {
 			name: 'main',
 			version: '0.1.0-snapshot.0',
@@ -341,7 +341,7 @@ describe(`depTree tests`, function() {
 */
 	});
 
-	helpers.test('depTree.listConflicts', async (tempDir) => {
+	helpers.testSkip('depTree.listConflicts', async (tempDir) => {
 		const result = await git.addProject( tempDir, {
 			name: 'main',
 			version: '0.1.0-snapshot.0',
