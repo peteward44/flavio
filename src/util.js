@@ -101,23 +101,6 @@ function guessProjectNameFromUrl( url ) {
 	}
 }
 
-/**
- * Gets the project name from project's flavio.json
- * @param {string} repo - Repository url
- * @returns {string} - Project name either from the flavio.json or guessed from the url
- */
-export async function getDependencyNameFromRepoUrl( repo ) {
-	const repoUrl = parseRepositoryUrl( repo );
-	try {
-		const targetObj = await resolve.getTargetFromRepoUrl( repo );
-		const flavioJson = JSON.parse( await git.cat( repoUrl.url, getflavioJsonFileName(), targetObj ) );
-		return flavioJson.name;
-	} catch ( err ) {
-		return guessProjectNameFromUrl( repoUrl.url );
-	}
-}
-
-
 export function getGitProjectNameFromUrl( repo ) {
 	const match = repo.match( /\/([^/]*?)\.git/i );
 	if ( match ) {
@@ -163,5 +146,21 @@ export function loadFlavioJson( cwd ) {
 	} )
 	.then( (txt) => {
 		return JSON.parse( txt.toString() );
+	} );
+}
+
+/**
+ * Saves the flavio.json to the given directory
+ *
+ * @param {string} cwd - Working directory
+ * @param {Object} json - New flavio.json data object
+ * @returns {Promise}
+ */
+export function saveFlavioJson( cwd, json ) {
+	const p = path.join( cwd, getflavioJsonFileName() );
+	return new Promise( (resolv, reject) => {
+		fs.writeFile( p, JSON.stringify( json, null, 2 ), 'utf-8', (err) => {
+			err ? reject( err ) : resolv();
+		} );
 	} );
 }

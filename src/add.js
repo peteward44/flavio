@@ -2,72 +2,34 @@ import _ from 'lodash';
 import path from 'path';
 import fs from 'fs';
 import * as util from './util.js';
+import update from './update.js';
 
 /**
- * Saves the flavio.json to the given directory
+ * Adds a repo to the flavio.json, then performs update afterwards
  *
- * @param {string} cwd - Working directory
- * @param {Object} json - New flavio.json data object
- * @returns {Promise}
- */
-export function saveflavioJson( cwd, json ) {
-	const p = path.join( cwd, util.getflavioJsonFileName() );
-	return new Promise( (resolv, reject) => {
-		fs.writeFile( p, JSON.stringify( json, null, 2 ), 'utf-8', (err) => {
-			err ? reject( err ) : resolv();
-		} );
-	} );
-}
-
-/**
- * Adds a repo to the flavio.json
- *
- * @param {Array.<string>|string} repos - Array of repository paths in "bower format" to add to the project, or empty to install all dependencies inside flavio.json
+ * @param {string} name - name of repo to put in flavio.json
+ * @param {string} repo - repository paths in "bower format" to add to the project, or empty to install all dependencies inside flavio.json
  * @param {Object} options - Command line options
  * @param {string} options.cwd - Working directory
  * @param {boolean} [options.force-latest=false] - Force latest version on conflict
  */
-async function add(repos, options) {
-	if ( !Array.isArray( repos ) ) {
-		repos = [repos];
-	}
+async function add( name, repo, options ) {
 	if ( !_.isString( options.cwd ) ) {
 		throw new Error( `Invalid cwd argument ${options.cwd}` );
 	}
+	
+	console.log( `Adding ${name} : ${repo}` );
+	
+	const flavioJson = await util.loadFlavioJson( options.cwd );
 
 	// // add new modules to the flavio.json
-	// if ( repos.length > 0 ) {
-		// let flavioJsonChanged = false;
-		// let flavioJson = depTree.flavioJson;
-		// for ( let repo of repos ) {
-			// if ( repo ) {
-				// let name;
-				// const index = repo.indexOf( ',' );
-				// if ( index > 0 ) {
-					// name = repo.substr( 0, index );
-					// repo = repo.substr( index + 1 );
-				// } else {
-					// name = await util.getDependencyNameFromRepoUrl( repo );
-				// }
-				// if ( options['save-dev'] ) {
-					// flavioJsonChanged = true;
-					// if ( !_.isObject( flavioJson.devDependencies ) ) {
-						// flavioJson.devDependencies = {};
-					// }
-					// flavioJson.devDependencies[name] = util.formatDefaultRepoPath( repo );
-				// } else {
-					// flavioJsonChanged = true;
-					// if ( !_.isObject( flavioJson.dependencies ) ) {
-						// flavioJson.dependencies = {};
-					// }
-					// flavioJson.dependencies[name] = util.formatDefaultRepoPath( repo );
-				// }				
-			// }
-		// }
-		// if ( flavioJsonChanged ) {
-			// await saveflavioJson( options.cwd, flavioJson );	
-		// }
-	// }
+	if ( !_.isObject( flavioJson.dependencies ) ) {
+		flavioJson.dependencies = {};
+	}
+	flavioJson.dependencies[name] = util.formatDefaultRepoPath( repo );
+
+	await util.saveFlavioJson( options.cwd, flavioJson );	
+	await update( options );
 }
 
 export default add;

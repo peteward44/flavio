@@ -16,6 +16,10 @@ function doInstall( subyargs, resolve, reject ) {
 			alias: 'F',
 			default: false
 		})
+		.option('interactive', {
+			describe: 'Set to false so the user is not prompted any questions',
+			default: true
+		})
 		.argv;
 	flavio.commands.update(options)
 		.then(resolve)
@@ -35,15 +39,21 @@ export default function start() {
 			.command('update', 'Installs and updates all dependencies', subyargs => doInstall( subyargs, resolve, reject ) )
 			.command('add', 'Adds a new dependency', ( subyargs ) => {
 				const options = subyargs
-					.usage('Usage: flavio add [options] <repo>')
-					.example('flavio add http://github.com/myuser/myrepo.git', 'Adds myrepo.git to dependency list')
+					.usage('Usage: flavio add [options] <name> <repourl>')
+					.example('flavio add My_Repo http://github.com/myuser/myrepo.git#0.2.0', 'Adds myrepo.git to dependency list using the name My_Repo')
 					.help('help')
 					.option('cwd', {
 						describe: 'Working directory to use',
 						default: process.cwd()
 					})
 					.argv;
-				flavio.commands.add(options);
+				if ( options._.length < 3 ) {
+					console.error( `Not enough arguments specified for add command - Example: flavio add My_Repo https://github.com/my_repo.git` );
+					return resolve();
+				}
+				flavio.commands.add( options._[1], options._[2], options )
+					.then(resolve)
+					.catch(reject);
 			} )
 			.command('status', 'Prints out dependency status to console', (subyargs) => {
 				const options = subyargs
@@ -55,7 +65,9 @@ export default function start() {
 						default: process.cwd()
 					})
 					.argv;
-				flavio.commands.status(options);
+				flavio.commands.status(options)
+					.then(resolve)
+					.catch(reject);
 			})
 			.command('tag', 'Tags main project as well as any dependencies', (subyargs) => {
 				const options = subyargs
@@ -84,6 +96,10 @@ export default function start() {
 					.option('bumpMasterPreRelease', {
 						describe: 'semver pre-release name to increment version on master branch. Set to false for no pre-release name',
 						type: 'string'
+					})
+					.option('interactive', {
+						describe: 'Set to false so the user is not prompted any questions',
+						default: true
 					})
 					// .option('mergeLocalChanges', {
 						// describe: 'if there are uncommited local changes on a checked out tag, automatically merge back to original branch',

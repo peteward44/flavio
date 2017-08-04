@@ -62,7 +62,6 @@ class RepoCloneCache {
 			await git.checkout( pkgdir, targetObj );
 		} else {
 			const repoState = await util.hasRepoChanged( module.repo, pkgdir );
-			console.log( `${name} dep has changed ${repoState}` );
 			if ( repoState === 'url' ) {
 				// dir has already been used by different repo - conflict
 				const repo = await handleConflict( this._options, name, module, this._rootFlavioJson );
