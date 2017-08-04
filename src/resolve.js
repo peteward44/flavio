@@ -12,7 +12,7 @@ import * as git from './git.js';
  */
 export async function getTargetFromRepoUrl( repo, localClonePath ) {
 	const repoUrl = util.parseRepositoryUrl( repo );
-	const tags = await git.listTags( repoUrl.url, localClonePath );
+	const tags = await git.listTags( localClonePath );
 	const target = repoUrl.target;
 	if ( !target ) {
 		// none specifed

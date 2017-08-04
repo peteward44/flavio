@@ -33,23 +33,13 @@ import * as depTree from './depTree.js';
 // }
 
 async function status( options ) {
-	let modules = new Map();
-	await depTree.traverse( options, ( name, childModule ) => {
-		if ( !modules.has( name ) ) {
-			modules.set( name, [] );
-		}
-		modules.get( name ).push( childModule );
-	} );
-	
+	const modules = await depTree.listChildren( options );
 	console.log( `${modules.size} dependencies found` );
 	
 	for ( const [name, moduleArray] of modules ) {
 		console.log( `${name}` );
 		console.log( `${JSON.stringify( moduleArray[0] )}` );
 	}
-	
-//	const depTree = await depTree.calculate( options );
-//	await printStatus( "main", depTree );
 }
 
 export default status;

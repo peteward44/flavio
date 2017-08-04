@@ -71,10 +71,8 @@ export default function start() {
 			})
 			.command('tag', 'Tags main project as well as any dependencies', (subyargs) => {
 				const options = subyargs
-					.usage('Usage: flavio tag <optional modules> [options]')
-					.example('flavio tag', 'Creates a tag for main project and all linked bower dependencies')
-//					.example('flavio tag main', 'Creates a tag for main project only')
-					.example('flavio tag my_module my_module2', 'Creates a tag for my_module and my_module2 only')
+					.usage('Usage: flavio tag [options]')
+					.example('flavio tag', 'Creates a tag for main project and all linked dependencies')
 					.help('help')
 					.option('cwd', {
 						describe: 'Working directory to use',
@@ -110,11 +108,7 @@ export default function start() {
 						// type: 'boolean'
 					// })
 					.argv;
-				let names;
-				if (options._.length > 1) {
-					names = options._.slice(1);
-				}
-				flavio.commands.tag(names, options)
+				flavio.commands.tag(options)
 					.then(resolve)
 					.catch(reject);
 			})

@@ -54,7 +54,7 @@ class RepoCloneCache {
 	async add( name, module, options = {} ) {
 		const repoUrl = util.parseRepositoryUrl( module.repo );
 		const rootPath = await util.getPackageRootPath( this._options.cwd );
-		const pkgdir = path.join( rootPath, module.dir );
+		const pkgdir = module.dir;
 		if ( !fs.existsSync( pkgdir ) ) {
 			// fresh checkout
 			await git.clone( repoUrl.url, pkgdir, { master: true } );

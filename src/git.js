@@ -2,6 +2,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import uuid from 'uuid';
 import os from 'os';
+import semver from 'semver';
 import { spawn } from 'child_process';
 import * as util from './util.js';
 
@@ -244,7 +245,7 @@ export async function clone( url, dir, options = {} ) {
 /** Lists all the tags that are part of the repository
  * @param {string} url URL
  */
-export async function listTags( url, localClonePath ) {
+export async function listTags( localClonePath ) {
 	let result = [];
 	let out = ( await executeGit( ['tag'], { cwd: localClonePath, captureStdout: true } ) ).out.trim();
 	let array = out.split( '\n' );
@@ -254,6 +255,8 @@ export async function listTags( url, localClonePath ) {
 			result.push( t );
 		}
 	}
+	// sort by semver if possible, so latest version first
+	result.sort( semver.rcompare );
 	return result;
 }
 
@@ -335,5 +338,10 @@ export async function addRemoteFile( filePath, fileContents, url, target ) {
 	} finally {
 		fs.removeSync( tempDir );
 	}
+}
+
+export async function getLastCommit( dir ) {
+	const out = ( await executeGit( ['log', '-n', '1', '--pretty=format:%H'], { cwd: dir, captureStdout: true } ) ).out;
+	return out.trim();
 }
 
