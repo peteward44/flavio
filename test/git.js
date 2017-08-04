@@ -32,15 +32,6 @@ describe(`git tests`, function() {
 		// TODO: verify tag was created
 	});
 	
-	helpers.test('cat basic', async (tempDir) => {
-		const repoDir = path.join( tempDir, uuid.v4() );
-		const checkoutDir = path.join( tempDir, uuid.v4() );
-		await git.createRepo( repoDir, checkoutDir, { files: [{ path: 'file.txt', contents: 'file contents' }] } );
-		const contents = await git.cat( repoDir, 'file.txt' );
-		chai.assert.equal( contents, 'file contents' );
-		// TODO: tag/branch versions
-	});
-	
 	helpers.test('addProject basic', async (tempDir) => {
 		const result = await git.addProject( tempDir, {
 			name: 'main',

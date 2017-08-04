@@ -10,7 +10,7 @@ import * as util from './util.js';
  * @returns {string} - Returns the repo to use
  */
 async function handleConflict( options, name, module, rootFlavioJson ) {
-	console.log( `Conflict! ${name} ${module}` );
+	console.log( `Conflict! ${name} ${JSON.stringify(module)}` );
 	const rootPath = await util.getPackageRootPath( options.cwd );
 	const pkgdir = path.join( rootPath, module.dir );
 	const localUrl = await git.getWorkingCopyUrl( pkgdir, false );
