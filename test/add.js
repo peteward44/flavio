@@ -10,7 +10,7 @@ import update from '../lib/update.js';
 describe(`add tests`, function() {
 	this.timeout(30 * 60 * 1000); // 30 minutes
 
-	helpers.testOnly('add basic', async (tempDir) => {
+	helpers.test('add basic', async (tempDir) => {
 		// main module
 		const result = await git.addProject( tempDir, {
 			name: 'main',

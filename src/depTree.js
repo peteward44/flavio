@@ -57,7 +57,7 @@ async function traverse( options, nodeCallback = null ) {
 	} catch ( err ) {
 	}
 
-	const tree = await buildTree( options, 'main', repoUrl, options.cwd, true, nodeCallback );	
+	const tree = await buildTree( options, '__main__', repoUrl, options.cwd, true, nodeCallback );	
 	return tree;
 }
 

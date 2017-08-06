@@ -1,4 +1,5 @@
 import path from 'path';
+import _ from 'lodash';
 import fs from 'fs-extra';
 import uuid from 'uuid';
 import os from 'os';
@@ -345,3 +346,24 @@ export async function getLastCommit( dir ) {
 	return out.trim();
 }
 
+export async function tagExists( dir, tag ) {
+	const list = await listTags( dir );
+	return _.has( list, tag );
+}
+
+export async function createAndCheckoutBranch( dir, branch ) {
+	await executeGit( ['checkout', '-b', branch], { cwd: dir } );
+}
+
+export async function addAndCommit( dir, filename, commitMessage ) {
+	await executeGit( ['add', filename], { cwd: dir } );
+	await executeGit( ['commit', '-m', commitMessage, filename], { cwd: dir } );
+}
+
+export async function createTag( dir, tagName, message ) {
+	await executeGit( ['tag', '-a', tagName, '-m', message], { cwd: dir } );
+}
+
+export async function push( dir, args ) {
+	await executeGit( ['push', ...args], { cwd: dir } );
+}

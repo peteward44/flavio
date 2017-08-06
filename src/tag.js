@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import path from 'path';
+import semver from 'semver';
 import * as util from './util.js';
 import * as resolve from './resolve.js';
 import * as git from './git.js';
@@ -35,7 +36,7 @@ async function getTagPointingAtCurrentHEAD( repoDir ) {
 }
 
 
-async function determineTagForElement( node, recycleTagMap ) {
+async function determineRecycledTagForElement( node, recycleTagMap ) {
 	console.log( `node=${node.dir}` );
 	// if a node can recycle it's tag, and all of it's dependencies can also recycle their tag, then we can do a recycle.
 	if ( !recycleTagMap.has( node.dir ) ) {
@@ -50,7 +51,7 @@ async function determineTagForElement( node, recycleTagMap ) {
 	
 	// check all children to see if they have valid tags
 	for ( const [name, module] of node.children ) {
-		const childTag = await determineTagForElement( module, recycleTagMap );
+		const childTag = await determineRecycledTagForElement( module, recycleTagMap );
 		console.log( `child=${name} tag=${childTag}` );
 		if ( !childTag ) {
 			// invalid child tag - just report invalid back
@@ -62,9 +63,17 @@ async function determineTagForElement( node, recycleTagMap ) {
 }
 
 async function determineTagsRecursive( node, recycleTagMap, tagMap ) {
-	if ( !tagMap.has( node.dir ) ) {
-		const tagName = await determineTagForElement( node, recycleTagMap );
-		tagMap.set( node.dir, tagName );
+	if ( !tagMap.has( node.name ) ) {
+		const recycledTag = await determineRecycledTagForElement( node, recycleTagMap );
+		if ( recycledTag ) {
+			tagMap.set( node.name, { tag: recycledTag, create: false, dir: node.dir } );
+		} else {
+			const flavioJson = await util.loadFlavioJson( node.dir );
+			// strip prerelease tag off name
+			const tagName = semver.inc( flavioJson.version, 'minor' );
+			const branchName = `release/${tagName}`;
+			tagMap.set( node.name, { tag: tagName, branch: branchName, create: true, dir: node.dir } );
+		}
 	}
 	for ( const [name, module] of node.children ) {
 		await determineTagsRecursive( module, recycleTagMap, tagMap );
@@ -82,8 +91,60 @@ async function determineTags( options, tree ) {
 	return tagMap;
 }
 
-async function performTag( options, reposToTag ) {
-	
+function lockFlavioJson( flavioJson, reposToTag, version, lastCommit, branchName ) {
+	// change version
+	flavioJson.version = version;
+	// lock all dependency versions
+	if ( flavioJson.dependencies ) {
+		for ( const name of Object.keys( flavioJson.dependencies ) ) {
+			if ( reposToTag.has( name ) ) {
+				const repo = flavioJson.dependencies[name];
+				const repoUrl = util.parseRepositoryUrl( repo );
+				const newTagName = reposToTag.get( name ).tag;
+				flavioJson.dependencies[name] = `${repoUrl.url}#${newTagName}`;
+			}
+		}
+	}
+	// add commit SHA and branch name
+	flavioJson.tag = {
+		commit: lastCommit,
+		branch: branchName
+	};
+	return flavioJson;
+}
+
+async function prepareTags( reposToTag ) {
+	for ( const [name, tagObject] of reposToTag ) {
+		const dir = tagObject.dir;
+		if ( tagObject.create ) {
+			const target = await git.getCurrentTarget( dir );
+			const branchName = target.branch;
+			const lastCommit = await git.getLastCommit( dir );
+			await git.createAndCheckoutBranch( dir, tagObject.branch );
+			// then modify flavio.json
+			let flavioJson = await util.loadFlavioJson( dir );
+			flavioJson = lockFlavioJson( flavioJson, reposToTag, tagObject.tag, lastCommit, branchName );
+			await util.saveFlavioJson( dir, flavioJson );
+			// commit new flavio.json
+			await git.addAndCommit( dir, 'flavio.json', `Commiting new flavio.json for tag ${tagObject.tag}` );
+			// then create tag
+			await git.createTag( dir, tagObject.tag, `Tag for v${tagObject.tag}` );
+			// switch back to original branch
+			await git.checkout( dir, target );
+		}
+	}
+}
+
+async function pushTags( options, reposToTag ) {
+	for ( const [name, tagObject] of reposToTag ) {
+		const dir = tagObject.dir;
+		if ( tagObject.create ) {
+			// push release branch
+			await git.push( dir, ['origin', `${tagObject.branch}`] );
+			// push tag
+			await git.push( dir, ['origin', `refs/tags/${tagObject.tag}`] );
+		}
+	}
 }
 
 /**
@@ -96,9 +157,10 @@ async function tag( options = {} ) {
 
 	// work out which repos need to be tagged, and what those tags are going to called
 	const reposToTag = await determineTags( options, tree );
-	
-	// then do actual tag
-	await performTag( options, reposToTag );
+	// create releae branches + tags, modify flavio.json
+	await prepareTags( reposToTag );
+	// then push everything
+	await pushTags( options, reposToTag );
 }
 
 export default tag;
