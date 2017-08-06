@@ -25,7 +25,7 @@ function executeTest( name, func ) {
 		prom = prom.then(() => {
 			// only delete temp folder on successfull test
 			try {
-//				fs.removeSync(tempDir);
+				fs.removeSync(tempDir);
 			} catch (err) {
 				console.error(`Could not delete temp folder for test '${name}'`);
 			}

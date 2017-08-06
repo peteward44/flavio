@@ -1,5 +1,4 @@
 import _ from 'lodash';
-import path from 'path';
 import inquirer from 'inquirer';
 import semver from 'semver';
 import * as git from './git.js';
@@ -11,8 +10,7 @@ import * as util from './util.js';
  */
 async function handleConflict( options, name, module, rootFlavioJson ) {
 	console.log( `Conflict! ${name} ${JSON.stringify(module)}` );
-	const rootPath = await util.getPackageRootPath( options.cwd );
-	const pkgdir = path.join( rootPath, module.dir );
+	const pkgdir = module.dir;
 	const localUrl = await git.getWorkingCopyUrl( pkgdir, false );
 	const localRepoUrl = util.parseRepositoryUrl( localUrl );
 	const otherRepoUrl = util.parseRepositoryUrl( module.repo );

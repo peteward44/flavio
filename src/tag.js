@@ -1,8 +1,6 @@
 import _ from 'lodash';
-import path from 'path';
 import semver from 'semver';
 import * as util from './util.js';
-import * as resolve from './resolve.js';
 import * as git from './git.js';
 import * as depTree from './depTree.js';
 
@@ -50,7 +48,7 @@ async function determineRecycledTagForElement( node, recycleTagMap ) {
 	}
 	
 	// check all children to see if they have valid tags
-	for ( const [name, module] of node.children ) {
+	for ( const [name, module] of node.children ) { // eslint-disable-line no-unused-vars
 		const childTag = await determineRecycledTagForElement( module, recycleTagMap );
 		console.log( `child=${name} tag=${childTag}` );
 		if ( !childTag ) {
@@ -75,7 +73,7 @@ async function determineTagsRecursive( node, recycleTagMap, tagMap ) {
 			tagMap.set( node.name, { tag: tagName, branch: branchName, create: true, dir: node.dir } );
 		}
 	}
-	for ( const [name, module] of node.children ) {
+	for ( const [name, module] of node.children ) { // eslint-disable-line no-unused-vars
 		await determineTagsRecursive( module, recycleTagMap, tagMap );
 	}
 }
@@ -114,7 +112,7 @@ function lockFlavioJson( flavioJson, reposToTag, version, lastCommit, branchName
 }
 
 async function prepareTags( reposToTag ) {
-	for ( const [name, tagObject] of reposToTag ) {
+	for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
 		const dir = tagObject.dir;
 		if ( tagObject.create ) {
 			const target = await git.getCurrentTarget( dir );
@@ -136,7 +134,7 @@ async function prepareTags( reposToTag ) {
 }
 
 async function pushTags( options, reposToTag ) {
-	for ( const [name, tagObject] of reposToTag ) {
+	for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
 		const dir = tagObject.dir;
 		if ( tagObject.create ) {
 			// push release branch
@@ -151,7 +149,7 @@ async function pushTags( options, reposToTag ) {
  *
  *
  */
-async function tag( options = {} ) {
+async function tagOperation( options = {} ) {
 	const tree = await depTree.traverse( options );
 	// TODO: disallow a tag operation if there are any local changes?
 
@@ -163,4 +161,4 @@ async function tag( options = {} ) {
 	await pushTags( options, reposToTag );
 }
 
-export default tag;
+export default tagOperation;

@@ -2,7 +2,6 @@ import _ from 'lodash';
 import fs from 'fs';
 import path from 'path';
 import * as git from './git.js';
-import * as resolve from './resolve.js';
 
 let gConfig = {};
 
@@ -76,29 +75,6 @@ export function formatDefaultRepoPath( repo ) {
 		repo = `${repoUrl.url}#master`;
 	}
 	return repo.replace( /\\/g, '/' );
-}
-
-/** Attempts to guess the name of the project from the URL
- * @param {string} url URL
- * @returns {string} Project name
- */
-function guessProjectNameFromUrl( url ) {
-	// remove .git at end of url if necessary
-	const suffix = '.git';
-	url = url.replace( /\\/g, '/' );
-	if ( url.endsWith( suffix ) ) {
-		url = url.substr( 0, url.length - suffix.length );
-	}
-	if ( url[url.length-1] === '/' ) {
-		// chop off trailing slash if there is one
-		url = url.substr( 0, url.length - 1 );
-	}
-	const index = url.lastIndexOf( '/' );
-	if ( index >= 0 ) {
-		return url.substr( index + 1 );
-	} else {
-		return url;
-	}
 }
 
 export function getGitProjectNameFromUrl( repo ) {

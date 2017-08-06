@@ -1,6 +1,4 @@
 import _ from 'lodash';
-import path from 'path';
-import fs from 'fs';
 import * as util from './util.js';
 import update from './update.js';
 

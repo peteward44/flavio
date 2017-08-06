@@ -1,6 +1,4 @@
-import fs from 'fs-extra';
 import path from 'path';
-import uuid from 'uuid';
 import chai from 'chai';
 import * as helpers from '../testutil/helpers.js';
 import * as git from '../lib/git.js';
@@ -27,7 +25,7 @@ describe(`tag tests`, function() {
 		chai.assert.ok( await git.tagExists( result.checkoutDir, "0.1.0" ) );
 	});
 
-	helpers.testOnly('tag one dependency', async (tempDir) => {
+	helpers.test('tag one dependency', async (tempDir) => {
 		// main module
 		const result = await git.addProject( tempDir, {
 			name: 'main',

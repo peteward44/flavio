@@ -1,4 +1,3 @@
-import path from 'path';
 import fs from 'fs-extra';
 import * as git from './git.js';
 import * as resolve from './resolve.js';
@@ -53,7 +52,6 @@ class RepoCloneCache {
 	
 	async add( name, module, options = {} ) {
 		const repoUrl = util.parseRepositoryUrl( module.repo );
-		const rootPath = await util.getPackageRootPath( this._options.cwd );
 		const pkgdir = module.dir;
 		if ( !fs.existsSync( pkgdir ) ) {
 			// fresh checkout

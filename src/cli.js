@@ -49,11 +49,12 @@ export default function start() {
 					.argv;
 				if ( options._.length < 3 ) {
 					console.error( `Not enough arguments specified for add command - Example: flavio add My_Repo https://github.com/my_repo.git` );
-					return resolve();
+					resolve();
+				} else {
+					flavio.commands.add( options._[1], options._[2], options )
+						.then(resolve)
+						.catch(reject);
 				}
-				flavio.commands.add( options._[1], options._[2], options )
-					.then(resolve)
-					.catch(reject);
 			} )
 			.command('status', 'Prints out dependency status to console', (subyargs) => {
 				const options = subyargs
