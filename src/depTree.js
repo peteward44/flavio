@@ -56,8 +56,16 @@ async function traverse( options, nodeCallback = null ) {
 		repoUrl = await git.getWorkingCopyUrl( options.cwd );
 	} catch ( err ) {
 	}
+	let mainName = '__main__';
+	try {
+		const flavioJson = await util.loadFlavioJson( options.cwd );
+		if ( flavioJson.name ) {
+			mainName = flavioJson.name;
+		}
+	} catch ( err ) {
+	}
 
-	const tree = await buildTree( options, '__main__', repoUrl, options.cwd, true, nodeCallback );	
+	const tree = await buildTree( options, mainName, repoUrl, options.cwd, true, nodeCallback );	
 	return tree;
 }
 

@@ -367,3 +367,11 @@ export async function createTag( dir, tagName, message ) {
 export async function push( dir, args ) {
 	await executeGit( ['push', ...args], { cwd: dir } );
 }
+
+export async function isUpToDate( dir ) {
+	await executeGit( ['fetch'], { cwd: dir } );
+	const local = ( await executeGit( ['rev-parse', 'HEAD'], { cwd: dir, captureStdout: true } ) ).out;
+	const remote = ( await executeGit( ['rev-parse', '@{u}'], { cwd: dir, captureStdout: true } ) ).out;
+	return local.trim() === remote.trim();
+}
+

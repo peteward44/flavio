@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import semver from 'semver';
+import inquirer from 'inquirer';
 import * as util from './util.js';
 import * as git from './git.js';
 import * as depTree from './depTree.js';
@@ -35,7 +36,6 @@ async function getTagPointingAtCurrentHEAD( repoDir ) {
 
 
 async function determineRecycledTagForElement( node, recycleTagMap ) {
-	console.log( `node=${node.dir}` );
 	// if a node can recycle it's tag, and all of it's dependencies can also recycle their tag, then we can do a recycle.
 	if ( !recycleTagMap.has( node.dir ) ) {
 		const tagName = await getTagPointingAtCurrentHEAD( node.dir );
@@ -50,7 +50,6 @@ async function determineRecycledTagForElement( node, recycleTagMap ) {
 	// check all children to see if they have valid tags
 	for ( const [name, module] of node.children ) { // eslint-disable-line no-unused-vars
 		const childTag = await determineRecycledTagForElement( module, recycleTagMap );
-		console.log( `child=${name} tag=${childTag}` );
 		if ( !childTag ) {
 			// invalid child tag - just report invalid back
 			return '';
@@ -60,21 +59,52 @@ async function determineRecycledTagForElement( node, recycleTagMap ) {
 	return recycleTagMap.get( node.dir );
 }
 
-async function determineTagsRecursive( node, recycleTagMap, tagMap ) {
+
+function getNextAvailableVersion( tagList, version, versionType ) {
+	let test;
+	do {
+		test = semver.inc( version, versionType );
+	} while ( tagList.indexOf( test ) >= 0 );
+	return test;
+}
+
+
+async function determineTagName( options, dir ) {
+	const flavioJson = await util.loadFlavioJson( dir );
+	// strip prerelease tag off name
+	const tagName = semver.inc( flavioJson.version, 'minor' );
+	// see if tag of the same name already exists
+	const tagList = await git.listTags( dir );
+	if ( tagList.indexOf( tagName ) ) {
+		// if it already exists, suggest either the next available major, minor or prerelease version for the user to pick
+		const nextMajor = getNextAvailableVersion( tagList, tagName, 'major' );
+		const nextMinor = getNextAvailableVersion( tagList, tagName, 'minor' );
+		const nextPatch = getNextAvailableVersion( tagList, tagName, 'patch' );
+		const question = {
+			type: 'list',
+			name: 'q',
+			message: `Commit changes?`
+		};
+		const answer = await inquirer.prompt( [question] );
+	}
+}
+
+async function determineTagsRecursive( options, node, recycleTagMap, tagMap ) {
 	if ( !tagMap.has( node.name ) ) {
+		const target = await git.getCurrentTarget( node.dir );
+		const originalBranch = target.branch;
 		const recycledTag = await determineRecycledTagForElement( node, recycleTagMap );
 		if ( recycledTag ) {
-			tagMap.set( node.name, { tag: recycledTag, create: false, dir: node.dir } );
+			tagMap.set( node.name, { tag: recycledTag, originalBranch, create: false, dir: node.dir } );
 		} else {
-			const flavioJson = await util.loadFlavioJson( node.dir );
-			// strip prerelease tag off name
-			const tagName = semver.inc( flavioJson.version, 'minor' );
+			const tagName = await determineTagName( options, node.dir );
 			const branchName = `release/${tagName}`;
-			tagMap.set( node.name, { tag: tagName, branch: branchName, create: true, dir: node.dir } );
+			const incrementMasterVersion = await git.isUpToDate( node.dir ); // only increment version in flavio.json if our local HEAD is up to date with the remote branch
+			tagMap.set( node.name, { tag: tagName, originalBranch, branch: branchName, create: true, dir: node.dir, incrementMasterVersion } );
 		}
 	}
 	for ( const [name, module] of node.children ) { // eslint-disable-line no-unused-vars
-		await determineTagsRecursive( module, recycleTagMap, tagMap );
+		await determineTagsRecursive( options, module, recycleTagMap, tagMap );
 	}
 }
 
@@ -82,10 +112,7 @@ async function determineTags( options, tree ) {
 	// for every node in the tree, check to see if any of the dependencies are on a branch with change without a tag pointing at the current HEAD
 	let recycleTagMap = new Map(); // map of module dir names and a tag they can recycle to, so we don't calculate it multiple times
 	let tagMap = new Map(); // map of module dir names and tags which take into account if the children have valid tags too
-	await determineTagsRecursive( tree, recycleTagMap, tagMap );
-	console.log( `recycleTagMap: ${JSON.stringify( recycleTagMap, null, 2 )}` );
-	console.log( `=====================================================================` );
-	console.log( `tagMap: ${JSON.stringify( tagMap, null, 2 )}` );
+	await determineTagsRecursive( options, tree, recycleTagMap, tagMap );
 	return tagMap;
 }
 
@@ -115,20 +142,18 @@ async function prepareTags( reposToTag ) {
 	for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
 		const dir = tagObject.dir;
 		if ( tagObject.create ) {
-			const target = await git.getCurrentTarget( dir );
-			const branchName = target.branch;
 			const lastCommit = await git.getLastCommit( dir );
 			await git.createAndCheckoutBranch( dir, tagObject.branch );
 			// then modify flavio.json
 			let flavioJson = await util.loadFlavioJson( dir );
-			flavioJson = lockFlavioJson( flavioJson, reposToTag, tagObject.tag, lastCommit, branchName );
+			flavioJson = lockFlavioJson( flavioJson, reposToTag, tagObject.tag, lastCommit, tagObject.originalBranch );
 			await util.saveFlavioJson( dir, flavioJson );
 			// commit new flavio.json
 			await git.addAndCommit( dir, 'flavio.json', `Commiting new flavio.json for tag ${tagObject.tag}` );
 			// then create tag
 			await git.createTag( dir, tagObject.tag, `Tag for v${tagObject.tag}` );
 			// switch back to original branch
-			await git.checkout( dir, target );
+			await git.checkout( dir, { branch: tagObject.originalBranch } );
 		}
 	}
 }
@@ -141,7 +166,7 @@ function incrementMasterVersion( version ) {
 async function incrementOriginalVersions( reposToTag ) {
 	for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
 		const dir = tagObject.dir;
-		if ( tagObject.create ) {
+		if ( tagObject.incrementMasterVersion ) {
 			// modify flavio.json
 			let flavioJson = await util.loadFlavioJson( dir );
 			flavioJson.version = incrementMasterVersion( flavioJson.version );
@@ -164,6 +189,31 @@ async function pushTags( options, reposToTag ) {
 	}
 }
 
+async function confirmUser( options, reposToTag ) {
+	const isInteractive = options.interactive !== false;
+	if ( isInteractive ) {
+		for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
+			if ( tagObject.create ) {
+				console.log( `${name}: ${tagObject.tag}` );
+			}
+		}
+		for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
+			if ( tagObject.create && !tagObject.incrementMasterVersion ) {
+				console.log( `WARNING: ${name} is not up to date with it's upstream branch (${tagObject.originalBranch}), and so will not have the flavio.json version automatically incremented` );
+			}
+		}
+		const question = {
+			type: 'confirm',
+			name: 'q',
+			message: `Commit changes?`
+		};
+		const answer = await inquirer.prompt( [question] );
+		return answer.q;
+	}
+	return true;
+}
+
+
 /**
  *
  *
@@ -174,6 +224,10 @@ async function tagOperation( options = {} ) {
 
 	// work out which repos need to be tagged, and what those tags are going to called
 	const reposToTag = await determineTags( options, tree );
+	// confirm with user the values to tag
+	if ( !( await confirmUser( options, reposToTag ) ) ) {
+		return;
+	}
 	// increment version number on the original branch first
 	await incrementOriginalVersions( reposToTag );
 	// create release branches + tags, modify flavio.json

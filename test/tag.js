@@ -147,7 +147,7 @@ describe(`tag tests`, function() {
 		chai.assert.ok( !( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main3' ), "0.4.0" ) ), 'main3 has no new tag' );
 	});
 	
-	helpers.test( 'Correctly recycle a tag on a single dependency and create new ones for any other projects that have been modified', async (tempDir) => {
+	helpers.testOnly( 'Correctly recycle a tag on a single dependency and create new ones for any other projects that have been modified', async (tempDir) => {
 		// main module
 		const result = await git.addProject( tempDir, {
 			name: 'main',
