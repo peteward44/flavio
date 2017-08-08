@@ -79,35 +79,14 @@ export default function start() {
 						describe: 'Working directory to use',
 						default: process.cwd()
 					})
-					.option('shrinkwrap', {
-						describe: 'Whether to change semver ranges to fixed version numbers',
-						type: 'boolean',
-						default: true
-					})
-					.option('bumpVersion', {
+					.option('increment', {
 						describe: 'semver release type to increment version on tag. Set to false for no increment',
-						type: 'string'
-					})
-					.option('bumpMasterVersion', {
-						describe: 'semver release type to increment version on master branch. Set to false for no increment',
-						type: 'string'
-					})
-					.option('bumpMasterPreRelease', {
-						describe: 'semver pre-release name to increment version on master branch. Set to false for no pre-release name',
 						type: 'string'
 					})
 					.option('interactive', {
 						describe: 'Set to false so the user is not prompted any questions',
 						default: true
 					})
-					// .option('mergeLocalChanges', {
-						// describe: 'if there are uncommited local changes on a checked out tag, automatically merge back to original branch',
-						// type: 'boolean'
-					// })
-					// .option('commitLocalChanges', {
-						// describe: 'if there are uncommited local changes, automatically commit',
-						// type: 'boolean'
-					// })
 					.argv;
 				flavio.commands.tag(options)
 					.then(resolve)
