@@ -348,7 +348,7 @@ export async function getLastCommit( dir ) {
 
 export async function tagExists( dir, tag ) {
 	const list = await listTags( dir );
-	return _.has( list, tag );
+	return _.indexOf( list, tag ) >= 0;
 }
 
 export async function createAndCheckoutBranch( dir, branch ) {

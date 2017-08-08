@@ -133,6 +133,25 @@ async function prepareTags( reposToTag ) {
 	}
 }
 
+function incrementMasterVersion( version ) {
+	const prerelease = semver.prerelease( version );
+	return semver.inc( version, 'preminor', prerelease ? prerelease[0] : 'snapshot' );
+}
+
+async function incrementOriginalVersions( reposToTag ) {
+	for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
+		const dir = tagObject.dir;
+		if ( tagObject.create ) {
+			// modify flavio.json
+			let flavioJson = await util.loadFlavioJson( dir );
+			flavioJson.version = incrementMasterVersion( flavioJson.version );
+			await util.saveFlavioJson( dir, flavioJson );
+			// commit new flavio.json
+			await git.addAndCommit( dir, 'flavio.json', `Commiting new flavio.json for tag ${tagObject.tag}` );
+		}
+	}
+}
+
 async function pushTags( options, reposToTag ) {
 	for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
 		const dir = tagObject.dir;
@@ -155,7 +174,9 @@ async function tagOperation( options = {} ) {
 
 	// work out which repos need to be tagged, and what those tags are going to called
 	const reposToTag = await determineTags( options, tree );
-	// create releae branches + tags, modify flavio.json
+	// increment version number on the original branch first
+	await incrementOriginalVersions( reposToTag );
+	// create release branches + tags, modify flavio.json
 	await prepareTags( reposToTag );
 	// then push everything
 	await pushTags( options, reposToTag );
