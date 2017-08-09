@@ -69,14 +69,14 @@ function getNextAvailableVersion( tagList, version, versionType ) {
 }
 
 
-async function determineTagName( options, dir ) {
+async function determineTagName( options, node ) {
 	const isInteractive = options.interactive !== false;
-	const flavioJson = await util.loadFlavioJson( dir );
+	const flavioJson = await util.loadFlavioJson( node.dir );
 	// strip prerelease tag off name
 	const tagName = semver.inc( flavioJson.version, options.increment );
 	// see if tag of the same name already exists
-	const tagList = await git.listTags( dir );
-	if ( tagList.indexOf( tagName ) ) {
+	const tagList = await git.listTags( node.dir );
+	if ( tagList.indexOf( tagName ) >= 0 ) {
 		// if it already exists, suggest either the next available major, minor or prerelease version for the user to pick
 		const nextMajor = getNextAvailableVersion( tagList, tagName, 'major' );
 		const nextMinor = getNextAvailableVersion( tagList, tagName, 'minor' );
@@ -99,7 +99,7 @@ async function determineTagName( options, dir ) {
 			const question = {
 				type: 'list',
 				name: 'q',
-				message: `Tag ${tagName} already exists. Use available alternative?`,
+				message: `${node.name}: Tag ${tagName} already exists. Use available alternative?`,
 				choices: [nextMajor, nextMinor, nextPatch],
 				default: defaultVal
 			};
@@ -120,7 +120,7 @@ async function determineTagsRecursive( options, node, recycleTagMap, tagMap ) {
 		if ( recycledTag ) {
 			tagMap.set( node.name, { tag: recycledTag, originalBranch, create: false, dir: node.dir } );
 		} else {
-			const tagName = await determineTagName( options, node.dir );
+			const tagName = await determineTagName( options, node );
 			const branchName = `release/${tagName}`;
 			const incrementVersion = await git.isUpToDate( node.dir ); // only increment version in flavio.json if our local HEAD is up to date with the remote branch
 			tagMap.set( node.name, { tag: tagName, originalBranch, branch: branchName, create: true, dir: node.dir, incrementMasterVersion: incrementVersion } );
@@ -196,6 +196,7 @@ async function incrementOriginalVersions( options, reposToTag ) {
 			await util.saveFlavioJson( dir, flavioJson );
 			// commit new flavio.json
 			await git.addAndCommit( dir, 'flavio.json', `Commiting new flavio.json for tag ${tagObject.tag}` );
+			await git.push( dir, ['origin', 'HEAD'] );
 		}
 	}
 }

@@ -22,7 +22,7 @@ describe(`tag tests`, function() {
 			]
 		});
 		
-		await tag( { cwd: result.checkoutDir } );
+		await tag( { cwd: result.checkoutDir, interactive: false } );
 		chai.assert.ok( await git.tagExists( result.checkoutDir, "0.1.0" ) );
 	});
 
@@ -51,8 +51,8 @@ describe(`tag tests`, function() {
 			]
 		});
 		
-		await update( { cwd: result.checkoutDir } );
-		await tag( { cwd: result.checkoutDir } );
+		await update( { cwd: result.checkoutDir, interactive: false } );
+		await tag( { cwd: result.checkoutDir, interactive: false } );
 		chai.assert.ok( await git.tagExists( result.checkoutDir, "0.1.0" ) );
 		chai.assert.ok( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main2' ), "0.2.0" ) );
 	});
@@ -92,8 +92,8 @@ describe(`tag tests`, function() {
 			]
 		});
 		
-		await update( { cwd: result.checkoutDir } );
-		await tag( { cwd: result.checkoutDir } );
+		await update( { cwd: result.checkoutDir, interactive: false } );
+		await tag( { cwd: result.checkoutDir, interactive: false } );
 		chai.assert.ok( await git.tagExists( result.checkoutDir, "0.1.0" ) );
 		chai.assert.ok( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main2' ), "0.2.0" ) );
 		chai.assert.ok( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main3' ), "0.3.0" ) );
@@ -134,20 +134,20 @@ describe(`tag tests`, function() {
 			]
 		});
 		
-		await update( { cwd: result.checkoutDir } );
-		await tag( { cwd: result.checkoutDir } );
+		await update( { cwd: result.checkoutDir, interactive: false } );
+		await tag( { cwd: result.checkoutDir, interactive: false } );
 		chai.assert.ok( await git.tagExists( result.checkoutDir, "0.1.0" ) );
 		chai.assert.ok( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main2' ), "0.2.0" ) );
 		chai.assert.ok( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main3' ), "0.3.0" ) );
 
-		await tag( { cwd: result.checkoutDir } );
+		await tag( { cwd: result.checkoutDir, interactive: false } );
 
 		chai.assert.ok( !( await git.tagExists( result.checkoutDir, "0.2.0" ) ), 'main has no new tag' );
 		chai.assert.ok( !( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main2' ), "0.3.0" ) ), 'main2 has no new tag' );
 		chai.assert.ok( !( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main3' ), "0.4.0" ) ), 'main3 has no new tag' );
 	});
 	
-	helpers.testOnly( 'Correctly recycle a tag on a single dependency and create new ones for any other projects that have been modified', async (tempDir) => {
+	helpers.test( 'Correctly recycle a tag on a single dependency and create new ones for any other projects that have been modified', async (tempDir) => {
 		// main module
 		const result = await git.addProject( tempDir, {
 			name: 'main',
@@ -182,16 +182,17 @@ describe(`tag tests`, function() {
 			]
 		});
 		
-		await update( { cwd: result.checkoutDir } );
-		await tag( { cwd: result.checkoutDir } );
+		await update( { cwd: result.checkoutDir, interactive: false } );
+		await tag( { cwd: result.checkoutDir, interactive: false } );
 		chai.assert.ok( await git.tagExists( result.checkoutDir, "0.1.0" ) );
 		chai.assert.ok( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main2' ), "0.2.0" ) );
 		chai.assert.ok( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main3' ), "0.3.0" ) );
 
 		fs.writeFileSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.txt' ), 'changes changes changes' );
 		await git.addAndCommit( path.join( result.checkoutDir, 'flavio_modules', 'main2' ), 'file2.txt', 'commit message' );
+		await git.push( path.join( result.checkoutDir, 'flavio_modules', 'main2' ) );
 		
-		await tag( { cwd: result.checkoutDir } );
+		await tag( { cwd: result.checkoutDir, interactive: false } );
 
 		chai.assert.ok( await git.tagExists( result.checkoutDir, "0.2.0" ), 'main has new tag' );
 		chai.assert.ok( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main2' ), "0.3.0" ), 'main2 has new tag' );

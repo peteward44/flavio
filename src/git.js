@@ -364,7 +364,7 @@ export async function createTag( dir, tagName, message ) {
 	await executeGit( ['tag', '-a', tagName, '-m', message], { cwd: dir } );
 }
 
-export async function push( dir, args ) {
+export async function push( dir, args = [] ) {
 	await executeGit( ['push', ...args], { cwd: dir } );
 }
 
