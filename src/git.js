@@ -380,3 +380,14 @@ export async function listFiles( dir ) {
 	return raw.trim().split( '\n' ).map( ( file ) => file.trim() );
 }
 
+export async function doesRemoteBranchExist( dir, branchName ) {
+	await executeGit( ['fetch'], { cwd: dir } );
+	const code = ( await executeGit( ['show-ref', '--quiet', '--verify', '--', `refs/remotes/origin/${branchName}`], { cwd: dir, ignoreError: true } ) ).code;
+	return code === 0;
+}
+
+export async function deleteRemoteBranch( dir, branchName ) {
+	await executeGit( ['fetch'], { cwd: dir } );
+	await executeGit( ['push', 'origin', '--delete', branchName], { cwd: dir } );
+}
+

@@ -81,7 +81,6 @@ async function determineTagName( options, node ) {
 		const nextMajor = getNextAvailableVersion( tagList, tagName, 'major' );
 		const nextMinor = getNextAvailableVersion( tagList, tagName, 'minor' );
 		const nextPatch = getNextAvailableVersion( tagList, tagName, 'patch' );
-		console.log( "nextMajor", nextMajor, "nextMinor", nextMinor, "nextPatch", nextPatch );
 		let defaultVal;
 		switch ( options.increment ) {
 			case 'major':

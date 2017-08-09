@@ -2,29 +2,6 @@ import yargs from 'yargs';
 import pkgJson from '../package.json';
 import flavio from './index.js';
 
-function doInstall( subyargs, resolve, reject ) {
-	const options = subyargs
-		.usage(`Usage: flavio update [options]`)
-		.example('flavio update', 'Installs and updates all dependencies')
-		.help('help')
-		.option('cwd', {
-			describe: 'Working directory to use',
-			default: process.cwd()
-		})
-		.option('force-latest', {
-			describe: 'Force latest version on conflict',
-			alias: 'F',
-			default: false
-		})
-		.option('interactive', {
-			describe: 'Set to false so the user is not prompted any questions',
-			default: true
-		})
-		.argv;
-	flavio.commands.update(options)
-		.then(resolve)
-		.catch(reject);
-}
 
 export default function start() {
 	// winston.level = 'verbose';
@@ -36,7 +13,37 @@ export default function start() {
 			.example('flavio add user@server:/var/repo.git', 'clones/checks out repo.git and any dependencies, adds repo.git to dependency list')
 			.help('help')
 			.version(() => pkgJson.version)
-			.command('update', 'Installs and updates all dependencies', subyargs => doInstall( subyargs, resolve, reject ) )
+			.command('update', 'Installs and updates all dependencies', subyargs => {
+				const options = subyargs
+					.usage(`Usage: flavio update [options]`)
+					.example('flavio update', 'Installs and updates all dependencies')
+					.help('help')
+					.option('cwd', {
+						describe: 'Working directory to use',
+						default: process.cwd()
+					})
+					.option('force-latest', {
+						describe: 'Force latest version on conflict',
+						alias: 'F',
+						default: false
+					})
+					.option('interactive', {
+						describe: 'Set to false so the user is not prompted any questions',
+						default: true
+					})
+					.option('switch', {
+						describe: 'For dependencies that are already checked out, switch the branch to the one specified in flavio.json',
+						default: false
+					})
+					.option('remote-reset', {
+						describe: 'If a local branch has no remote equivalent, it will be reset to master',
+						default: true
+					})
+					.argv;
+				flavio.commands.update(options)
+					.then(resolve)
+					.catch(reject);
+			} )
 			.command('add', 'Adds a new dependency', ( subyargs ) => {
 				const options = subyargs
 					.usage('Usage: flavio add [options] <name> <repourl>')

@@ -241,64 +241,47 @@ describe(`update tests`, function() {
 		rootFlavioJson.dependencies.main2 = `${main2url.url}#0.2.0`;
 		fs.writeFileSync( path.join( result.checkoutDir, 'flavio.json' ), JSON.stringify( rootFlavioJson, null, 2 ), 'utf8' );
 		
-		await update( { 'cwd': result.checkoutDir, 'force-latest': true } );
+		await update( { 'cwd': result.checkoutDir, 'force-latest': true, 'switch': true } );
 		
-		chai.assert.ok( !fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.1.1.0.txt' ) ), 'main2 dependency installed' );
-		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.0.2.0.txt' ) ), 'main2 dependency installed' );
+		chai.assert.ok( !fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.1.1.0.txt' ) ), 'main2 is not 1.1.0' );
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.0.2.0.txt' ) ), 'main2 is 0.2.0' );
 		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main3', 'file3.txt' ) ), 'main3 dependency installed' );
 	});
 	
-	// helpers.test('update add repo on CLI', async (tempDir) => {
-		// const result = await git.addProject( tempDir, {
-			// name: 'main',
-			// version: '0.1.0-snapshot.0',
-			// files: [
-				// {
-					// path: 'file.txt',
-					// contents: 'this is on the main project'
-				// }
-			// ],
-			// modules: [
-				// {
-					// name: 'main2',
-					// version: '0.2.0-snapshot.0',
-					// files: [
-						// {
-							// path: 'file2.txt',
-							// contents: 'this is on the main2 project'
-						// }
-					// ]
-				// }
-			// ]
-		// } );
-		// const result2 = await git.addProject( tempDir, {
-			// name: 'main3',
-			// version: '0.3.0-snapshot.0',
-			// files: [
-				// {
-					// path: 'file3.txt',
-					// contents: 'this is on the main3 project'
-				// }
-			// ],
-			// modules: [
-				// {
-					// name: 'main4',
-					// version: '0.4.0-snapshot.0',
-					// files: [
-						// {
-							// path: 'file4.txt',
-							// contents: 'this is on the main4 project'
-						// }
-					// ]
-				// }
-			// ]
-		// } );
+	helpers.test('remote-reset flag resets the branch on a module which has a missing upstream branch', async (tempDir) => {
+		const result = await git.addProject( tempDir, {
+			name: 'main',
+			version: '0.1.0-snapshot.0',
+			files: [
+				{
+					path: 'file.txt',
+					contents: 'this is on the main project'
+				}
+			],
+			modules: [
+				{
+					name: 'main2',
+					version: '0.2.0-snapshot.0',
+					branch: 'my_branch',
+					files: [
+						{
+							path: 'file2.txt',
+							contents: 'this is on the main2 project v0.1.0'
+						}
+					]
+				}
+			]
+		} );
+		// set up first
+		await update( { 'cwd': result.checkoutDir } );
 		
-		// await update( [`main3,${result2.repoDir}#master`], { cwd: result.checkoutDir } );
-		// chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.txt' ) ), 'main2 dependency installed' );
-		// chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main3', 'file3.txt' ) ), 'main3 dependency installed' );
-		// chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main4', 'file4.txt' ) ), 'main4 dependency installed' );
-	// });
+		await git.deleteRemoteBranch( path.join( result.checkoutDir, 'flavio_modules', 'main2' ), 'my_branch' );
+		
+		// then this should perform branch reset on main2 to master
+		await update( { 'cwd': result.checkoutDir, 'remote-reset': true } );
+	
+		chai.assert.equal( ( await git.getCurrentTarget( path.join( result.checkoutDir, 'flavio_modules', 'main2' ) ) ).branch, 'master', 'main3 dependency installed' );
+	});
 	
 	helpers.test('one dependency on a branch', async (tempDir) => {
 		const result = await git.addProject( tempDir, {

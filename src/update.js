@@ -27,7 +27,7 @@ async function update( options ) {
 	await repoCache.init( await util.loadFlavioJson( options.cwd ) );
 
 	// traverse tree, checking out / updating modules as we go
-	await depTree.traverse( options, ( name, childModule ) => repoCache.add( name, childModule ) );
+	await depTree.traverse( options, ( name, childModule ) => repoCache.add( name, childModule, options ) );
 }
 
 export default update;
