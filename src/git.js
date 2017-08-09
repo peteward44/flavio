@@ -375,3 +375,8 @@ export async function isUpToDate( dir ) {
 	return local.trim() === remote.trim();
 }
 
+export async function listFiles( dir ) {
+	const raw = ( await executeGit( ['ls-files'], { cwd: dir, captureStdout: true } ) ).out;
+	return raw.trim().split( '\n' ).map( ( file ) => file.trim() );
+}
+

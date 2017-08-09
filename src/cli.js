@@ -92,28 +92,28 @@ export default function start() {
 					.then(resolve)
 					.catch(reject);
 			})
-			.command('branch', 'Branches main project and/or all linked modules', (subyargs) => {
-				const options = subyargs
-					.usage('Usage: flavio branch <branch name> <modules> [options]')
-					.example('flavio branch branch_name main', 'Creates a branch for main project only')
-					.example('flavio branch branch_name my_module my_module2', 'Creates a branch for my_module and my_module2 only')
-					.example('flavio branch branch_name all', 'Creates a branch for main project and all dependencies')
-					.help('help')
-					.option('cwd', {
-						describe: 'Working directory to use',
-						default: process.cwd()
-					})
-					.argv;
-				let branchName;
-				let names;
-				if (options._.length > 1) {
-					branchName = options._[1];
-					names = options._.slice(2);
-				}
-				flavio.commands.branch(branchName, names, options)
-					.then(resolve)
-					.catch(reject);
-			})
+			// .command('branch', 'Branches main project and/or all linked modules', (subyargs) => {
+				// const options = subyargs
+					// .usage('Usage: flavio branch <branch name> <modules> [options]')
+					// .example('flavio branch branch_name main', 'Creates a branch for main project only')
+					// .example('flavio branch branch_name my_module my_module2', 'Creates a branch for my_module and my_module2 only')
+					// .example('flavio branch branch_name all', 'Creates a branch for main project and all dependencies')
+					// .help('help')
+					// .option('cwd', {
+						// describe: 'Working directory to use',
+						// default: process.cwd()
+					// })
+					// .argv;
+				// let branchName;
+				// let names;
+				// if (options._.length > 1) {
+					// branchName = options._[1];
+					// names = options._.slice(2);
+				// }
+				// flavio.commands.branch(branchName, names, options)
+					// .then(resolve)
+					// .catch(reject);
+			// })
 			.command('export', 'Export main project and all modules to a provided output directory', (subyargs) => {
 				const options = subyargs
 					.usage('Usage: flavio export <output directory> [options]')

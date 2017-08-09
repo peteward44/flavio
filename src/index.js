@@ -3,18 +3,18 @@ import add from './add.js';
 import tag from './tag.js';
 import clone from './clone.js';
 import status from './status.js';
+import exportProject from './exportProject.js';
 
 // import branch from './branch.js';
-// import exportProject from './exportProject.js';
 
 const commands = {
 	update,
 	add,
 	tag,
 	clone,
-	status
+	status,
 	// branch,
-	// 'export': exportProject
+	'export': exportProject
 };
 
 export default {
