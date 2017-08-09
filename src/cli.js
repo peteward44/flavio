@@ -153,7 +153,9 @@ export default function start() {
 					.then(resolve)
 					.catch(reject);
 			})
-			.demand(1)
+			.strict()
+			.demandCommand(1)
+			.recommendCommands()
 			.epilog('Use "flavio <command> --help" for help on specific commands')
 			.argv;
 	});

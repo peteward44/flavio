@@ -15,7 +15,7 @@
     "lintfix": "eslint src test testutil --fix",
     "repo": "node -r babel-register -r babel-polyfill testutil/createRepo_cli.js",
     "compile": "babel -d lib/ src",
-	"dev": "babel -w -d lib/ src",
+    "dev": "babel -w -d lib/ src",
     "prepublish": "npm run compile"
   },
   "author": "Pete Ward <peteward44@gmail.com>",
@@ -28,7 +28,7 @@
     "semver": "^5.3.0",
     "uuid": "^3.0.1",
     "winston": "^2.3.1",
-    "yargs": "^6.6.0"
+    "yargs": "^8.0.2"
   },
   "engines": {
     "node": ">=4.0.0"
