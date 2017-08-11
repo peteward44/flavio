@@ -16,7 +16,6 @@ async function add( name, repo, options ) {
 		throw new Error( `Invalid cwd argument ${options.cwd}` );
 	}
 	await util.readConfigFile( options.cwd );
-	console.log( `Adding ${name} : ${repo}` );
 	
 	const flavioJson = await util.loadFlavioJson( options.cwd );
 

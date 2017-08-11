@@ -6,15 +6,13 @@ import * as git from './git.js';
 let gConfig = null;
 
 export async function readConfigFile( cwd = process.cwd() ) {
+	gConfig = {};
 	try {
 		const rc = path.join( cwd, '.flaviorc' );
 		if ( fs.existsSync( rc ) ) {
 			gConfig = JSON.parse( fs.readFileSync( rc ) );
 		}
 	} catch ( err ) {
-	}
-	if ( !gConfig ) {
-		gConfig = {};
 	}
 }
 

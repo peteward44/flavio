@@ -1,4 +1,5 @@
 import * as depTree from './depTree.js';
+import * as util from './util.js';
 
 // async function printStatus( name, module ) {
 	// // TODO: 

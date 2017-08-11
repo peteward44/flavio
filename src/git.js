@@ -5,7 +5,6 @@ import uuid from 'uuid';
 import os from 'os';
 import semver from 'semver';
 import { spawn } from 'child_process';
-import * as util from './util.js';
 
 
 function printError( err, args ) {
@@ -190,7 +189,7 @@ export async function addProject( tempDir, project, rootObj = null, repoMap = ne
 	// add flavio.json
 	const files = Array.isArray( project.files ) ? project.files.slice(0) : [];
 	if (!project.noflaviojson) {
-		files.push( { path: await util.getflavioJsonFileName(), contents: JSON.stringify( flavioJson, null, '\t' ) } );
+		files.push( { path: 'flavio.json', contents: JSON.stringify( flavioJson, null, '\t' ) } );
 	}
 
 	await createRepo( repoDir, checkoutDir, { files, branch: project.branch, tag: project.tag } );

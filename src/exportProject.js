@@ -1,5 +1,6 @@
 import path from 'path';
 import fs from 'fs-extra';
+import * as util from './util.js';
 import * as git from './git.js';
 import * as depTree from './depTree.js';
 
