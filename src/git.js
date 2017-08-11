@@ -355,7 +355,10 @@ export async function createAndCheckoutBranch( dir, branch ) {
 }
 
 export async function addAndCommit( dir, filename, commitMessage ) {
-	await executeGit( ['add', filename], { cwd: dir } );
+	if ( !Array.isArray( filename ) ) {
+		filename = [filename];
+	}
+	await executeGit( ['add', ...filename], { cwd: dir } );
 	await executeGit( ['commit', '-m', commitMessage, filename], { cwd: dir } );
 }
 

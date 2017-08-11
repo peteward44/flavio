@@ -167,6 +167,14 @@ function lockFlavioJson( flavioJson, reposToTag, version, lastCommit, branchName
 	return flavioJson;
 }
 
+async function writeVersionToJsonFile( pkgJsonPath, version ) {
+	if ( fs.existsSync( pkgJsonPath ) ) {
+		const pkgJson = JSON.parse( fs.readFileSync( pkgJsonPath, 'utf8' ) );
+		pkgJson.version = version;
+		fs.writeFileSync( pkgJsonPath, JSON.stringify( pkgJson, null, 2 ), 'utf8' );
+	}
+}
+
 async function prepareTags( reposToTag ) {
 	for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
 		const dir = tagObject.dir;
@@ -177,8 +185,16 @@ async function prepareTags( reposToTag ) {
 			let flavioJson = await util.loadFlavioJson( dir );
 			flavioJson = lockFlavioJson( flavioJson, reposToTag, tagObject.tag, lastCommit, tagObject.originalBranch );
 			await util.saveFlavioJson( dir, flavioJson );
+			let filesArray = ['flavio.json'];
+			// if there is a package.json or a bower.json, change the version number in those too
+			if ( await writeVersionToJsonFile( path.join( dir, 'package.json' ), tagObject.tag ) ) {
+				filesArray.push( 'package.json' );
+			}
+			if ( await writeVersionToJsonFile( path.join( dir, 'bower.json' ), tagObject.tag ) ) {
+				filesArray.push( 'bower.json' );
+			}
 			// commit new flavio.json
-			await git.addAndCommit( dir, 'flavio.json', `Commiting new flavio.json for tag ${tagObject.tag}` );
+			await git.addAndCommit( dir, filesArray, `Commiting new flavio.json for tag ${tagObject.tag}` );
 			// then create tag
 			await git.createTag( dir, tagObject.tag, `Tag for v${tagObject.tag}` );
 			// switch back to original branch
@@ -200,8 +216,16 @@ async function incrementOriginalVersions( options, reposToTag ) {
 			let flavioJson = await util.loadFlavioJson( dir );
 			flavioJson.version = incrementMasterVersion( options, flavioJson.version );
 			await util.saveFlavioJson( dir, flavioJson );
+			let filesArray = ['flavio.json'];
+			// if there is a package.json or a bower.json, change the version number in those too
+			if ( await writeVersionToJsonFile( path.join( dir, 'package.json' ), flavioJson.version ) ) {
+				filesArray.push( 'package.json' );
+			}
+			if ( await writeVersionToJsonFile( path.join( dir, 'bower.json' ), flavioJson.version ) ) {
+				filesArray.push( 'bower.json' );
+			}
 			// commit new flavio.json
-			await git.addAndCommit( dir, 'flavio.json', `Commiting new flavio.json for tag ${tagObject.tag}` );
+			await git.addAndCommit( dir, filesArray, `Commiting new flavio.json for tag ${tagObject.tag}` );
 			await git.push( dir, ['origin', 'HEAD'] );
 		}
 	}
