@@ -377,7 +377,7 @@ export async function isUpToDate( dir ) {
 
 export async function listFiles( dir ) {
 	const raw = ( await executeGit( ['ls-files'], { cwd: dir, captureStdout: true } ) ).out;
-	return raw.trim().split( '\n' ).map( ( file ) => file.trim() );
+	return raw.trim().split( '\n' ).map( file => file.trim() );
 }
 
 export async function doesRemoteBranchExist( dir, branchName ) {

@@ -1,9 +1,6 @@
 import path from 'path';
 import fs from 'fs-extra';
-import * as util from './util.js';
-import * as resolve from './resolve.js';
 import * as git from './git.js';
-import flavio from './index.js';
 import * as depTree from './depTree.js';
 
 async function copyFiles( rootSrc, destDir ) {
@@ -27,7 +24,7 @@ async function exportProject( destDir, options = {} ) {
 	const modules = await depTree.listChildren( options );
 	for ( const [name, moduleArray] of modules ) {
 		const mod = moduleArray[0];
-		console.log( `Exporting ${mod.name} dependency` );
+		console.log( `Exporting ${name} dependency` );
 		const destMod = path.relative( options.cwd, mod.dir );
 		await copyFiles( mod.dir, path.join( destDir, destMod ) );
 	}

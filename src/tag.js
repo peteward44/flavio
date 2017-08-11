@@ -113,10 +113,7 @@ async function determineTagName( options, node ) {
 
 async function determineTagsRecursive( options, node, recycleTagMap, tagMap ) {
 	if ( !tagMap.has( node.name ) ) {
-		
-		console.log( `determineTagsRecursive( node.dir )=${node.dir}` );
 		const target = await git.getCurrentTarget( node.dir );
-		console.log( `determineTagsRecursive( node.dir )=${node.dir} ---------------` );
 		const originalBranch = target.branch;
 		const recycledTag = await determineRecycledTagForElement( node, recycleTagMap );
 		if ( recycledTag ) {
