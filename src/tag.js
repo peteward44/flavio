@@ -174,7 +174,9 @@ async function writeVersionToJsonFile( pkgJsonPath, version ) {
 		const pkgJson = JSON.parse( fs.readFileSync( pkgJsonPath, 'utf8' ) );
 		pkgJson.version = version;
 		fs.writeFileSync( pkgJsonPath, JSON.stringify( pkgJson, null, 2 ), 'utf8' );
+		return true;
 	}
+	return false;
 }
 
 async function prepareTags( reposToTag ) {
