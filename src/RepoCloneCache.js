@@ -57,7 +57,11 @@ class RepoCloneCache {
 			// fresh checkout
 			await git.clone( repoUrl.url, pkgdir, { master: true } );
 			const targetObj = await resolve.getTargetFromRepoUrl( module.repo, pkgdir );
-			await git.checkout( pkgdir, targetObj );
+			try {
+				await git.checkout( pkgdir, targetObj );
+			} catch ( err ) {
+				console.error( `${name}: Could not checkout ${targetObj.branch ? 'branch' : 'tag'} ${targetObj.branch || targetObj.tag}` );
+			}
 		} else {
 			const targetObj = await resolve.getTargetFromRepoUrl( module.repo, pkgdir );
 			// check to see if the local branch still exists on the remote, reset if not

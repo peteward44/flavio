@@ -72,6 +72,9 @@ function getNextAvailableVersion( tagList, version, versionType ) {
 async function determineTagName( options, node ) {
 	const isInteractive = options.interactive !== false;
 	const flavioJson = await util.loadFlavioJson( node.dir );
+	if ( _.isEmpty( flavioJson ) ) {
+		return null;
+	}
 	// strip prerelease tag off name
 	const tagName = semver.inc( flavioJson.version, options.increment );
 	// see if tag of the same name already exists
@@ -120,9 +123,13 @@ async function determineTagsRecursive( options, node, recycleTagMap, tagMap ) {
 			tagMap.set( node.name, { tag: recycledTag, originalBranch, create: false, dir: node.dir } );
 		} else {
 			const tagName = await determineTagName( options, node );
-			const branchName = `release/${tagName}`;
-			const incrementVersion = await git.isUpToDate( node.dir ); // only increment version in flavio.json if our local HEAD is up to date with the remote branch
-			tagMap.set( node.name, { tag: tagName, originalBranch, branch: branchName, create: true, dir: node.dir, incrementMasterVersion: incrementVersion } );
+			if ( tagName ) {
+				const branchName = `release/${tagName}`;
+				const incrementVersion = await git.isUpToDate( node.dir ); // only increment version in flavio.json if our local HEAD is up to date with the remote branch
+				tagMap.set( node.name, { tag: tagName, originalBranch, branch: branchName, create: true, dir: node.dir, incrementMasterVersion: incrementVersion } );
+			} else {
+				console.log( `WARNING: ${node.name} has no valid flavio.json, so will not be tagged` );
+			}
 		}
 	}
 	for ( const [name, module] of node.children ) { // eslint-disable-line no-unused-vars
@@ -243,11 +250,22 @@ async function confirmUser( options, reposToTag ) {
  */
 async function tagOperation( options = {} ) {
 	options.increment = options.increment || 'minor';
+	await util.readConfigFile( options.cwd );
 	const tree = await depTree.traverse( options );
 	// TODO: disallow a tag operation if there are any local changes?
 
 	// work out which repos need to be tagged, and what those tags are going to called
 	const reposToTag = await determineTags( options, tree );
+	let count = 0;
+	for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
+		if ( tagObject.create ) {
+			count++;
+		}
+	}
+	if ( count === 0 ) {
+		console.log( `No valid repositories found to tag` );
+		return;
+	}
 	// confirm with user the values to tag
 	if ( !( await confirmUser( options, reposToTag ) ) ) {
 		return;

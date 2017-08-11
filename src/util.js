@@ -5,22 +5,21 @@ import * as git from './git.js';
 
 let gConfig = null;
 
-async function readConfigFile( cwd = process.cwd() ) {
+export async function readConfigFile( cwd = process.cwd() ) {
 	try {
 		const rc = path.join( cwd, '.flaviorc' );
 		if ( fs.existsSync( rc ) ) {
 			gConfig = JSON.parse( fs.readFileSync( rc ) );
 		}
 	} catch ( err ) {
+	}
+	if ( !gConfig ) {
 		gConfig = {};
 	}
 }
 
 
-export async function getPackageRootPath( cwd = process.cwd() ) {
-	if ( !gConfig ) {
-		await readConfigFile( cwd );
-	}
+export async function getPackageRootPath( cwd ) {
 	// read from .flaviorc
 	if ( _.isString( gConfig.directory ) ) {
 		return path.join( cwd, gConfig.directory );
@@ -28,10 +27,7 @@ export async function getPackageRootPath( cwd = process.cwd() ) {
 	return path.join( cwd, 'flavio_modules' );
 }
 
-export async function getflavioJsonFileName( cwd = process.cwd() ) {
-	if ( !gConfig ) {
-		await readConfigFile( cwd );
-	}
+export async function getflavioJsonFileName() {
 	// read from .flaviorc
 	if ( _.isString( gConfig.filename ) ) {
 		return gConfig.filename;
@@ -120,7 +116,7 @@ export async function hasRepoChanged( repo, dir ) {
  * @returns {Promise.<Object>} - JSON
  */
 export async function loadFlavioJson( cwd ) {
-	const p = path.join( cwd, await getflavioJsonFileName( cwd ) );
+	const p = path.join( cwd, await getflavioJsonFileName() );
 	return new Promise( (resolv, reject) => {
 		fs.readFile( p, 'utf8', (err, txt) => {
 			err ? resolv( '{}' ) : resolv( txt );
@@ -139,7 +135,7 @@ export async function loadFlavioJson( cwd ) {
  * @returns {Promise}
  */
 export async function saveFlavioJson( cwd, json ) {
-	const p = path.join( cwd, await getflavioJsonFileName( cwd ) );
+	const p = path.join( cwd, await getflavioJsonFileName() );
 	return new Promise( (resolv, reject) => {
 		fs.writeFile( p, JSON.stringify( json, null, 2 ), 'utf-8', (err) => {
 			err ? reject( err ) : resolv();

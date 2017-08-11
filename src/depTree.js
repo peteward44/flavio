@@ -56,6 +56,9 @@ async function traverse( options, nodeCallback = null ) {
 		repoUrl = await git.getWorkingCopyUrl( options.cwd );
 	} catch ( err ) {
 	}
+	if ( !repoUrl ) {
+		throw new Error( `Not a git repository "${options.cwd}"` );
+	}
 	let mainName = '__main__';
 	try {
 		const flavioJson = await util.loadFlavioJson( options.cwd );

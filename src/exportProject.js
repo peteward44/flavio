@@ -18,6 +18,7 @@ async function copyFiles( rootSrc, destDir ) {
  */
 async function exportProject( destDir, options = {} ) {
 	// copy over main project
+	await util.readConfigFile( options.cwd );
 	console.log( `Exporting main project to ${destDir}` );
 	await copyFiles( options.cwd, destDir );
 	// copy over dependencies

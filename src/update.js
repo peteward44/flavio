@@ -15,6 +15,7 @@ async function update( options ) {
 	if ( !_.isString( options.cwd ) ) {
 		throw new Error( `Invalid cwd argument ${options.cwd}` );
 	}
+	await util.readConfigFile( options.cwd );
 	// update main project first
 	console.log( `Updating main project...` );
 	const stashName = await git.stash( options.cwd );

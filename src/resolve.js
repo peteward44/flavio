@@ -42,7 +42,7 @@ export async function getTargetFromRepoUrl( repo, localClonePath ) {
 				}
 			}
 			// check if its the name of a tag
-			if ( tags.include( target ) ) {
+			if ( tags.includes( target ) ) {
 				return {
 					tag: target
 				};

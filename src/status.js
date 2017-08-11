@@ -33,6 +33,7 @@ import * as depTree from './depTree.js';
 // }
 
 async function status( options ) {
+	await util.readConfigFile( options.cwd );
 	const modules = await depTree.listChildren( options );
 	console.log( `${modules.size} dependencies found` );
 	
