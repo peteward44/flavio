@@ -359,7 +359,7 @@ export async function addAndCommit( dir, filename, commitMessage ) {
 		filename = [filename];
 	}
 	await executeGit( ['add', ...filename], { cwd: dir } );
-	await executeGit( ['commit', '-m', commitMessage, filename], { cwd: dir } );
+	await executeGit( ['commit', '-m', commitMessage, ...filename], { cwd: dir } );
 }
 
 export async function createTag( dir, tagName, message ) {
