@@ -24,12 +24,12 @@ export async function getTargetFromRepoUrl( repo, localClonePath ) {
 			};
 		}
 		// if no tags exist, use master branch
-		return { master: true };
+		return { branch: "master" };
 	} else {
 		// target specified
 		// check if it's master
 		if ( target === 'master' ) {
-			return { master: true };
+			return { branch: "master" };
 		}
 		// check if it's a semver range
 		if ( tags.length > 0 ) {

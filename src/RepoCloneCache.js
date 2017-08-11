@@ -73,6 +73,7 @@ class RepoCloneCache {
 								targetBranchName = targetObj.branch;
 							}
 						}
+						console.log( `${name}: Switching branch to "${targetBranchName}" from "${target.branch}" as remote no longer exists` );
 						const stashName = await git.stash( pkgdir );
 						await git.checkout( pkgdir, { branch: targetBranchName } );
 						await git.pull( pkgdir );
