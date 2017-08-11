@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import path from 'path';
 import semver from 'semver';
 import inquirer from 'inquirer';
 import * as util from './util.js';
