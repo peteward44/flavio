@@ -3,9 +3,9 @@ import fs from 'fs';
 import path from 'path';
 import * as git from './git.js';
 
-let gConfig = {};
+let gConfig = null;
 
-export async function readConfigFile( cwd ) {
+async function readConfigFile( cwd = process.cwd() ) {
 	try {
 		const rc = path.join( cwd, '.flaviorc' );
 		if ( fs.existsSync( rc ) ) {
@@ -17,7 +17,10 @@ export async function readConfigFile( cwd ) {
 }
 
 
-export async function getPackageRootPath( cwd ) {
+export async function getPackageRootPath( cwd = process.cwd() ) {
+	if ( !gConfig ) {
+		await readConfigFile( cwd );
+	}
 	// read from .flaviorc
 	if ( _.isString( gConfig.directory ) ) {
 		return path.join( cwd, gConfig.directory );
@@ -25,7 +28,10 @@ export async function getPackageRootPath( cwd ) {
 	return path.join( cwd, 'flavio_modules' );
 }
 
-export function getflavioJsonFileName() {
+export async function getflavioJsonFileName( cwd = process.cwd() ) {
+	if ( !gConfig ) {
+		await readConfigFile( cwd );
+	}
 	// read from .flaviorc
 	if ( _.isString( gConfig.filename ) ) {
 		return gConfig.filename;
@@ -113,8 +119,8 @@ export async function hasRepoChanged( repo, dir ) {
  * @param {string} cwd - Working directory
  * @returns {Promise.<Object>} - JSON
  */
-export function loadFlavioJson( cwd ) {
-	const p = path.join( cwd, getflavioJsonFileName() );
+export async function loadFlavioJson( cwd ) {
+	const p = path.join( cwd, await getflavioJsonFileName( cwd ) );
 	return new Promise( (resolv, reject) => {
 		fs.readFile( p, 'utf8', (err, txt) => {
 			err ? resolv( '{}' ) : resolv( txt );
@@ -132,8 +138,8 @@ export function loadFlavioJson( cwd ) {
  * @param {Object} json - New flavio.json data object
  * @returns {Promise}
  */
-export function saveFlavioJson( cwd, json ) {
-	const p = path.join( cwd, getflavioJsonFileName() );
+export async function saveFlavioJson( cwd, json ) {
+	const p = path.join( cwd, await getflavioJsonFileName( cwd ) );
 	return new Promise( (resolv, reject) => {
 		fs.writeFile( p, JSON.stringify( json, null, 2 ), 'utf-8', (err) => {
 			err ? reject( err ) : resolv();

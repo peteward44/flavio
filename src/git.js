@@ -190,7 +190,7 @@ export async function addProject( tempDir, project, rootObj = null, repoMap = ne
 	// add flavio.json
 	const files = Array.isArray( project.files ) ? project.files.slice(0) : [];
 	if (!project.noflaviojson) {
-		files.push( { path: util.getflavioJsonFileName(), contents: JSON.stringify( flavioJson, null, '\t' ) } );
+		files.push( { path: await util.getflavioJsonFileName(), contents: JSON.stringify( flavioJson, null, '\t' ) } );
 	}
 
 	await createRepo( repoDir, checkoutDir, { files, branch: project.branch, tag: project.tag } );

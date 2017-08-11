@@ -21,7 +21,6 @@ async function update( options ) {
 	await git.pull( options.cwd );
 	await git.stashPop( options.cwd, stashName );
 	console.log( `Complete` );
-	await util.readConfigFile( options.cwd );
 	
 	let repoCache = new RepoCloneCache( options );
 	await repoCache.init( await util.loadFlavioJson( options.cwd ) );

@@ -112,7 +112,7 @@ class RepoCloneCache {
 				// repo is the same - do an update
 				const stashName = await git.stash( pkgdir );
 				await git.pull( pkgdir );
-				await git.stashPop( pkgdir, stashName );				
+				await git.stashPop( pkgdir, stashName );
 			}
 		}
 		if ( !this._lockedDirs.has( module.dir ) ) {
