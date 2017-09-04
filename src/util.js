@@ -86,6 +86,12 @@ export function getGitProjectNameFromUrl( repo ) {
 }
 
 
+// Removes any credentials and protocol from a URL so they can be compared correctly
+function stripRepoUrl( repo ) {
+	return repo.replace( /^http[s]*:\/\/(.*@)*/, '' );
+}
+
+
 /**
  * @returns {Promise.<string>} - Either 'url', 'target' or empty string, depending what has changed on the repo
  */
@@ -93,7 +99,7 @@ export async function hasRepoChanged( repo, dir ) {
 	const repoUrl = parseRepositoryUrl( repo );
 	// make sure it's the same repo URL
 	const localUrl = await git.getWorkingCopyUrl( dir, true );
-	if ( localUrl !== repoUrl.url ) {
+	if ( stripRepoUrl( localUrl ) !== stripRepoUrl( repoUrl.url ) ) {
 		// Repository URL is different to pre-existing module "name"
 		return 'url';
 	}

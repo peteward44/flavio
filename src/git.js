@@ -34,7 +34,9 @@ function executeGit( args, options ) {
 			if ( options.ignoreError ) {
 				resolve( { out: stdo, code: 0 } );
 			} else {
-				printError( err, args );
+				if ( !options.quiet ) {
+					printError( err, args );
+				}
 				reject( err );
 			}
 		} );
@@ -371,10 +373,13 @@ export async function push( dir, args = [] ) {
 }
 
 export async function isUpToDate( dir ) {
-	await executeGit( ['fetch'], { cwd: dir } );
-	const local = ( await executeGit( ['rev-parse', 'HEAD'], { cwd: dir, captureStdout: true } ) ).out;
-	const remote = ( await executeGit( ['rev-parse', '@{u}'], { cwd: dir, captureStdout: true } ) ).out;
-	return local.trim() === remote.trim();
+	try {
+		await executeGit( ['fetch'], { cwd: dir, quiet: true } );
+		const local = ( await executeGit( ['rev-parse', 'HEAD'], { cwd: dir, quiet: true, captureStdout: true } ) ).out;
+		const remote = ( await executeGit( ['rev-parse', '@{u}'], { cwd: dir, quiet: true, captureStdout: true } ) ).out;
+		return local.trim() === remote.trim();
+	} catch ( err ) {}
+	return true;
 }
 
 export async function listFiles( dir ) {
