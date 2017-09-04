@@ -39,6 +39,10 @@ export default function start() {
 						describe: 'If a local branch has no remote equivalent, it will be reset to master',
 						default: true
 					})
+					.option('json', {
+						describe: 'Output machine-readable result in JSON',
+						default: false
+					})
 					.argv;
 				flavio.commands.update(options)
 					.then(resolve)

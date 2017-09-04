@@ -17,17 +17,35 @@ async function update( options ) {
 	}
 	await util.readConfigFile( options.cwd );
 	// update main project first
-	console.log( `Updating main project...` );
+	let updateResult = {
+		changed: false
+	};
+	if ( !options.json ) {
+		console.log( `Updating main project...` );
+	}
 	const stashName = await git.stash( options.cwd );
+	if ( !await git.isUpToDate( options.cwd ) ) {
+		updateResult.changed = true;
+	}
 	await git.pull( options.cwd );
 	await git.stashPop( options.cwd, stashName );
-	console.log( `Complete` );
+	if ( !options.json ) {
+		console.log( `Complete` );
+	}
 	
 	let repoCache = new RepoCloneCache( options );
 	await repoCache.init( await util.loadFlavioJson( options.cwd ) );
 
 	// traverse tree, checking out / updating modules as we go
-	await depTree.traverse( options, ( name, childModule ) => repoCache.add( name, childModule, options ) );
+	await depTree.traverse( options, async ( name, childModule ) => {
+		if ( !updateResult.changed && !await git.isUpToDate( childModule.dir ) ) {
+			updateResult.changed = true;
+		}
+		return await repoCache.add( name, childModule, options );
+	} );
+	if ( options.json ) {
+		console.log( JSON.stringify( updateResult, null, 2 ) );
+	}
 }
 
 export default update;
