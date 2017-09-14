@@ -38,10 +38,13 @@ async function update( options ) {
 
 	// traverse tree, checking out / updating modules as we go
 	await depTree.traverse( options, async ( name, childModule ) => {
+		console.log( `Updating ${name}...` );
 		if ( !updateResult.changed && !await git.isUpToDate( childModule.dir ) ) {
 			updateResult.changed = true;
 		}
-		return await repoCache.add( name, childModule, options );
+		const newModule = await repoCache.add( name, childModule, options );
+		console.log( `Complete` );
+		return newModule;
 	} );
 	if ( options.json ) {
 		console.log( JSON.stringify( updateResult, null, 2 ) );

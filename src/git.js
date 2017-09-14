@@ -19,7 +19,7 @@ function executeGit( args, options ) {
 	return new Promise( ( resolve, reject ) => {
 		let stdo = '';
 //		console.log( `Executing git ${args.join(" ")}` );
-		let proc = spawn( 'git', args, { cwd: options.cwd ? options.cwd : process.cwd(), stdio: ['ignore', 'pipe', 'inherit'] } );
+		let proc = spawn( 'git', args, { cwd: options.cwd ? options.cwd : process.cwd(), stdio: ['ignore', 'pipe', options.outputStderr ? 'inherit' : 'ignore'] } );
 
 		function unpipe() {
 		}
@@ -308,7 +308,7 @@ export async function stashPop( dir, stashName ) {
 export async function pull( dir ) {
 	const target = await getCurrentTarget( dir );
 	if ( target.branch ) {
-		await executeGit( ['pull'], { cwd: dir } );
+		await executeGit( ['pull'], { cwd: dir, outputStderr: true } );
 	}
 }
 
@@ -374,7 +374,7 @@ export async function push( dir, args = [] ) {
 
 export async function isUpToDate( dir ) {
 	try {
-		await executeGit( ['fetch'], { cwd: dir, quiet: true } );
+		await executeGit( ['fetch'], { cwd: dir, quiet: true, outputStderr: true } );
 		const local = ( await executeGit( ['rev-parse', 'HEAD'], { cwd: dir, quiet: true, captureStdout: true } ) ).out;
 		const remote = ( await executeGit( ['rev-parse', '@{u}'], { cwd: dir, quiet: true, captureStdout: true } ) ).out;
 		return local.trim() === remote.trim();
@@ -388,13 +388,13 @@ export async function listFiles( dir ) {
 }
 
 export async function doesRemoteBranchExist( dir, branchName ) {
-	await executeGit( ['fetch'], { cwd: dir } );
+	await executeGit( ['fetch'], { cwd: dir, outputStderr: true } );
 	const code = ( await executeGit( ['show-ref', '--quiet', '--verify', '--', `refs/remotes/origin/${branchName}`], { cwd: dir, ignoreError: true } ) ).code;
 	return code === 0;
 }
 
 export async function deleteRemoteBranch( dir, branchName ) {
-	await executeGit( ['fetch'], { cwd: dir } );
+	await executeGit( ['fetch'], { cwd: dir, outputStderr: true } );
 	await executeGit( ['push', 'origin', '--delete', branchName], { cwd: dir } );
 }
 
