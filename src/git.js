@@ -376,6 +376,10 @@ export async function push( dir, args = [] ) {
 	await executeGit( ['push', ...args], { cwd: dir } );
 }
 
+export async function fetch( dir, args = [] ) {
+	await executeGit( ['fetch', ...args], { cwd: dir } );
+}
+
 export async function isUpToDate( dir ) {
 	try {
 		await executeGit( ['fetch'], { cwd: dir, quiet: true, outputStderr: true } );

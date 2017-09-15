@@ -115,6 +115,7 @@ async function determineTagName( options, node ) {
 
 async function determineTagsRecursive( options, node, recycleTagMap, tagMap ) {
 	if ( !tagMap.has( node.name ) ) {
+		await git.fetch( node.dir );
 		const target = await git.getCurrentTarget( node.dir );
 		const originalBranch = target.branch;
 		const recycledTag = await determineRecycledTagForElement( node, recycleTagMap );
@@ -282,7 +283,7 @@ async function tagOperation( options = {} ) {
 	options.increment = options.increment || 'minor';
 	await util.readConfigFile( options.cwd );
 	const tree = await depTree.traverse( options );
-	// TODO: disallow a tag operation if there are any local changes?
+	// TODO: disallow a tag operation if there are any local changes / conflicts?
 
 	// work out which repos need to be tagged, and what those tags are going to called
 	const reposToTag = await determineTags( options, tree );
