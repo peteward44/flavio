@@ -14,12 +14,12 @@ function printError( err, args ) {
 }
 
 
-function executeGit( args, options ) {
+export function executeGit( args, options ) {
 	options = options || {};
 	return new Promise( ( resolve, reject ) => {
 		let stdo = '';
 //		console.log( `Executing git ${args.join(" ")}` );
-		let proc = spawn( 'git', args, { cwd: options.cwd ? options.cwd : process.cwd(), stdio: ['ignore', 'pipe', options.outputStderr ? 'inherit' : 'ignore'] } );
+		let proc = spawn( 'git', args, { cwd: options.cwd ? options.cwd : process.cwd(), stdio: ['ignore', options.captureStdout ? 'pipe' : 'inherit', options.outputStderr ? 'inherit' : 'ignore'] } );
 
 		function unpipe() {
 		}

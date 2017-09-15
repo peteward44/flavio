@@ -81,6 +81,20 @@ export default function start() {
 					.then(resolve)
 					.catch(reject);
 			})
+			.command('execute', 'Executes a git command on main project and all dependencies - use with caution', (subyargs) => {
+				const options = subyargs
+					.usage('Usage: flavio execute -- [<command>]')
+					.example('flavio execute -- reset --hard', 'Hard resets all repos')
+					.help('help')
+					.option('cwd', {
+						describe: 'Working directory to use',
+						default: process.cwd()
+					})
+					.argv;
+				flavio.commands.execute(options)
+					.then(resolve)
+					.catch(reject);
+			})
 			.command('tag', 'Tags main project as well as any dependencies', (subyargs) => {
 				const options = subyargs
 					.usage('Usage: flavio tag [options]')
