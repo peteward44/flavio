@@ -294,6 +294,7 @@ async function tagOperation( options = {} ) {
 		}
 	}
 	if ( count === 0 ) {
+		// TODO: print out a version that they should use instead
 		console.log( `No valid repositories found to tag` );
 		return;
 	}
