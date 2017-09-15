@@ -248,8 +248,13 @@ async function confirmUser( options, reposToTag ) {
 	const isInteractive = options.interactive !== false;
 	if ( isInteractive ) {
 		for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
+			if ( !tagObject.create ) {
+				console.log( `[REUSE] ${name}: ${tagObject.tag}` );
+			}
+		}
+		for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
 			if ( tagObject.create ) {
-				console.log( `${name}: ${tagObject.tag}` );
+				console.log( `[NEW] ${name}: ${tagObject.tag}` );
 			}
 		}
 		for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
