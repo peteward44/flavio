@@ -3,9 +3,13 @@ import * as util from './util.js';
 import * as git from './git.js';
 
 
-function exe( name, dir, args ) {
+async function exe( name, dir, args ) {
 	console.log( `${name}: "git ${args.join( " " )}"` );
-	return git.executeGit( args, { cwd: dir, outputStderr: true } );
+	try {
+		await git.executeGit( args, { cwd: dir, outputStderr: true } );
+	} catch ( err ) {
+		console.error( `Error executing command` );
+	}
 }
 
 
