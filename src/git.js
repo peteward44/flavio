@@ -312,35 +312,35 @@ export async function pull( dir ) {
 	}
 }
 
-export async function checkout( dir, target ) {
+export async function checkout( dir, target, ...files ) {
 	if ( target.branch ) {
-		await executeGit( ['checkout', target.branch], { cwd: dir } );
+		await executeGit( ['checkout', target.branch, ...files], { cwd: dir } );
 	} else if ( target.tag ) {
-		await executeGit( ['checkout', `tags/${target.tag}`], { cwd: dir } );
+		await executeGit( ['checkout', `tags/${target.tag}`, ...files], { cwd: dir } );
 	}
 }
 
-export async function addRemoteFile( filePath, fileContents, url, target ) {
-	const tempDir = path.join( os.tmpdir(), uuid.v4() );
-	fs.ensureDirSync( tempDir );
-	try {
-		let bname = 'master';
-		if ( target.tag ) {
-			throw new Error( `Can not commit a new file to a tag` );
-		} else if ( target.branch && target.branch !== 'master' ) {
-			bname = target.branch;
-		}
-		// clone repo to temp dir first
-		await executeGit( ['clone', url, tempDir, '--no-checkout', '--depth=1', '-b', bname] );
-		// create file
-		fs.writeFileSync( path.join( tempDir, filePath ), fileContents );
-		await executeGit( ['add', filePath], { cwd: tempDir } );
-		await executeGit( ['commit', filePath, '-m', `Added file ${filePath}`], { cwd: tempDir } );
-		await executeGit( ['push'], { cwd: tempDir } );
-	} finally {
-		fs.removeSync( tempDir );
-	}
-}
+// export async function addRemoteFile( filePath, fileContents, url, target ) {
+	// const tempDir = path.join( os.tmpdir(), uuid.v4() );
+	// fs.ensureDirSync( tempDir );
+	// try {
+		// let bname = 'master';
+		// if ( target.tag ) {
+			// throw new Error( `Can not commit a new file to a tag` );
+		// } else if ( target.branch && target.branch !== 'master' ) {
+			// bname = target.branch;
+		// }
+		// // clone repo to temp dir first
+		// await executeGit( ['clone', url, tempDir, '--no-checkout', '--depth=1', '-b', bname] );
+		// // create file
+		// fs.writeFileSync( path.join( tempDir, filePath ), fileContents );
+		// await executeGit( ['add', filePath], { cwd: tempDir } );
+		// await executeGit( ['commit', filePath, '-m', `Added file ${filePath}`], { cwd: tempDir } );
+		// await executeGit( ['push'], { cwd: tempDir } );
+	// } finally {
+		// fs.removeSync( tempDir );
+	// }
+// }
 
 export async function getLastCommit( dir ) {
 	const out = ( await executeGit( ['log', '-n', '1', '--pretty=format:%H'], { cwd: dir, captureStdout: true } ) ).out;
@@ -354,6 +354,10 @@ export async function tagExists( dir, tag ) {
 
 export async function createAndCheckoutBranch( dir, branch ) {
 	await executeGit( ['checkout', '-b', branch], { cwd: dir } );
+}
+
+export async function createBranch( dir, branch ) {
+	await executeGit( ['branch', branch], { cwd: dir } );
 }
 
 export async function addAndCommit( dir, filename, commitMessage ) {
@@ -398,3 +402,7 @@ export async function deleteRemoteBranch( dir, branchName ) {
 	await executeGit( ['push', 'origin', '--delete', branchName], { cwd: dir } );
 }
 
+export async function show( dir, branch, file ) {
+	const output = ( await executeGit( ['show', `${branch}:${file}`], { cwd: dir, quiet: true, captureStdout: true } ) ).out;
+	return output;
+}

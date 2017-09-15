@@ -21,8 +21,7 @@ async function getTagPointingAtCurrentHEAD( repoDir ) {
 	const tags = await git.listTags( repoDir );
 	let tagFound = '';
 	for ( const tag of tags ) {
-		await git.checkout( repoDir, { tag: tag } );
-		const tagFlavioJson = await util.loadFlavioJson( repoDir );
+		const tagFlavioJson = JSON.parse( await git.show( repoDir, tag, 'flavio.json' ) );
 		if ( _.isObject( tagFlavioJson.tag ) ) {
 			// if this object exists in the flavio.json, it means the tag was created by flavio's tagging process previously
 			if ( tagFlavioJson.tag.branch === branchName && tagFlavioJson.tag.commit === lastCommit ) {
@@ -31,8 +30,6 @@ async function getTagPointingAtCurrentHEAD( repoDir ) {
 			}
 		}
 	}
-	// switch back to original branch
-	await git.checkout( repoDir, target );
 	return tagFound;
 }
 
