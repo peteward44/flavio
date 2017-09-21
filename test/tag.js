@@ -198,4 +198,8 @@ describe(`tag tests`, function() {
 		chai.assert.ok( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main2' ), "0.3.0" ), 'main2 has new tag' );
 		chai.assert.ok( !( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main3' ), "0.4.0" ) ), 'main3 has no new tag' );
 	});
+	
+	helpers.test( 'tag when dependency is pointing at a commit', async (tempDir) => {
+		
+	});
 });

@@ -8,6 +8,20 @@ import * as git from './git.js';
 import * as depTree from './depTree.js';
 
 
+function areTargetsEqual( lhs, rhs ) {
+	if ( lhs.branch && rhs.branch ) {
+		return lhs.branch === rhs.branch;
+	}
+	if ( lhs.tag && rhs.tag ) {
+		return lhs.tag === rhs.tag;
+	}
+	if ( lhs.commit && rhs.commit ) {
+		return lhs.commit === rhs.commit;
+	}
+	return false;
+}
+
+
 // Returns tag name of tag that can be recycled for this repo, or empty string if nothing can be found
 async function getTagPointingAtCurrentHEAD( repoDir ) {
 	const target = await git.getCurrentTarget( repoDir );
@@ -16,7 +30,6 @@ async function getTagPointingAtCurrentHEAD( repoDir ) {
 		return target.tag;
 	}
 	// list all the tags in this repo, and look in each one to see if one of the tags was made on the commit we are currently sat on.
-	const branchName = target.branch;
 	const lastCommit = await git.getLastCommit( repoDir );
 	const tags = await git.listTags( repoDir );
 	let tagFound = '';
@@ -24,7 +37,14 @@ async function getTagPointingAtCurrentHEAD( repoDir ) {
 		const tagFlavioJson = JSON.parse( await git.show( repoDir, tag, 'flavio.json' ) );
 		if ( _.isObject( tagFlavioJson.tag ) ) {
 			// if this object exists in the flavio.json, it means the tag was created by flavio's tagging process previously
-			if ( tagFlavioJson.tag.branch === branchName && tagFlavioJson.tag.commit === lastCommit ) {
+			let isEqual = false;
+			if ( tagFlavioJson.tag.branch ) {
+				// (backwards compatibility with old json)
+				isEqual = tagFlavioJson.tag.branch === target.branch;
+			} else if ( tagFlavioJson.tag.target ) {
+				isEqual = areTargetsEqual( tagFlavioJson.tag.target, target );
+			}
+			if ( isEqual && tagFlavioJson.tag.commit === lastCommit ) {
 				tagFound = tag;
 				break;
 			}
@@ -117,16 +137,15 @@ async function determineTagsRecursive( options, node, recycleTagMap, tagMap ) {
 	if ( !tagMap.has( node.name ) ) {
 		await git.fetch( node.dir );
 		const target = await git.getCurrentTarget( node.dir );
-		const originalBranch = target.branch;
 		const recycledTag = await determineRecycledTagForElement( node, recycleTagMap );
 		if ( recycledTag ) {
-			tagMap.set( node.name, { tag: recycledTag, originalBranch, create: false, dir: node.dir } );
+			tagMap.set( node.name, { tag: recycledTag, originalTarget: target, create: false, dir: node.dir } );
 		} else {
 			const tagName = await determineTagName( options, node );
 			if ( tagName ) {
 				const branchName = `release/${tagName}`;
 				const incrementVersion = await git.isUpToDate( node.dir ); // only increment version in flavio.json if our local HEAD is up to date with the remote branch
-				tagMap.set( node.name, { tag: tagName, originalBranch, branch: branchName, create: true, dir: node.dir, incrementMasterVersion: incrementVersion } );
+				tagMap.set( node.name, { tag: tagName, originalTarget: target, branch: branchName, create: true, dir: node.dir, incrementMasterVersion: incrementVersion } );
 			} else {
 				console.log( `WARNING: ${node.name} has no valid flavio.json, so will not be tagged` );
 			}
@@ -145,7 +164,7 @@ async function determineTags( options, tree ) {
 	return tagMap;
 }
 
-function lockFlavioJson( flavioJson, reposToTag, version, lastCommit, branchName ) {
+function lockFlavioJson( flavioJson, reposToTag, version, lastCommit, target ) {
 	// change version
 	flavioJson.version = version;
 	// lock all dependency versions
@@ -162,7 +181,7 @@ function lockFlavioJson( flavioJson, reposToTag, version, lastCommit, branchName
 	// add commit SHA and branch name
 	flavioJson.tag = {
 		commit: lastCommit,
-		branch: branchName
+		target
 	};
 	return flavioJson;
 }
@@ -185,7 +204,7 @@ async function prepareTags( reposToTag ) {
 			await git.createAndCheckoutBranch( dir, tagObject.branch );
 			// then modify flavio.json
 			let flavioJson = await util.loadFlavioJson( dir );
-			flavioJson = lockFlavioJson( flavioJson, reposToTag, tagObject.tag, lastCommit, tagObject.originalBranch );
+			flavioJson = lockFlavioJson( flavioJson, reposToTag, tagObject.tag, lastCommit, tagObject.originalTarget );
 			await util.saveFlavioJson( dir, flavioJson );
 			let filesArray = ['flavio.json'];
 			// if there is a package.json or a bower.json, change the version number in those too
@@ -199,8 +218,8 @@ async function prepareTags( reposToTag ) {
 			await git.addAndCommit( dir, filesArray, `Commiting new flavio.json for tag ${tagObject.tag}` );
 			// then create tag
 			await git.createTag( dir, tagObject.tag, `Tag for v${tagObject.tag}` );
-			// switch back to original branch
-			await git.checkout( dir, { branch: tagObject.originalBranch } );
+			// switch back to original target
+			await git.checkout( dir, tagObject.originalTarget );
 		}
 	}
 }
@@ -260,7 +279,7 @@ async function confirmUser( options, reposToTag ) {
 		}
 		for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
 			if ( tagObject.create && !tagObject.incrementMasterVersion ) {
-				console.log( `WARNING: ${name} is not up to date with it's upstream branch (${tagObject.originalBranch}), and so will not have the flavio.json version automatically incremented` );
+				console.log( `WARNING: ${name} is not up to date with it's upstream branch (${tagObject.originalTarget.branch || tagObject.originalTarget.commit}), and so will not have the flavio.json version automatically incremented` );
 			}
 		}
 		const question = {
