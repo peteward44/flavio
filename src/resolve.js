@@ -12,6 +12,7 @@ import * as git from './git.js';
  */
 export async function getTargetFromRepoUrl( repo, localClonePath ) {
 	const repoUrl = util.parseRepositoryUrl( repo );
+	await git.fetch( localClonePath );
 	const tags = await git.listTags( localClonePath );
 	const target = repoUrl.target;
 	if ( !target ) {
@@ -49,20 +50,18 @@ export async function getTargetFromRepoUrl( repo, localClonePath ) {
 			}
 		}
 		// otherwise check if it's the name of a branch
-		// TODO: make sure is valid, will need some kind of 'listBranches' or something in git-svn-interface
-		return {
-			branch: target
-		};
+		if ( await git.doesRemoteBranchExist( localClonePath, target ) || await git.doesLocalBranchExist( localClonePath, target ) ) {
+			return {
+				branch: target
+			};
+		}
+		// then must be a commit hash
+		if ( await git.isValidCommit( target ) ) {
+			return {
+				commit: target
+			};
+		}
 	}
+	throw new Error( `resolve.getTargetFromRepoUrl() - Could not determine target for repository URL ${repo}` );
 }
 
-/**
- * Given array of repository paths, will work out which one will map to the latest version of the package
- *
- * @param {Array.<string>} repos - Array of repository paths in "bower format"
- * @returns {string} - Whichever path in the 'repos' param is the latest version
- */
-export async function getLatestVersion( repos ) {
-	// TODO:
-	return repos[0];
-}

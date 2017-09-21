@@ -310,4 +310,8 @@ describe(`update tests`, function() {
 		await update( { cwd: result.checkoutDir } );
 		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.txt' ) ), 'main2 dependency installed' );
 	});
+	
+	helpers.test('one dependency on a specific commit', async (tempDir) => {
+		
+	});
 });

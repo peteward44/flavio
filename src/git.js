@@ -202,6 +202,7 @@ export async function addProject( tempDir, project, rootObj = null, repoMap = ne
 
 export async function getCurrentTarget( dir ) {
 	// from http://stackoverflow.com/questions/18659425/get-git-current-branch-tag-name
+	// check for branch name
 	try {
 		let result = ( await executeGit( ['symbolic-ref', '--short', '-q', 'HEAD'], { cwd: dir, ignoreError: true, captureStdout: true } ) );
 		let name = result.out.trim();
@@ -210,8 +211,25 @@ export async function getCurrentTarget( dir ) {
 		}
 	} catch ( e ) {}
 
-	const tag = await executeGit( ['describe', '--tags', '--exact-match'], { cwd: dir, captureStdout: true } );
-	return { tag: tag.out.trim() };
+	// then check if it's pointing at a tag
+	try {
+		const tagResult = await executeGit( ['describe', '--tags', '--exact-match'], { cwd: dir, ignoreError: true, captureStdout: true } );
+		const tag = tagResult.out.trim();
+		if ( tagResult.code === 0 && tag.length > 0 ) {
+			return { tag };
+		}
+	} catch ( e ) {}
+
+	// then the repo is probably in detached head state pointing a particular commit
+	try {
+		const commitResult = await executeGit( ['rev-parse', '--verify', 'HEAD'], { cwd: dir, ignoreError: true, captureStdout: true } );
+		const commit = commitResult.out.trim();
+		if ( commitResult.code === 0 && commit.length > 0 ) {
+			return { commit };
+		}
+	} catch ( e ) {}
+	
+	throw new Error( `git.getCurrentTarget() - Could not determine target for repo ${dir}` );
 }
 
 
@@ -227,7 +245,7 @@ export async function getWorkingCopyUrl( dir, bare = false ) {
 	const result = await executeGit( ['config', '--get', 'remote.origin.url'], { cwd: dir, captureStdout: true } );
 	const url = result.out.trim();
 	const target = await getCurrentTarget( dir );
-	return bare ? url : `${url}#${target.branch || target.tag}`;
+	return bare ? url : `${url}#${target.branch || target.tag || target.commit}`;
 }
 
 
@@ -237,8 +255,8 @@ export async function clone( url, dir, options = {} ) {
 	await executeGit( ['clone', url, dir, ...( options.minimal ? ['--no-checkout', '--depth=1'] : [] )] );
 	if ( options.tag ) {
 		await executeGit( ['checkout', `tags/${options.tag}`], { cwd: dir } );
-	} else if ( options.branch ) {
-		await executeGit( ['checkout', options.branch], { cwd: dir } );
+	} else if ( options.branch || options.commit ) {
+		await executeGit( ['checkout', options.branch || options.commit], { cwd: dir } );
 	}
 }
 
@@ -261,6 +279,21 @@ export async function listTags( localClonePath ) {
 	return result;
 }
 
+/** Lists all the tags that are part of the repository
+ * @param {string} url URL
+ */
+// export async function listBranches( localClonePath ) {
+	// let result = [];
+	// let out = ( await executeGit( ['branch'], { cwd: localClonePath, captureStdout: true } ) ).out.trim();
+	// let array = out.split( '\n' );
+	// for ( let i=0; i<array.length; ++i ) {
+		// let t = array[i].trim();
+		// if ( t.length > 0 ) {
+			// result.push( t );
+		// }
+	// }
+	// return result;
+// }
 
 /** Checks if a working copy is clean
  * @param {string} dir Working copy
@@ -312,8 +345,8 @@ export async function pull( dir ) {
 }
 
 export async function checkout( dir, target, ...files ) {
-	if ( target.branch ) {
-		await executeGit( ['checkout', target.branch, ...files], { cwd: dir } );
+	if ( target.branch || target.commit ) {
+		await executeGit( ['checkout', target.branch || target.commit, ...files], { cwd: dir } );
 	} else if ( target.tag ) {
 		await executeGit( ['checkout', `tags/${target.tag}`, ...files], { cwd: dir } );
 	}
@@ -372,6 +405,11 @@ export async function listFiles( dir ) {
 	return raw.trim().split( '\n' ).map( file => file.trim() );
 }
 
+export async function doesLocalBranchExist( dir, branchName ) {
+	const code = ( await executeGit( ['rev-parse', '--verify', branchName], { cwd: dir, ignoreError: true } ) ).code;
+	return code === 0;
+}
+
 export async function doesRemoteBranchExist( dir, branchName ) {
 	await executeGit( ['fetch'], { cwd: dir, outputStderr: true } );
 	const code = ( await executeGit( ['show-ref', '--quiet', '--verify', '--', `refs/remotes/origin/${branchName}`], { cwd: dir, ignoreError: true } ) ).code;
@@ -386,4 +424,9 @@ export async function deleteRemoteBranch( dir, branchName ) {
 export async function show( dir, branch, file ) {
 	const output = ( await executeGit( ['show', `${branch}:${file}`], { cwd: dir, quiet: true, captureStdout: true } ) ).out;
 	return output;
+}
+
+export async function isValidCommit( dir, sha ) {
+	const result = await executeGit( ['branch', '-r', '--contains', sha], { cwd: dir, ignoreError: true } );
+	return result.code === 0;
 }

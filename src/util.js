@@ -107,6 +107,9 @@ export async function hasRepoChanged( repo, dir ) {
 	if ( targetCur.tag && targetCur.tag !== repoUrl.target ) {
 		return 'target';
 	}
+	if ( targetCur.commit && targetCur.commit !== repoUrl.target ) {
+		return 'target';
+	}
 	if ( targetCur.branch && targetCur.branch !== repoUrl.target ) {
 		return 'target';
 	}

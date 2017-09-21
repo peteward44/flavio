@@ -60,7 +60,16 @@ class RepoCloneCache {
 			try {
 				await git.checkout( pkgdir, targetObj );
 			} catch ( err ) {
-				console.error( `${name}: Could not checkout ${targetObj.branch ? 'branch' : 'tag'} ${targetObj.branch || targetObj.tag}` );
+				let type;
+				if ( targetObj.branch ) {
+					type = 'branch';
+				} else if ( targetObj.tag ) {
+					type = 'tag';
+				} else {
+					type = 'commit';
+				}
+				
+				console.error( `${name}: Could not checkout ${type} ${targetObj.branch || targetObj.tag || targetObj.commit}` );
 			}
 		} else {
 			const targetObj = await resolve.getTargetFromRepoUrl( module.repo, pkgdir );
@@ -68,6 +77,7 @@ class RepoCloneCache {
 			if ( options['remote-reset'] !== false ) {
 				// either reset to name of branch specified in flavio.json, or to master if that doesn't exist
 				const target = await git.getCurrentTarget( pkgdir );
+				console.log( `target=${JSON.stringify(target)} targetObj=${JSON.stringify(targetObj)}` );
 				if ( target.branch && targetObj.branch ) {
 					if ( !await git.doesRemoteBranchExist( pkgdir, target.branch ) ) {
 						let targetBranchName = 'master';
@@ -98,7 +108,7 @@ class RepoCloneCache {
 					if ( options.switch ) {
 						const stashName = await git.stash( pkgdir );
 						await git.pull( pkgdir );
-						if ( targetObj.tag || ( targetObj.branch && await git.doesRemoteBranchExist( pkgdir, targetObj.branch ) ) ) {
+						if ( targetObj.tag || targetObj.commit || ( targetObj.branch && await git.doesRemoteBranchExist( pkgdir, targetObj.branch ) ) ) {
 							await git.checkout( pkgdir, targetObj );
 						}
 						await git.stashPop( pkgdir, stashName );
