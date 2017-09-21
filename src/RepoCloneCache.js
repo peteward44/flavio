@@ -77,7 +77,6 @@ class RepoCloneCache {
 			if ( options['remote-reset'] !== false ) {
 				// either reset to name of branch specified in flavio.json, or to master if that doesn't exist
 				const target = await git.getCurrentTarget( pkgdir );
-				console.log( `target=${JSON.stringify(target)} targetObj=${JSON.stringify(targetObj)}` );
 				if ( target.branch && targetObj.branch ) {
 					if ( !await git.doesRemoteBranchExist( pkgdir, target.branch ) ) {
 						let targetBranchName = 'master';
