@@ -34,21 +34,23 @@ async function getTagPointingAtCurrentHEAD( repoDir ) {
 	const tags = await git.listTags( repoDir );
 	let tagFound = '';
 	for ( const tag of tags ) {
-		const tagFlavioJson = JSON.parse( await git.show( repoDir, tag, 'flavio.json' ) );
-		if ( _.isObject( tagFlavioJson.tag ) ) {
-			// if this object exists in the flavio.json, it means the tag was created by flavio's tagging process previously
-			let isEqual = false;
-			if ( tagFlavioJson.tag.branch ) {
-				// (backwards compatibility with old json)
-				isEqual = tagFlavioJson.tag.branch === target.branch;
-			} else if ( tagFlavioJson.tag.target ) {
-				isEqual = areTargetsEqual( tagFlavioJson.tag.target, target );
+		try {
+			const tagFlavioJson = JSON.parse( await git.show( repoDir, tag, 'flavio.json' ) );
+			if ( _.isObject( tagFlavioJson.tag ) ) {
+				// if this object exists in the flavio.json, it means the tag was created by flavio's tagging process previously
+				let isEqual = false;
+				if ( tagFlavioJson.tag.branch ) {
+					// (backwards compatibility with old json)
+					isEqual = tagFlavioJson.tag.branch === target.branch;
+				} else if ( tagFlavioJson.tag.target ) {
+					isEqual = areTargetsEqual( tagFlavioJson.tag.target, target );
+				}
+				if ( isEqual && tagFlavioJson.tag.commit === lastCommit ) {
+					tagFound = tag;
+					break;
+				}
 			}
-			if ( isEqual && tagFlavioJson.tag.commit === lastCommit ) {
-				tagFound = tag;
-				break;
-			}
-		}
+		} catch ( err ) {}
 	}
 	return tagFound;
 }
