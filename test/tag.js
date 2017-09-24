@@ -202,4 +202,12 @@ describe(`tag tests`, function() {
 	helpers.test( 'tag when dependency is pointing at a commit', async (tempDir) => {
 		
 	});
+	
+	helpers.test( 'tag when dependency has previous tags which are not semantic version names', async (tempDir) => {
+		
+	});
+	
+	helpers.test( 'tag when dependency has previous tags which do not have a flavio.json', async (tempDir) => {
+		
+	});
 });
