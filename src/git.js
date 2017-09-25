@@ -316,7 +316,7 @@ export async function stash( dir ) {
 	let clean = await isWorkingCopyClean( dir );
 	const stashName = uuid.v4();
 	if ( !clean ) {
-		await executeGit( ['stash', 'save', stashName], { cwd: dir } );
+		await executeGit( ['stash', 'save', stashName, '-u'], { cwd: dir } );
 		// check if it got saved
 		const listOut = ( await executeGit( ['stash', 'list'], { cwd: dir, captureStdout: true } ) ).out;
 		if ( !listOut.match( stashName ) ) {
@@ -329,7 +329,10 @@ export async function stash( dir ) {
 
 export async function stashPop( dir, stashName ) {
 	if ( stashName ) {
-		await executeGit( ['stash', 'pop'], { cwd: dir } );
+		try {
+			await executeGit( ['stash', 'pop'], { cwd: dir } );
+		} catch ( err ) {
+		}
 	}
 }
 
