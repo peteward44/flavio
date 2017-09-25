@@ -171,6 +171,20 @@ export default function start() {
 					.then(resolve)
 					.catch(reject);
 			})
+			.command('init', 'Initialises a flavio project', (subyargs) => {
+				const options = subyargs
+					.usage('Usage: flavio init [options]')
+					.example('flavio init', 'Initialises a flavio project')
+					.help('help')
+					.option('cwd', {
+						describe: 'Working directory to use',
+						default: process.cwd()
+					})
+					.argv;
+				flavio.commands.init( options )
+					.then(resolve)
+					.catch(reject);
+			})
 			.strict()
 			.demandCommand(1)
 			.recommendCommands()

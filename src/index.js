@@ -5,6 +5,7 @@ import clone from './clone.js';
 import status from './status.js';
 import execute from './execute.js';
 import exportProject from './exportProject.js';
+import init from './init.js';
 
 // import branch from './branch.js';
 
@@ -15,6 +16,7 @@ const commands = {
 	clone,
 	status,
 	execute,
+	init,
 	// branch,
 	'export': exportProject
 };
