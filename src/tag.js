@@ -31,7 +31,22 @@ async function getTagPointingAtCurrentHEAD( repoDir ) {
 	}
 	// list all the tags in this repo, and look in each one to see if one of the tags was made on the commit we are currently sat on.
 	const lastCommit = await git.getLastCommit( repoDir );
-	const tags = await git.listTags( repoDir );
+	let tags = await git.listTags( repoDir );
+	// sort tags by descending version, as we are more likely to be tagging the latest version so it'll be marginally quicker.
+	// this sort method puts the invalid semver tags at the end of the array
+	tags = tags.sort( ( lhs, rhs ) => {
+		const lhsv = semver.valid( lhs );
+		const rhsv = semver.valid( rhs );
+		if ( lhsv && rhsv ) {
+			return semver.rcompare( lhs, rhs );
+		} else if ( lhsv ) {
+			return -1;
+		} else if ( rhsv ) {
+			return 1;
+		} else {
+			return 0;
+		}
+	} );
 	let tagFound = '';
 	for ( const tag of tags ) {
 		try {
@@ -315,8 +330,17 @@ async function tagOperation( options = {} ) {
 		}
 	}
 	if ( count === 0 ) {
-		// TODO: print out a version that they should use instead
+		// print out a version that they should use instead
 		console.log( `No valid repositories found to tag` );
+		if ( reposToTag.has( 'main' ) ) {
+			const mainRepo = reposToTag.get( 'main' );
+			let mainRepoUrl = '';
+			try {
+				mainRepoUrl = await git.getWorkingCopyUrl( mainRepo.dir, true );
+				mainRepoUrl += '#';
+			} catch ( err ) {}
+			console.log( `Use the latest tag made, ${mainRepoUrl}${mainRepo.tag}` );
+		}
 		return;
 	}
 	// confirm with user the values to tag

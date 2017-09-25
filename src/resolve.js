@@ -14,12 +14,13 @@ export async function getTargetFromRepoUrl( repo, localClonePath ) {
 	const repoUrl = util.parseRepositoryUrl( repo );
 	await git.fetch( localClonePath );
 	const tags = await git.listTags( localClonePath );
+	const semverTags = tags.filter( semver.valid );
 	const target = repoUrl.target;
 	if ( !target ) {
 		// none specifed
 		// try to get latest tag version
-		if ( tags.length > 0 ) {
-			const latest = semver.maxSatisfying( tags, '*' );
+		if ( semverTags.length > 0 ) {
+			const latest = semver.maxSatisfying( semverTags, '*' );
 			return {
 				tag: latest
 			};
@@ -33,15 +34,15 @@ export async function getTargetFromRepoUrl( repo, localClonePath ) {
 			return { branch: "master" };
 		}
 		// check if it's a semver range
-		if ( tags.length > 0 ) {
-			if ( semver.validRange( target ) ) {
-				const latest = semver.maxSatisfying( tags, target );
-				if ( latest ) {
-					return {
-						tag: latest
-					};
-				}
+		if ( semver.validRange( target ) && semverTags.length > 0 ) {
+			const latest = semver.maxSatisfying( semverTags, target );
+			if ( latest ) {
+				return {
+					tag: latest
+				};
 			}
+		}
+		if ( tags.length > 0 ) {
 			// check if its the name of a tag
 			if ( tags.includes( target ) ) {
 				return {

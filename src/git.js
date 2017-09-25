@@ -2,7 +2,6 @@ import path from 'path';
 import _ from 'lodash';
 import fs from 'fs-extra';
 import uuid from 'uuid';
-import semver from 'semver';
 import { spawn } from 'child_process';
 
 
@@ -274,8 +273,6 @@ export async function listTags( localClonePath ) {
 			result.push( t );
 		}
 	}
-	// sort by semver if possible, so latest version first
-	result.sort( semver.rcompare );
 	return result;
 }
 
