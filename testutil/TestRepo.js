@@ -2,8 +2,8 @@
 import fs from 'fs-extra';
 import path from 'path';
 import _ from 'lodash';
-import * as git from '../lib/git.js';
 import chai from 'chai';
+import * as git from '../lib/git.js';
 
 const templateNone = {
 	name: 'main',
@@ -29,12 +29,12 @@ const templateOne = {
 	],
 	modules: [
 		{
-			name: 'main2',
-			version: '0.2.0-snapshot.0',
+			name: 'dep1',
+			version: '0.1.0-snapshot.0',
 			files: [
 				{
-					path: 'file2.0.2.0.txt',
-					contents: 'this is on the main2 project v0.2.0'
+					path: 'file.txt',
+					contents: 'contents'
 				}
 			]
 		}
@@ -52,22 +52,22 @@ const templateTwo = {
 	],
 	modules: [
 		{
-			name: 'main2',
-			version: '0.2.0-snapshot.0',
+			name: 'dep1',
+			version: '0.1.0-snapshot.0',
 			files: [
 				{
-					path: 'file2.0.2.0.txt',
-					contents: 'this is on the main2 project v0.2.0'
+					path: 'file.txt',
+					contents: 'contents'
 				}
 			]
 		},
 		{
-			name: 'main3',
-			version: '0.3.0-snapshot.0',
+			name: 'dep2',
+			version: '0.1.0-snapshot.0',
 			files: [
 				{
-					path: 'file3.0.3.0.txt',
-					contents: 'this is on the main2 project v0.3.0'
+					path: 'file.txt',
+					contents: 'contents'
 				}
 			]
 		}
@@ -84,41 +84,39 @@ const templateSimpleNest = {
 		}
 	],
 	modules: [
+		{
+			name: 'dep1',
+			version: '0.1.0-snapshot.0',
+			files: [
 				{
-					name: 'main2',
-					version: '0.1.0',
-					tag: '0.1.0',
+					path: 'file.txt',
+					contents: 'contents'
+				}
+			]
+		},
+		{
+			name: 'dep2',
+			version: '0.1.0-snapshot.0',
+			files: [
+				{
+					path: 'file.txt',
+					contents: 'contents'
+				}
+			],
+			modules: [
+				{
+					name: 'dep2-1',
+					version: '0.1.0-snapshot.0',
 					files: [
 						{
-							path: 'file2.txt',
-							contents: 'this is on the main2 project v0.1.0'
-						}
-					]
-				},
-				{
-					name: 'main3',
-					version: '0.2.0',
-					files: [
-						{
-							path: 'file3.txt',
-							contents: 'this is on the main2 project v0.2.0'
-						}
-					],
-					modules: [
-						{
-							name: 'main2',
-							version: '0.2.0',
-							tag: '0.2.0',
-							files: [
-								{
-									path: 'file2.txt',
-									contents: 'this is on the main2 project v0.2.0'
-								}
-							]
+							path: 'file.txt',
+							contents: 'contents'
 						}
 					]
 				}
 			]
+		}
+	]
 };
 
 const templateComplexNest = {
@@ -132,32 +130,32 @@ const templateComplexNest = {
 	],
 	modules: [
 		{
-			name: 'main2',
-			version: '0.2.0-snapshot.0',
+			name: 'dep1',
+			version: '0.1.0-snapshot.0',
 			files: [
 				{
-					path: 'file2.txt',
-					contents: 'this is on the main2 project'
+					path: 'file.txt',
+					contents: 'contents'
 				}
 			],
 			modules: [
 				{
-					name: 'main3',
-					version: '0.3.0-snapshot.0',
+					name: 'dep1-1',
+					version: '0.1.0-snapshot.0',
 					files: [
 						{
-							path: 'file3.txt',
-							contents: 'this is on the main3 project'
+							path: 'file.txt',
+							contents: 'contents'
 						}
 					],
 					modules: [
 						{
-							name: 'main4',
-							version: '0.4.0-snapshot.0',
+							name: 'dep1-1-1',
+							version: '0.1.0-snapshot.0',
 							files: [
 								{
-									path: 'file4.txt',
-									contents: 'this is on the main4 project'
+									path: 'file.txt',
+									contents: 'contents'
 								}
 							]
 						}
@@ -166,22 +164,22 @@ const templateComplexNest = {
 			]
 		},
 		{
-			name: 'main5',
-			version: '0.5.0-snapshot.0',
+			name: 'dep2',
+			version: '0.1.0-snapshot.0',
 			files: [
 				{
-					path: 'file5.txt',
-					contents: 'this is on the main5 project'
+					path: 'file.txt',
+					contents: 'contents'
 				}
 			],
 			modules: [
 				{
-					name: 'main6',
-					version: '0.6.0-snapshot.0',
+					name: 'dep2-1',
+					version: '0.1.0-snapshot.0',
 					files: [
 						{
-							path: 'file6.txt',
-							contents: 'this is on the main6 project'
+							path: 'file.txt',
+							contents: 'contents'
 						}
 					]
 				}
@@ -191,13 +189,31 @@ const templateComplexNest = {
 };
 
 class TestRepo {
-	constructor() {
-		this._project = null;
+	/*
+	project object should look like
+		repoDir,
+		checkoutDir,
+		deps: {},
+		alldeps: {}
+	*/
+	constructor( repoDir, checkoutDir ) {
+		if ( repoDir && checkoutDir ) {
+			this._project = {
+				repoDir,
+				checkoutDir
+			};
+		} else {
+			this._project = null;
+		}
 	}
 	
 	_getDependencyDir( depName ) {
 		// TODO: support for different module directories?
-		return path.join( this._project.checkoutDir, 'flavio_modules', depName );
+		if ( depName === 'main' ) {
+			return this._project.checkoutDir;
+		} else {
+			return path.join( this._project.checkoutDir, 'flavio_modules', depName );
+		}
 	}
 	
 	/**
@@ -210,18 +226,18 @@ class TestRepo {
 		return this._project;
 	}
 	
-	static templateDescriptor( name ) {
+	static templateDescriptor( name, merge = {} ) {
 		switch ( name ) {
 			case 'none':
-				return _.cloneDeep( templateNone );
+				return _.merge( {}, templateNone, merge );
 			case 'one':
-				return _.cloneDeep( templateOne );
+				return _.merge( {}, templateOne, merge );
 			case 'two':
-				return _.cloneDeep( templateTwo );
+				return _.merge( {}, templateTwo, merge );
 			case 'simpleNest':
-				return _.cloneDeep( templateSimpleNest );
+				return _.merge( {}, templateSimpleNest, merge );
 			case 'complexNest':
-				return _.cloneDeep( templateComplexNest );
+				return _.merge( {}, templateComplexNest, merge );
 			default:
 				throw new Error( `No template ${name} defined` );
 		}
@@ -230,19 +246,26 @@ class TestRepo {
 	/**
 	 * @param {Object} descriptor - JSON object describing how the repo will look
 	 */
-	async init( tempDir, descriptor ) {
+	async _init( tempDir, descriptor ) {
 		this._project = await git.addProject( tempDir, descriptor );
+	}
+	
+	static async create( tempDir, name, merge = {} ) {
+		const descriptor = TestRepo.templateDescriptor( name, merge );
+		const testRepo = new TestRepo();
+//		console.log( "descriptor", JSON.stringify( descriptor, null, 2 ) );
+		await testRepo._init( tempDir, descriptor ); // eslint-disable-line no-underscore-dangle
+		return testRepo;
 	}
 	
 	/**
 	 * Throws an exception if the given dependency target does not match the one supplied
 	 */
 	async assertDependencyTarget( depName, target ) {
-		const dir = this._getDependencyDir( depName );
-		chai.assert.ok( fs.existsSync( dir ), `Dependency directory ${depName} exists [$dir]` );
-		chai.assert.ok( fs.existsSync( path.join( dir, '.git' ) ), `Dependency directory ${depName} '.git' folder exists [$dir]` );
+		await this.assertDependencyExists( depName );
 		
 		if ( target ) {
+			const dir = this._getDependencyDir( depName );
 			const actualTarget = await git.getCurrentTarget( dir );
 			if ( target.branch ) {
 				chai.assert.equal( actualTarget.branch, target.branch, `${depName} has expected branch checked out [$dir]` );
@@ -254,6 +277,18 @@ class TestRepo {
 				chai.assert.equal( actualTarget.commit, target.commit, `${depName} has expected commit checked out [$dir]` );
 			}
 		}
+	}
+	
+	async assertDependencyExists( depName ) {
+		const dir = this._getDependencyDir( depName );
+		chai.assert.ok( fs.existsSync( dir ), `Dependency directory ${depName} exists [$dir]` );
+		chai.assert.ok( fs.existsSync( path.join( dir, '.git' ) ), `Dependency directory ${depName} '.git' folder exists [$dir]` );
+	}
+	
+	async assertDependencyNotExists( depName ) {
+		const dir = this._getDependencyDir( depName );
+		chai.assert.ok( !fs.existsSync( dir ), `Dependency directory ${depName} does not exist [$dir]` );
+		chai.assert.ok( !fs.existsSync( path.join( dir, '.git' ) ), `Dependency directory ${depName} '.git' folder does not exist [$dir]` );
 	}
 	
 	async assertTagExists( depName, tagName ) {
@@ -272,4 +307,4 @@ class TestRepo {
 	}
 }
 
-export TestRepo;
+export default TestRepo;

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import chai from 'chai';
 import * as helpers from '../testutil/helpers.js';
+import TestRepo from '../testutil/TestRepo.js';
 import * as git from '../lib/git.js';
 import tag from '../lib/tag.js';
 import update from '../lib/update.js';
@@ -10,204 +10,103 @@ describe(`tag tests`, function() {
 	this.timeout(30 * 60 * 1000); // 30 minutes
 
 	helpers.test('tag basic', async (tempDir) => {
-		// main module
-		const result = await git.addProject( tempDir, {
-			name: 'main',
-			version: '0.1.0-snapshot.0',
-			files: [
-				{
-					path: 'file.txt',
-					contents: 'this is on the main project'
-				}
-			]
-		});
+		const result = await TestRepo.create( tempDir, 'none' );
 		
-		await tag( { cwd: result.checkoutDir, interactive: false } );
-		chai.assert.ok( await git.tagExists( result.checkoutDir, "0.1.0" ) );
+		await result.assertTagNotExists( 'main', '0.1.0' );
+		
+		await tag( { cwd: result.project.checkoutDir, interactive: false } );
+		
+		await result.assertTagExists( 'main', '0.1.0' );
 	});
 
 	helpers.test('tag one dependency', async (tempDir) => {
-		// main module
-		const result = await git.addProject( tempDir, {
-			name: 'main',
-			version: '0.1.0-snapshot.0',
-			files: [
-				{
-					path: 'file.txt',
-					contents: 'this is on the main project'
-				}
-			],
-			modules: [
-				{
-					name: 'main2',
-					version: '0.2.0-snapshot.0',
-					files: [
-						{
-							path: 'file2.0.2.0.txt',
-							contents: 'this is on the main2 project v0.2.0'
-						}
-					]
-				}
-			]
-		});
+		const result = await TestRepo.create( tempDir, 'one' );
 		
-		await update( { cwd: result.checkoutDir, interactive: false } );
-		await tag( { cwd: result.checkoutDir, interactive: false } );
-		chai.assert.ok( await git.tagExists( result.checkoutDir, "0.1.0" ) );
-		chai.assert.ok( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main2' ), "0.2.0" ) );
+		await update( { cwd: result.project.checkoutDir, interactive: false } );
+		
+		await result.assertTagNotExists( 'main', '0.1.0' );
+		await result.assertTagNotExists( 'dep1', '0.1.0' );
+		
+		await tag( { cwd: result.project.checkoutDir, interactive: false } );
+		
+		await result.assertTagExists( 'main', '0.1.0' );
+		await result.assertTagExists( 'dep1', '0.1.0' );
 	});
 
 	helpers.test('tag two dependencies', async (tempDir) => {
-		// main module
-		const result = await git.addProject( tempDir, {
-			name: 'main',
-			version: '0.1.0-snapshot.0',
-			files: [
-				{
-					path: 'file.txt',
-					contents: 'this is on the main project'
-				}
-			],
-			modules: [
-				{
-					name: 'main2',
-					version: '0.2.0-snapshot.0',
-					files: [
-						{
-							path: 'file2.0.2.0.txt',
-							contents: 'this is on the main2 project v0.2.0'
-						}
-					]
-				},
-				{
-					name: 'main3',
-					version: '0.3.0-snapshot.0',
-					files: [
-						{
-							path: 'file3.0.3.0.txt',
-							contents: 'this is on the main2 project v0.3.0'
-						}
-					]
-				}
-			]
-		});
+		const result = await TestRepo.create( tempDir, 'two' );
 		
-		await update( { cwd: result.checkoutDir, interactive: false } );
-		await tag( { cwd: result.checkoutDir, interactive: false } );
-		chai.assert.ok( await git.tagExists( result.checkoutDir, "0.1.0" ) );
-		chai.assert.ok( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main2' ), "0.2.0" ) );
-		chai.assert.ok( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main3' ), "0.3.0" ) );
+		await update( { cwd: result.project.checkoutDir, interactive: false } );
+		
+		await result.assertTagNotExists( 'main', '0.1.0' );
+		await result.assertTagNotExists( 'dep1', '0.1.0' );
+		await result.assertTagNotExists( 'dep2', '0.1.0' );
+		
+		await tag( { cwd: result.project.checkoutDir, interactive: false } );
+		
+		await result.assertTagExists( 'main', '0.1.0' );
+		await result.assertTagExists( 'dep1', '0.1.0' );
+		await result.assertTagExists( 'dep2', '0.1.0' );
 	});
 
 	helpers.test('Correctly recycle all tags and doesn\'t create new ones when attempting to tag a second time', async (tempDir) => {
-		// main module
-		const result = await git.addProject( tempDir, {
-			name: 'main',
-			version: '0.1.0-snapshot.0',
-			files: [
-				{
-					path: 'file.txt',
-					contents: 'this is on the main project'
-				}
-			],
-			modules: [
-				{
-					name: 'main2',
-					version: '0.2.0-snapshot.0',
-					files: [
-						{
-							path: 'file2.0.2.0.txt',
-							contents: 'this is on the main2 project v0.2.0'
-						}
-					]
-				},
-				{
-					name: 'main3',
-					version: '0.3.0-snapshot.0',
-					files: [
-						{
-							path: 'file3.0.3.0.txt',
-							contents: 'this is on the main2 project v0.3.0'
-						}
-					]
-				}
-			]
-		});
+		const result = await TestRepo.create( tempDir, 'two' );
 		
-		await update( { cwd: result.checkoutDir, interactive: false } );
-		await tag( { cwd: result.checkoutDir, interactive: false } );
-		chai.assert.ok( await git.tagExists( result.checkoutDir, "0.1.0" ) );
-		chai.assert.ok( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main2' ), "0.2.0" ) );
-		chai.assert.ok( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main3' ), "0.3.0" ) );
+		await update( { cwd: result.project.checkoutDir, interactive: false } );
+		
+		await result.assertTagNotExists( 'main', '0.1.0' );
+		await result.assertTagNotExists( 'dep1', '0.1.0' );
+		await result.assertTagNotExists( 'dep2', '0.1.0' );
+		
+		await tag( { cwd: result.project.checkoutDir, interactive: false } );
+		
+		await result.assertTagExists( 'main', '0.1.0' );
+		await result.assertTagExists( 'dep1', '0.1.0' );
+		await result.assertTagExists( 'dep2', '0.1.0' );
 
-		await tag( { cwd: result.checkoutDir, interactive: false } );
+		await tag( { cwd: result.project.checkoutDir, interactive: false } );
 
-		chai.assert.ok( !( await git.tagExists( result.checkoutDir, "0.2.0" ) ), 'main has no new tag' );
-		chai.assert.ok( !( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main2' ), "0.3.0" ) ), 'main2 has no new tag' );
-		chai.assert.ok( !( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main3' ), "0.4.0" ) ), 'main3 has no new tag' );
+		await result.assertTagNotExists( 'main', '0.2.0' );
+		await result.assertTagNotExists( 'dep1', '0.2.0' );
+		await result.assertTagNotExists( 'dep2', '0.2.0' );
 	});
 	
 	helpers.test( 'Correctly recycle a tag on a single dependency and create new ones for any other projects that have been modified', async (tempDir) => {
-		// main module
-		const result = await git.addProject( tempDir, {
-			name: 'main',
-			version: '0.1.0-snapshot.0',
-			files: [
-				{
-					path: 'file.txt',
-					contents: 'this is on the main project'
-				}
-			],
-			modules: [
-				{
-					name: 'main2',
-					version: '0.2.0-snapshot.0',
-					files: [
-						{
-							path: 'file2.txt',
-							contents: 'this is on the main2 project v0.2.0'
-						}
-					]
-				},
-				{
-					name: 'main3',
-					version: '0.3.0-snapshot.0',
-					files: [
-						{
-							path: 'file3.txt',
-							contents: 'this is on the main2 project v0.3.0'
-						}
-					]
-				}
-			]
-		});
+		const result = await TestRepo.create( tempDir, 'two' );
 		
-		await update( { cwd: result.checkoutDir, interactive: false } );
-		await tag( { cwd: result.checkoutDir, interactive: false } );
-		chai.assert.ok( await git.tagExists( result.checkoutDir, "0.1.0" ) );
-		chai.assert.ok( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main2' ), "0.2.0" ) );
-		chai.assert.ok( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main3' ), "0.3.0" ) );
+		await update( { cwd: result.project.checkoutDir, interactive: false } );
+		
+		await result.assertTagNotExists( 'main', '0.1.0' );
+		await result.assertTagNotExists( 'dep1', '0.1.0' );
+		await result.assertTagNotExists( 'dep2', '0.1.0' );
+		
+		await tag( { cwd: result.project.checkoutDir, interactive: false } );
+		
+		await result.assertTagExists( 'main', '0.1.0' );
+		await result.assertTagExists( 'dep1', '0.1.0' );
+		await result.assertTagExists( 'dep2', '0.1.0' );
 
-		fs.writeFileSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.txt' ), 'changes changes changes' );
-		await git.addAndCommit( path.join( result.checkoutDir, 'flavio_modules', 'main2' ), 'file2.txt', 'commit message' );
-		await git.push( path.join( result.checkoutDir, 'flavio_modules', 'main2' ) );
+		// commit change to dep2, then make sure new tag is created for main project and dep2, but not dep1
+		fs.writeFileSync( path.join( result.project.checkoutDir, 'flavio_modules', 'dep2', 'file2.txt' ), 'changes changes changes' );
+		await git.addAndCommit( path.join( result.project.checkoutDir, 'flavio_modules', 'dep2' ), 'file2.txt', 'commit message' );
+		await git.push( path.join( result.project.checkoutDir, 'flavio_modules', 'dep2' ) );
 		
-		await tag( { cwd: result.checkoutDir, interactive: false } );
-
-		chai.assert.ok( await git.tagExists( result.checkoutDir, "0.2.0" ), 'main has new tag' );
-		chai.assert.ok( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main2' ), "0.3.0" ), 'main2 has new tag' );
-		chai.assert.ok( !( await git.tagExists( path.join( result.checkoutDir, 'flavio_modules', 'main3' ), "0.4.0" ) ), 'main3 has no new tag' );
+		await tag( { cwd: result.project.checkoutDir, interactive: false } );
+		
+		await result.assertTagExists( 'main', '0.2.0' );
+		await result.assertTagExists( 'dep2', '0.2.0' );
+		await result.assertTagNotExists( 'dep1', '0.2.0' );
 	});
 	
-	helpers.test( 'tag when dependency is pointing at a commit', async (tempDir) => {
-		
-	});
-	
-	helpers.test( 'tag when dependency has previous tags which are not semantic version names', async (tempDir) => {
+	helpers.test.skip( 'tag when dependency is pointing at a commit', async (tempDir) => {
 		
 	});
 	
-	helpers.test( 'tag when dependency has previous tags which do not have a flavio.json', async (tempDir) => {
+	helpers.test.skip( 'tag when dependency has previous tags which are not semantic version names', async (tempDir) => {
+		
+	});
+	
+	helpers.test.skip( 'tag when dependency has previous tags which do not have a flavio.json', async (tempDir) => {
 		
 	});
 });

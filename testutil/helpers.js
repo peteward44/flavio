@@ -42,10 +42,10 @@ export function test(name, func) {
 	return it( name, executeTest.bind( this, name, func ) );
 }
 
-export function testOnly(name, func) {
+test.only = function(name, func) {
 	return it.only( name, executeTest.bind( this, name, func ) );
-}
+};
 
-export function testSkip(name, func) {
+test.skip = function(name, func) {
 	return it.skip( name, executeTest.bind( this, name, func ) );
-}
+}; 
