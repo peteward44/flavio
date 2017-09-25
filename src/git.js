@@ -430,3 +430,8 @@ export async function isValidCommit( dir, sha ) {
 	const result = await executeGit( ['branch', '-r', '--contains', sha], { cwd: dir, ignoreError: true } );
 	return result.code === 0;
 }
+
+export async function isConflicted( dir ) {
+	const output = ( await executeGit( ['ls-files', '--unmerged'], { cwd: dir, captureStdout: true } ) ).out;
+	return output.trim().length > 0;
+}

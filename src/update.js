@@ -1,8 +1,25 @@
 import _ from 'lodash';
+import fs from 'fs-extra';
+import path from 'path';
 import * as depTree from './depTree.js';
 import * as util from './util.js';
 import * as git from './git.js';
 import RepoCloneCache from './RepoCloneCache.js';
+
+async function checkConflicted( options ) {
+	if ( fs.existsSync( path.join( options.cwd, '.git' ) ) && await git.isConflicted( options.cwd ) ) {
+		console.log( `Main project has conflicts` );
+		return true;
+	}
+	let conflicts = false;
+	await depTree.traverse( options, async ( name, childModule ) => {
+		if ( fs.existsSync( path.join( childModule.dir, '.git' ) ) && await git.isConflicted( childModule.dir ) ) {
+			console.log( `${childModule.name} has conflicts` );
+			conflicts = true;
+		}
+	} );
+	return conflicts;
+}
 
 /**
  * Executes update on given directory
@@ -36,6 +53,13 @@ async function update( options ) {
 	let repoCache = new RepoCloneCache( options );
 	await repoCache.init( await util.loadFlavioJson( options.cwd ) );
 
+	// make sure there are no conflicts in any dependencies before doing update
+	const isConflicted = await checkConflicted( options );
+	if ( isConflicted ) {
+		console.log( `Conflicts detected, aborting update...` );
+		return;
+	}
+	
 	// traverse tree, checking out / updating modules as we go
 	await depTree.traverse( options, async ( name, childModule ) => {
 		console.log( `Updating ${name}...` );

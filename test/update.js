@@ -224,4 +224,8 @@ describe(`update tests`, function() {
 	helpers.test.skip('one dependency on a specific commit', async (tempDir) => {
 		
 	});
+	
+	helpers.test.skip('update should be aborted if conflicts are detected', async (tempDir) => {
+		
+	});
 });
