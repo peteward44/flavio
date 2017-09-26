@@ -40,6 +40,13 @@ async function update( options ) {
 	if ( !options.json ) {
 		console.log( `Updating main project...` );
 	}
+	// make sure there are no conflicts in any dependencies before doing update
+	const isConflicted = await checkConflicted( options );
+	if ( isConflicted ) {
+		console.log( `Conflicts detected, aborting update...` );
+		return;
+	}
+	
 	const stashName = await git.stash( options.cwd );
 	if ( !await git.isUpToDate( options.cwd ) ) {
 		updateResult.changed = true;
@@ -53,13 +60,6 @@ async function update( options ) {
 	let repoCache = new RepoCloneCache( options );
 	await repoCache.init( await util.loadFlavioJson( options.cwd ) );
 
-	// make sure there are no conflicts in any dependencies before doing update
-	const isConflicted = await checkConflicted( options );
-	if ( isConflicted ) {
-		console.log( `Conflicts detected, aborting update...` );
-		return;
-	}
-	
 	// traverse tree, checking out / updating modules as we go
 	await depTree.traverse( options, async ( name, childModule ) => {
 		console.log( `Updating ${name}...` );
