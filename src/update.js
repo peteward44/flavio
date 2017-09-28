@@ -51,7 +51,11 @@ async function update( options ) {
 	if ( !await git.isUpToDate( options.cwd ) ) {
 		updateResult.changed = true;
 	}
-	await git.pull( options.cwd );
+	try {
+		await git.pull( options.cwd );
+	} catch ( err ) {
+		console.log( `Main project pull failed, does your branch exist on the remote?` );
+	}
 	await git.stashPop( options.cwd, stashName );
 	if ( !options.json ) {
 		console.log( `Complete` );
