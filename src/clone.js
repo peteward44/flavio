@@ -1,4 +1,5 @@
 import path from 'path';
+import fs from 'fs-extra';
 import * as util from './util.js';
 import * as resolve from './resolve.js';
 import * as git from './git.js';
@@ -19,9 +20,16 @@ async function clone( repo, options = {} ) {
 		const gitname = util.getGitProjectNameFromUrl( repo );
 		cwd = path.join( process.cwd(), gitname || 'project' );
 	}
+	if ( fs.existsSync( cwd ) ) {
+		throw new Error( `Target directory ${cwd} already exists!` );
+	}
 	await git.clone( repoUrl.url, cwd, { master: true } );
 	const targetObj = await resolve.getTargetFromRepoUrl( repo, cwd );
-	await git.checkout( cwd, targetObj );
+	try {
+		await git.checkout( cwd, targetObj );
+	} catch ( err ) {
+		console.error( `Could not checkout target (${targetObj.branch || targetObj.tag || targetObj.commit}). Using 'master'...` );
+	}
 	options.cwd = cwd;
 	await flavio.commands.update( options );
 }
