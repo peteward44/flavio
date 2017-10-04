@@ -60,6 +60,8 @@ async function update( options ) {
 	if ( !options.json ) {
 		console.log( `Complete` );
 	}
+	// re-read config file in case the .flaviorc has changed
+	await util.readConfigFile( options.cwd );
 	
 	let repoCache = new RepoCloneCache( options );
 	await repoCache.init( await util.loadFlavioJson( options.cwd ) );
