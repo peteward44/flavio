@@ -55,6 +55,9 @@ class RepoCloneCache {
 		const repoUrl = util.parseRepositoryUrl( module.repo );
 		if ( !fs.existsSync( pkgdir ) ) {
 			// fresh checkout
+			if ( !options.json ) {
+				console.log( `${name}: Performing fresh checkout` );
+			}
 			await git.clone( repoUrl.url, pkgdir, { master: true } );
 			const targetObj = await resolve.getTargetFromRepoUrl( module.repo, pkgdir );
 			try {
@@ -78,11 +81,12 @@ class RepoCloneCache {
 				// either reset to name of branch specified in flavio.json, or to master if that doesn't exist
 				const target = await git.getCurrentTarget( pkgdir );
 				if ( target.branch && targetObj.branch ) {
-					if ( !await git.doesRemoteBranchExist( pkgdir, target.branch ) ) {
+					if ( !await git.doesRemoteBranchExist( repoUrl.url, target.branch ) ) {
+						console.log( `${name}: Branch ${target.branch} does not exist on remote.` );
 						let targetBranchName = 'master';
 						if ( targetObj.branch !== target.branch ) {
 							// the current branch doesn't exist on remote, and the branch specified in the module repo url does, so we reset to that
-							if ( await git.doesRemoteBranchExist( pkgdir, targetObj.branch ) ) {
+							if ( await git.doesRemoteBranchExist( repoUrl.url, targetObj.branch ) ) {
 								targetBranchName = targetObj.branch;
 							}
 						}
@@ -107,10 +111,17 @@ class RepoCloneCache {
 					if ( options.switch ) {
 						const stashName = await git.stash( pkgdir );
 						await git.pull( pkgdir );
-						if ( targetObj.tag || targetObj.commit || ( targetObj.branch && await git.doesRemoteBranchExist( pkgdir, targetObj.branch ) ) ) {
+						if ( targetObj.tag || targetObj.commit || ( targetObj.branch && await git.doesRemoteBranchExist( repoUrl.url, targetObj.branch ) ) ) {
+							if ( !options.json ) {
+								console.log( `${name}: Switching to ${targetObj.tag || targetObj.commit || targetObj.branch}` );
+							}
 							await git.checkout( pkgdir, targetObj );
 						}
 						await git.stashPop( pkgdir, stashName );
+					} else {
+						const stashName = await git.stash( pkgdir );
+						await git.pull( pkgdir );
+						await git.stashPop( pkgdir, stashName );	
 					}
 				} else {
 					if ( options.switch ) {

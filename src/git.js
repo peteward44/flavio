@@ -410,9 +410,8 @@ export async function doesLocalBranchExist( dir, branchName ) {
 	return code === 0;
 }
 
-export async function doesRemoteBranchExist( dir, branchName ) {
-	await executeGit( ['fetch'], { cwd: dir, outputStderr: true } );
-	const code = ( await executeGit( ['show-ref', '--quiet', '--verify', '--', `refs/remotes/origin/${branchName}`], { cwd: dir, ignoreError: true } ) ).code;
+export async function doesRemoteBranchExist( url, branchName ) {
+	const code = ( await executeGit( ['ls-remote', '--exit-code', url, branchName], { ignoreError: true } ) ).code;
 	return code === 0;
 }
 

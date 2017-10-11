@@ -51,7 +51,7 @@ export async function getTargetFromRepoUrl( repo, localClonePath ) {
 			}
 		}
 		// otherwise check if it's the name of a branch
-		if ( await git.doesRemoteBranchExist( localClonePath, target ) || await git.doesLocalBranchExist( localClonePath, target ) ) {
+		if ( await git.doesRemoteBranchExist( repoUrl.url, target ) || await git.doesLocalBranchExist( localClonePath, target ) ) {
 			return {
 				branch: target
 			};
