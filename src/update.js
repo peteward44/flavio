@@ -73,7 +73,7 @@ async function update( options ) {
 	}
 	await util.readConfigFile( options.cwd );
 
-	let updateCount = 1;
+	let updateCount = 0;
 	let changeCount = 0;
 	let updateResult = {
 		changed: false
@@ -86,9 +86,12 @@ async function update( options ) {
 		return;
 	}
 
-	if ( await updateMainProject( options ) ) {
-		updateResult.changed = true;
-		changeCount++;
+	if ( !options.skipMain ) {
+		if ( await updateMainProject( options ) ) {
+			updateResult.changed = true;
+			updateCount++;
+			changeCount++;
+		}
 	}
 	
 	// re-read config file in case the .flaviorc has changed

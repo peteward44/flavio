@@ -40,7 +40,7 @@ async function changeRepo( pkgdir, repo ) {
 async function doFreshClone( name, module, options, repoUrl ) {
 	const pkgdir = module.dir;
 	if ( !options.json ) {
-		console.log( util.formatConsoleDependencyName( name ), `Performing fresh checkout` );
+		console.log( util.formatConsoleDependencyName( name ), `Repository missing, performing fresh clone...` );
 	}
 	await git.clone( repoUrl.url, pkgdir, { master: true } );
 	const targetObj = await resolve.getTargetFromRepoUrl( module.repo, pkgdir );
