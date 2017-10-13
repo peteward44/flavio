@@ -55,7 +55,7 @@ async function updateMainProject( options ) {
 			targetName = target.tag || target.commit || target.branch;
 		} catch ( err ) {
 		}
-		console.log( util.formatConsoleDependencyName( mainProjectName ), `Update complete`, targetName ? `[${chalk.magenta(targetName)}]` : ``, changed ? `[${chalk.yellow( 'changes detected' )}]` : `` );
+		console.log( util.formatConsoleDependencyName( mainProjectName ), `Complete`, targetName ? `[${chalk.magenta(targetName)}]` : ``, changed ? `[${chalk.yellow( 'changes detected' )}]` : `` );
 	}
 	return changed;
 }
@@ -113,7 +113,7 @@ async function update( options ) {
 		if ( !options.json ) {
 			const target = await git.getCurrentTarget( childModule.dir );
 			const targetName = target.tag || target.commit || target.branch;
-			console.log( util.formatConsoleDependencyName( name ), `Update complete`, targetName ? `[${chalk.magenta(targetName)}]` : ``, addResult.changed ? `[${chalk.yellow( 'changes detected' )}]` : `` );
+			console.log( util.formatConsoleDependencyName( name ), `Complete`, targetName ? `[${chalk.magenta(targetName)}]` : ``, addResult.changed ? `[${chalk.yellow( 'changes detected' )}]` : `` );
 		}
 		updateCount++;
 		return addResult.dir;
