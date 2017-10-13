@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import fs from 'fs-extra';
 import path from 'path';
+import chalk from 'chalk';
 import * as depTree from './depTree.js';
 import * as util from './util.js';
 import * as git from './git.js';
@@ -14,11 +15,49 @@ async function checkConflicted( options ) {
 	let conflicts = false;
 	await depTree.traverse( options, async ( name, childModule ) => {
 		if ( fs.existsSync( path.join( childModule.dir, '.git' ) ) && await git.isConflicted( childModule.dir ) ) {
-			console.log( `${childModule.name} has conflicts` );
+			console.log( util.formatConsoleDependencyName( childModule.name, true ), `Conflicts detected` );
 			conflicts = true;
 		}
 	} );
 	return conflicts;
+}
+
+async function updateMainProject( options ) {
+	let changed = false;
+	// update main project first
+	// get name of main project if flavio.json exists
+	let mainProjectName = 'main';
+	const mainFlavioJsonPath = path.join( options.cwd, await util.getflavioJsonFileName() );
+	if ( fs.existsSync( mainFlavioJsonPath ) ) {
+		const mainFlavioJson = JSON.parse( fs.readFileSync( mainFlavioJsonPath, 'utf8' ) );
+		if ( _.isString( mainFlavioJson.name ) && mainFlavioJson.name.length > 0 ) {
+			mainProjectName = mainFlavioJson.name;
+		}
+	}
+	
+	if ( !options.json ) {
+		console.log( util.formatConsoleDependencyName( mainProjectName ), `Updating...` );
+	}
+	const stashName = await git.stash( options.cwd );
+	if ( !await git.isUpToDate( options.cwd ) ) {
+		changed = true;
+	}
+	try {
+		await git.pull( options.cwd );
+	} catch ( err ) {
+		console.error( util.formatConsoleDependencyName( mainProjectName, true ), `Main project pull failed, does your branch exist on the remote?` );
+	}
+	await git.stashPop( options.cwd, stashName );
+	if ( !options.json ) {
+		let targetName;
+		try {
+			const target = await git.getCurrentTarget( options.cwd );
+			targetName = target.tag || target.commit || target.branch;
+		} catch ( err ) {
+		}
+		console.log( util.formatConsoleDependencyName( mainProjectName ), `Update complete`, targetName ? `[${chalk.magenta(targetName)}]` : ``, changed ? `[${chalk.yellow( 'changes detected' )}]` : `` );
+	}
+	return changed;
 }
 
 /**
@@ -33,33 +72,25 @@ async function update( options ) {
 		throw new Error( `Invalid cwd argument ${options.cwd}` );
 	}
 	await util.readConfigFile( options.cwd );
-	// update main project first
+
+	let updateCount = 1;
+	let changeCount = 0;
 	let updateResult = {
 		changed: false
 	};
-	if ( !options.json ) {
-		console.log( `Updating main project...` );
-	}
+
 	// make sure there are no conflicts in any dependencies before doing update
 	const isConflicted = await checkConflicted( options );
 	if ( isConflicted ) {
-		console.log( `Conflicts detected, aborting update...` );
+		console.error( chalk.red( `Conflicts detected` ), `aborting update` );
 		return;
 	}
-	
-	const stashName = await git.stash( options.cwd );
-	if ( !await git.isUpToDate( options.cwd ) ) {
+
+	if ( await updateMainProject( options ) ) {
 		updateResult.changed = true;
+		changeCount++;
 	}
-	try {
-		await git.pull( options.cwd );
-	} catch ( err ) {
-		console.log( `Main project pull failed, does your branch exist on the remote?` );
-	}
-	await git.stashPop( options.cwd, stashName );
-	if ( !options.json ) {
-		console.log( `Complete` );
-	}
+	
 	// re-read config file in case the .flaviorc has changed
 	await util.readConfigFile( options.cwd );
 	
@@ -68,16 +99,26 @@ async function update( options ) {
 
 	// traverse tree, checking out / updating modules as we go
 	await depTree.traverse( options, async ( name, childModule ) => {
-		console.log( `Updating ${name}...` );
-		if ( !updateResult.changed && !await git.isUpToDate( childModule.dir ) ) {
-			updateResult.changed = true;
+		if ( !options.json ) {
+			console.log( util.formatConsoleDependencyName( name ), `Updating...` );
 		}
-		const newModule = await repoCache.add( name, childModule, options );
-		console.log( `Complete` );
-		return newModule;
+		const addResult = await repoCache.add( name, childModule, options );
+		if ( addResult.changed ) {
+			updateResult.changed = true;
+			changeCount++;
+		}
+		if ( !options.json ) {
+			const target = await git.getCurrentTarget( childModule.dir );
+			const targetName = target.tag || target.commit || target.branch;
+			console.log( util.formatConsoleDependencyName( name ), `Update complete`, targetName ? `[${chalk.magenta(targetName)}]` : ``, addResult.changed ? `[${chalk.yellow( 'changes detected' )}]` : `` );
+		}
+		updateCount++;
+		return addResult.dir;
 	} );
 	if ( options.json ) {
 		console.log( JSON.stringify( updateResult, null, 2 ) );
+	} else {
+		console.log( chalk.yellow( `${updateCount}` ), `dependencies inspected,`, chalk.yellow( `${changeCount}` ), `changed` );
 	}
 }
 

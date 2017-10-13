@@ -1,6 +1,7 @@
 import _ from 'lodash';
 import fs from 'fs';
 import path from 'path';
+import chalk from 'chalk';
 import * as git from './git.js';
 
 let gConfig = null;
@@ -31,6 +32,14 @@ export async function getflavioJsonFileName() {
 		return gConfig.filename;
 	}
 	return 'flavio.json';
+}
+
+export function formatConsoleDependencyName( name, error = false ) {
+	if ( error ) {
+		return `[${chalk.red(name)}]`;
+	} else {
+		return `[${chalk.blue(name)}]`;
+	}
 }
 
 /**

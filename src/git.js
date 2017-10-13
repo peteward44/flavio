@@ -316,9 +316,9 @@ export async function stash( dir ) {
 	let clean = await isWorkingCopyClean( dir );
 	const stashName = uuid.v4();
 	if ( !clean ) {
-		await executeGit( ['stash', 'save', stashName, '-u'], { cwd: dir } );
+		await executeGit( ['stash', 'save', stashName, '-u'], { cwd: dir, quiet: true } );
 		// check if it got saved
-		const listOut = ( await executeGit( ['stash', 'list'], { cwd: dir, captureStdout: true } ) ).out;
+		const listOut = ( await executeGit( ['stash', 'list'], { cwd: dir, quiet: true, captureStdout: true } ) ).out;
 		if ( !listOut.match( stashName ) ) {
 			clean = true;
 		}
@@ -330,7 +330,7 @@ export async function stash( dir ) {
 export async function stashPop( dir, stashName ) {
 	if ( stashName ) {
 		try {
-			await executeGit( ['stash', 'pop'], { cwd: dir } );
+			await executeGit( ['stash', 'pop'], { cwd: dir, quiet: true } );
 		} catch ( err ) {
 		}
 	}
@@ -346,9 +346,9 @@ export async function pull( dir ) {
 
 export async function checkout( dir, target, ...files ) {
 	if ( target.branch || target.commit ) {
-		await executeGit( ['checkout', target.branch || target.commit, ...files], { cwd: dir } );
+		await executeGit( ['checkout', target.branch || target.commit, ...files], { cwd: dir, quiet: true } );
 	} else if ( target.tag ) {
-		await executeGit( ['checkout', `tags/${target.tag}`, ...files], { cwd: dir } );
+		await executeGit( ['checkout', `tags/${target.tag}`, ...files], { cwd: dir, quiet: true } );
 	}
 }
 
@@ -411,7 +411,7 @@ export async function doesLocalBranchExist( dir, branchName ) {
 }
 
 export async function doesRemoteBranchExist( url, branchName ) {
-	const code = ( await executeGit( ['ls-remote', '--exit-code', url, branchName], { ignoreError: true } ) ).code;
+	const code = ( await executeGit( ['ls-remote', '--exit-code', url, branchName], { ignoreError: true, quiet: true } ) ).code;
 	return code === 0;
 }
 
