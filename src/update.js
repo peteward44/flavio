@@ -118,7 +118,7 @@ async function update( options ) {
 	if ( options.json ) {
 		console.log( JSON.stringify( updateResult, null, 2 ) );
 	} else {
-		console.log( chalk.yellow( `${updateCount}` ), `dependencies inspected,`, chalk.yellow( `${changeCount}` ), `changed` );
+		console.log( chalk.yellow( `${updateCount}` ), `${updateCount === 1 ? 'repository' : 'repositories'} inspected,`, chalk.yellow( `${changeCount}` ), `changed` );
 	}
 }
 
