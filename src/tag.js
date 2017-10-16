@@ -346,13 +346,20 @@ async function tagOperation( options = {} ) {
 			const url = await git.getWorkingCopyUrl( mainRepo.dir, true );
 			mainRepoUrl = `${url}#${mainRepo.tag}`;
 		} catch ( err ) {}
+	} else {
+		// main project already tagged?
+		const target = await git.getCurrentTarget( options.cwd );
+		if ( target.tag ) {
+			const url = await git.getWorkingCopyUrl( options.cwd, true );
+			mainRepoUrl = `${url}#${target.tag}`;
+		}
 	}
 	// No tag required - all dependencies have available version to use
 	if ( count === 0 ) {
 		// print out a version that they should use instead
 		console.log( `No valid repositories found to tag` );
 		if ( mainRepoUrl ) {
-			console.log( `Use the latest tag made, ${mainRepoUrl}` );
+			console.log( `Use ${mainRepoUrl}` );
 		}
 		return;
 	}
