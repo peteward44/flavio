@@ -12,6 +12,8 @@ export default function start() {
 			.example('flavio update', 'clones/checks out and/or updates all dependencies for project')
 			.example('flavio add user@server:/var/repo.git', 'clones/checks out repo.git and any dependencies, adds repo.git to dependency list')
 			.help('help')
+			.alias( 'h', 'help' )
+			.alias( 'v', 'version' )
 			.version(() => pkgJson.version)
 			.command('update', 'Installs and updates all dependencies', (subyargs) => {
 				const options = subyargs
