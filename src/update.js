@@ -1,39 +1,16 @@
 import _ from 'lodash';
-import fs from 'fs-extra';
-import path from 'path';
 import chalk from 'chalk';
 import * as depTree from './depTree.js';
 import * as util from './util.js';
 import * as git from './git.js';
 import RepoCloneCache from './RepoCloneCache.js';
-
-async function checkConflicted( options ) {
-	if ( fs.existsSync( path.join( options.cwd, '.git' ) ) && await git.isConflicted( options.cwd ) ) {
-		console.log( `Main project has conflicts` );
-		return true;
-	}
-	let conflicts = false;
-	await depTree.traverse( options, async ( name, childModule ) => {
-		if ( fs.existsSync( path.join( childModule.dir, '.git' ) ) && await git.isConflicted( childModule.dir ) ) {
-			console.log( util.formatConsoleDependencyName( childModule.name, true ), `Conflicts detected` );
-			conflicts = true;
-		}
-	} );
-	return conflicts;
-}
+import checkForConflicts from './checkForConflicts.js';
 
 async function updateMainProject( options ) {
 	let changed = false;
 	// update main project first
 	// get name of main project if flavio.json exists
-	let mainProjectName = 'main';
-	const mainFlavioJsonPath = path.join( options.cwd, await util.getflavioJsonFileName() );
-	if ( fs.existsSync( mainFlavioJsonPath ) ) {
-		const mainFlavioJson = JSON.parse( fs.readFileSync( mainFlavioJsonPath, 'utf8' ) );
-		if ( _.isString( mainFlavioJson.name ) && mainFlavioJson.name.length > 0 ) {
-			mainProjectName = mainFlavioJson.name;
-		}
-	}
+	const mainProjectName = await util.getMainProjectName( options.cwd );
 	
 	if ( !options.json ) {
 		console.log( util.formatConsoleDependencyName( mainProjectName ), `Updating...` );
@@ -80,16 +57,16 @@ async function update( options ) {
 	};
 
 	// make sure there are no conflicts in any dependencies before doing update
-	const isConflicted = await checkConflicted( options );
+	const isConflicted = await checkForConflicts( options );
 	if ( isConflicted ) {
 		console.error( chalk.red( `Conflicts detected` ), `aborting update` );
 		return;
 	}
 
 	if ( !options.skipMain ) {
+		updateCount++;
 		if ( await updateMainProject( options ) ) {
 			updateResult.changed = true;
-			updateCount++;
 			changeCount++;
 		}
 	}

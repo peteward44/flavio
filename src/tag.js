@@ -3,9 +3,11 @@ import path from 'path';
 import fs from 'fs-extra';
 import semver from 'semver';
 import inquirer from 'inquirer';
+import chalk from 'chalk';
 import * as util from './util.js';
 import * as git from './git.js';
 import * as depTree from './depTree.js';
+import checkForConflicts from './checkForConflicts.js';
 
 
 function areTargetsEqual( lhs, rhs ) {
@@ -137,7 +139,7 @@ async function determineTagName( options, node ) {
 			const question = {
 				type: 'list',
 				name: 'q',
-				message: `${node.name}: Tag ${tagName} already exists. Use available alternative?`,
+				message: util.formatConsoleDependencyName( node.name ) + ` Tag ${tagName} already exists. Use available alternative?`,
 				choices: [nextMajor, nextMinor, nextPatch],
 				default: defaultVal
 			};
@@ -164,7 +166,7 @@ async function determineTagsRecursive( options, node, recycleTagMap, tagMap ) {
 				const incrementVersion = await git.isUpToDate( node.dir ); // only increment version in flavio.json if our local HEAD is up to date with the remote branch
 				tagMap.set( node.name, { tag: tagName, originalTarget: target, branch: branchName, create: true, dir: node.dir, incrementMasterVersion: incrementVersion } );
 			} else {
-				console.log( `WARNING: ${node.name} has no valid flavio.json, so will not be tagged` );
+				console.log( util.formatConsoleDependencyName( node.name ), `Dependency has no valid flavio.json, so will not be tagged` );
 			}
 		}
 	}
@@ -286,17 +288,17 @@ async function confirmUser( options, reposToTag ) {
 	if ( isInteractive ) {
 		for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
 			if ( !tagObject.create ) {
-				console.log( `[REUSE] ${name}: ${tagObject.tag}` );
+				console.log( util.formatConsoleDependencyName( name ), `${tagObject.tag} [${chalk.yellow('REUSE')}]` );
 			}
 		}
 		for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
 			if ( tagObject.create ) {
-				console.log( `[NEW] ${name}: ${tagObject.tag}` );
+				console.log( util.formatConsoleDependencyName( name ), `${tagObject.tag} [${chalk.magenta('NEW')}]` );
 			}
 		}
 		for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
 			if ( tagObject.create && !tagObject.incrementMasterVersion ) {
-				console.log( `WARNING: ${name} is not up to date with it's upstream branch (${tagObject.originalTarget.branch || tagObject.originalTarget.commit}), and so will not have the flavio.json version automatically incremented` );
+				console.log( util.formatConsoleDependencyName( name ), `WARNING: Dependency is not up to date with it's upstream branch (${tagObject.originalTarget.branch || tagObject.originalTarget.commit}), and so will not have the flavio.json version automatically incremented` );
 			}
 		}
 		const question = {
@@ -318,9 +320,16 @@ async function confirmUser( options, reposToTag ) {
 async function tagOperation( options = {} ) {
 	options.increment = options.increment || 'minor';
 	await util.readConfigFile( options.cwd );
+	console.log( `Inspecting dependencies for tagging operation...` );
+	
 	const tree = await depTree.traverse( options );
-	// TODO: disallow a tag operation if there are any local changes / conflicts?
-
+	// make sure there are no conflicts in any dependencies before doing tag
+	const isConflicted = await checkForConflicts( options, true );
+	if ( isConflicted ) {
+		console.error( `Tag can only be done on projects with no conflicts and no local changes` );
+		return;
+	}
+	
 	// work out which repos need to be tagged, and what those tags are going to called
 	const reposToTag = await determineTags( options, tree );
 	let count = 0;
@@ -329,17 +338,21 @@ async function tagOperation( options = {} ) {
 			count++;
 		}
 	}
+	// get URL of main project tag so we can print it out once it's finished
+	let mainRepoUrl;
+	if ( reposToTag.has( 'main' ) ) {
+		const mainRepo = reposToTag.get( 'main' );
+		try {
+			const url = await git.getWorkingCopyUrl( mainRepo.dir, true );
+			mainRepoUrl = `${url}#${mainRepo.tag}`;
+		} catch ( err ) {}
+	}
+	// No tag required - all dependencies have available version to use
 	if ( count === 0 ) {
 		// print out a version that they should use instead
 		console.log( `No valid repositories found to tag` );
-		if ( reposToTag.has( 'main' ) ) {
-			const mainRepo = reposToTag.get( 'main' );
-			let mainRepoUrl = '';
-			try {
-				mainRepoUrl = await git.getWorkingCopyUrl( mainRepo.dir, true );
-				mainRepoUrl += '#';
-			} catch ( err ) {}
-			console.log( `Use the latest tag made, ${mainRepoUrl}${mainRepo.tag}` );
+		if ( mainRepoUrl ) {
+			console.log( `Use the latest tag made, ${mainRepoUrl}` );
 		}
 		return;
 	}
@@ -353,6 +366,8 @@ async function tagOperation( options = {} ) {
 	await prepareTags( reposToTag );
 	// then push everything
 	await pushTags( options, reposToTag );
+	
+	console.log( `Tagging operation successful`, mainRepoUrl || '' );
 }
 
 export default tagOperation;

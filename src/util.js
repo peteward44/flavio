@@ -158,3 +158,15 @@ export async function saveFlavioJson( cwd, json ) {
 		} );
 	} );
 }
+
+export async function getMainProjectName( cwd ) {
+	let mainProjectName = 'main';
+	const mainFlavioJsonPath = path.join( cwd, await getflavioJsonFileName() );
+	if ( fs.existsSync( mainFlavioJsonPath ) ) {
+		const mainFlavioJson = JSON.parse( fs.readFileSync( mainFlavioJsonPath, 'utf8' ) );
+		if ( _.isString( mainFlavioJson.name ) && mainFlavioJson.name.length > 0 ) {
+			mainProjectName = mainFlavioJson.name;
+		}
+	}
+	return mainProjectName;
+}
