@@ -339,9 +339,10 @@ async function tagOperation( options = {} ) {
 		}
 	}
 	// get URL of main project tag so we can print it out once it's finished
+	const mainProjectName = await util.getMainProjectName( options.cwd );
 	let mainRepoUrl;
-	if ( reposToTag.has( 'main' ) ) {
-		const mainRepo = reposToTag.get( 'main' );
+	if ( reposToTag.has( mainProjectName ) ) {
+		const mainRepo = reposToTag.get( mainProjectName );
 		try {
 			const url = await git.getWorkingCopyUrl( mainRepo.dir, true );
 			mainRepoUrl = `${url}#${mainRepo.tag}`;
