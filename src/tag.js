@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs-extra';
 import semver from 'semver';
 import inquirer from 'inquirer';
+import Table from 'easy-table';
 import chalk from 'chalk';
 import * as util from './util.js';
 import * as git from './git.js';
@@ -284,23 +285,24 @@ async function pushTags( options, reposToTag ) {
 }
 
 async function confirmUser( options, reposToTag ) {
+	const table = new Table();
+	for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
+		const target = await git.getCurrentTarget( tagObject.dir );
+		table.cell( 'Name', name );
+		table.cell( 'Target', chalk.magenta( target.commit || target.tag || target.branch ) );
+		table.cell( 'Tag', chalk.blue( tagObject.tag ) );
+		table.cell( 'New tag?', tagObject.create ? chalk.green( 'YES' ) : chalk.yellow( 'NO' ) );
+		table.cell( 'Up to date?', await git.isUpToDate( tagObject.dir ) ? chalk.green( 'YES' ) : chalk.red( 'NO' ) );
+		table.newRow();
+	}
+	console.log( table.toString() );
+	for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
+		if ( tagObject.create && !tagObject.incrementMasterVersion ) {
+			console.log( util.formatConsoleDependencyName( name ), `WARNING: Dependency is not up to date with it's upstream branch (${tagObject.originalTarget.branch || tagObject.originalTarget.commit}), and so will not have the flavio.json version automatically incremented` );
+		}
+	}
 	const isInteractive = options.interactive !== false;
 	if ( isInteractive ) {
-		for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
-			if ( !tagObject.create ) {
-				console.log( util.formatConsoleDependencyName( name ), `${tagObject.tag} [${chalk.yellow('REUSE')}]` );
-			}
-		}
-		for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
-			if ( tagObject.create ) {
-				console.log( util.formatConsoleDependencyName( name ), `${tagObject.tag} [${chalk.magenta('NEW')}]` );
-			}
-		}
-		for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
-			if ( tagObject.create && !tagObject.incrementMasterVersion ) {
-				console.log( util.formatConsoleDependencyName( name ), `WARNING: Dependency is not up to date with it's upstream branch (${tagObject.originalTarget.branch || tagObject.originalTarget.commit}), and so will not have the flavio.json version automatically incremented` );
-			}
-		}
 		const question = {
 			type: 'confirm',
 			name: 'q',
