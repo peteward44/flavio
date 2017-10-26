@@ -21,7 +21,7 @@ async function clone( repo, options = {} ) {
 		const gitname = util.getGitProjectNameFromUrl( repo );
 		cwd = path.join( process.cwd(), gitname || 'project' );
 	}
-	if ( fs.existsSync( cwd ) ) {
+	if ( cwd !== '.' && fs.existsSync( cwd ) ) {
 		throw new Error( `Target directory ${cwd} already exists!` );
 	}
 	console.log( util.formatConsoleDependencyName( 'main' ), `Cloning main respository to ${chalk.yellow(cwd)}` );
