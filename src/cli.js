@@ -31,18 +31,22 @@ export default function start() {
 					})
 					.option('interactive', {
 						describe: 'Set to false so the user is not prompted any questions',
+						boolean: true,
 						default: true
 					})
 					.option('switch', {
 						describe: 'For dependencies that are already checked out, switch the branch to the one specified in flavio.json',
+						boolean: true,
 						default: false
 					})
 					.option('remote-reset', {
 						describe: 'If a local branch has no remote equivalent, it will be reset to master',
+						boolean: true,
 						default: true
 					})
 					.option('json', {
 						describe: 'Output machine-readable result in JSON',
+						boolean: true,
 						default: false
 					})
 					.argv;
@@ -112,6 +116,7 @@ export default function start() {
 					})
 					.option('interactive', {
 						describe: 'Set to false so the user is not prompted any questions',
+						boolean: true,
 						default: true
 					})
 					.argv;

@@ -139,8 +139,13 @@ class RepoCloneCache {
 				if ( repoState === 'url' ) {
 					// dir has already been used by different repo - conflict
 					const repo = await handleConflict( this._options, name, module, this._rootFlavioJson );
-					await changeRepo( pkgdir, repo );
-					changed = true;
+					if ( repo !== module.repo ) {
+						await changeRepo( pkgdir, repo );
+						changed = true;
+						await stashAndPull( pkgdir );
+					} else {
+						changed = await stashAndPull( pkgdir );
+					}
 				} else if ( repoState === 'target' ) {
 					// branch / tag / commit is different on clone than in flavio.json, but repo is the same.
 					if ( !this._lockedDirs.has( module.dir ) ) {
@@ -164,8 +169,13 @@ class RepoCloneCache {
 						if ( options.switch ) {
 							// dir has already been used by a different branch - conflict
 							const repo = await handleConflict( this._options, name, module, this._rootFlavioJson );
-							await changeRepo( pkgdir, repo );
-							changed = true;
+							if ( repo !== module.repo ) {
+								await changeRepo( pkgdir, repo );
+								changed = true;
+								await stashAndPull( pkgdir );
+							} else {
+								changed = await stashAndPull( pkgdir );
+							}
 						} else {
 							// switch option not specified - just do normal update
 							changed = await stashAndPull( pkgdir );
