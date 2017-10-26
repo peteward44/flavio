@@ -171,6 +171,11 @@ export default function start() {
 						describe: 'Directory to check project out to - defaults to the project name inferred from the project URL',
 						type: 'string'
 					})
+					.option('force', {
+						describe: 'Do not fail if directory already exists',
+						type: 'boolean',
+						default: false
+					})
 					.argv;
 
 				const url = options._[1];
