@@ -155,7 +155,7 @@ export default function start() {
 						describe: 'Working directory to use',
 						default: process.cwd()
 					})
-					.demand(2)
+					.demand(1)
 					.argv;
 				flavio.commands.export(options._[1], options)
 					.then(resolve)
