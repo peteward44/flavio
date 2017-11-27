@@ -251,7 +251,7 @@ export async function getWorkingCopyUrl( dir, bare = false ) {
 export async function clone( url, dir, options = {} ) {
 	dir = path.resolve( dir );
 	fs.ensureDirSync( dir );
-	await executeGit( ['clone', url, dir, ...( options.minimal ? ['--no-checkout', '--depth=1'] : [] )] );
+	await executeGit( ['clone', url, dir, ...( options.minimal ? ['--no-checkout', '--depth=1'] : [] )], { outputStderr: true } );
 	if ( options.tag ) {
 		await executeGit( ['checkout', `tags/${options.tag}`], { cwd: dir } );
 	} else if ( options.branch || options.commit ) {
@@ -383,11 +383,11 @@ export async function createTag( dir, tagName, message ) {
 }
 
 export async function push( dir, args = [] ) {
-	await executeGit( ['push', ...args], { cwd: dir } );
+	await executeGit( ['push', ...args], { cwd: dir, outputStderr: true } );
 }
 
 export async function fetch( dir, args = [] ) {
-	await executeGit( ['fetch', ...args], { cwd: dir } );
+	await executeGit( ['fetch', ...args], { cwd: dir, outputStderr: true } );
 }
 
 export async function isUpToDate( dir ) {
