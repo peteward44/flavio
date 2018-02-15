@@ -1,14 +1,17 @@
+import * as fs from 'fs';
 import * as depTree from './depTree.js';
 import * as util from './util.js';
 import * as git from './git.js';
 
 
 async function exe( name, dir, args ) {
-	console.log( `${name}: "git ${args.join( " " )}"` );
-	try {
-		await git.executeGit( args, { cwd: dir, outputStderr: true } );
-	} catch ( err ) {
-		console.error( `Error executing command` );
+	if ( fs.existsSync( dir ) ) {
+		console.log( `${name}: "git ${args.join( " " )}"` );
+		try {
+			await git.executeGit( args, { cwd: dir, outputStderr: true } );
+		} catch ( err ) {
+			console.error( `Error executing command` );
+		}
 	}
 }
 
