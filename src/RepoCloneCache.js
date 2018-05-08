@@ -16,7 +16,7 @@ function findNewRepoDir( pkgdir ) {
 }
 
 
-async function changeRepo( pkgdir, repo ) {
+async function changeRepo( pkgdir, repo, options ) {
 	const repoUrl = util.parseRepositoryUrl( repo );
 	const repoState = await util.hasRepoChanged( repo, pkgdir );
 	if ( repoState === 'url' ) {
@@ -24,7 +24,7 @@ async function changeRepo( pkgdir, repo ) {
 		const newPkgDir = findNewRepoDir( pkgdir );
 		fs.renameSync( pkgdir, newPkgDir );
 		// then clone new one
-		await git.clone( repoUrl.url, pkgdir, { master: true } );
+		await git.clone( repoUrl.url, pkgdir, { master: true, depth: options.depth } );
 		const targetObj = await resolve.getTargetFromRepoUrl( repo, pkgdir );
 		await git.checkout( pkgdir, targetObj );
 	} else if ( repoState === 'target' ) {
@@ -42,7 +42,7 @@ async function doFreshClone( name, module, options, repoUrl ) {
 	if ( !options.json ) {
 		console.log( util.formatConsoleDependencyName( name ), `Repository missing, performing fresh clone...` );
 	}
-	await git.clone( repoUrl.url, pkgdir, { master: true } );
+	await git.clone( repoUrl.url, pkgdir, { master: true, depth: options.depth } );
 	const targetObj = await resolve.getTargetFromRepoUrl( module.repo, pkgdir );
 	try {
 		await git.checkout( pkgdir, targetObj );
@@ -140,7 +140,7 @@ class RepoCloneCache {
 					// dir has already been used by different repo - conflict
 					const repo = await handleConflict( this._options, name, module, this._rootFlavioJson );
 					if ( repo !== module.repo ) {
-						await changeRepo( pkgdir, repo );
+						await changeRepo( pkgdir, repo, options );
 						changed = true;
 						await stashAndPull( pkgdir );
 					} else {

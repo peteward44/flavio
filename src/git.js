@@ -16,7 +16,7 @@ export function executeGit( args, options ) {
 	options = options || {};
 	return new Promise( ( resolve, reject ) => {
 		let stdo = '';
-//		console.log( `Executing git ${args.join(" ")}` );
+		console.log( `Executing git ${args.join(" ")}` );
 		let proc = spawn( 'git', args, { cwd: options.cwd ? options.cwd : process.cwd(), stdio: ['ignore', options.captureStdout ? 'pipe' : 'inherit', options.outputStderr ? 'inherit' : 'ignore'] } );
 
 		function unpipe() {
@@ -251,7 +251,8 @@ export async function getWorkingCopyUrl( dir, bare = false ) {
 export async function clone( url, dir, options = {} ) {
 	dir = path.resolve( dir );
 	fs.ensureDirSync( dir );
-	await executeGit( ['clone', url, dir, ...( options.minimal ? ['--no-checkout', '--depth=1'] : [] )], { outputStderr: true } );
+	const depth = typeof options.depth === 'number' ? options.depth : 5;
+	await executeGit( ['clone', url, dir, `--depth=${depth}`], { outputStderr: true } );
 	if ( options.tag ) {
 		await executeGit( ['checkout', `tags/${options.tag}`], { cwd: dir } );
 	} else if ( options.branch || options.commit ) {

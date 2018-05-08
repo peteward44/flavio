@@ -25,7 +25,7 @@ async function clone( repo, options = {} ) {
 		throw new Error( `Target directory ${cwd} already exists!` );
 	}
 	console.log( util.formatConsoleDependencyName( 'main' ), `Cloning main respository to ${chalk.yellow(cwd)}` );
-	await git.clone( repoUrl.url, cwd, { master: true } );
+	await git.clone( repoUrl.url, cwd, { master: true, depth: options.depth } );
 	const targetObj = await resolve.getTargetFromRepoUrl( repo, cwd );
 	try {
 		await git.checkout( cwd, targetObj );

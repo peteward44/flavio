@@ -49,6 +49,11 @@ export default function start() {
 						boolean: true,
 						default: false
 					})
+					.option('depth', {
+						describe: '--depth option to pass to git when cloning a fresh repository',
+						number: true,
+						default: 5
+					})
 					.argv;
 				flavio.commands.update(options)
 					.then(resolve)
@@ -81,6 +86,11 @@ export default function start() {
 					.option('cwd', {
 						describe: 'Working directory to use',
 						default: process.cwd()
+					})
+					.option('nofetch', {
+						describe: 'If you want a quicker response, use this flag to disable the git fetch command.',
+						boolean: true,
+						default: false
 					})
 					.argv;
 				flavio.commands.status(options)
@@ -175,6 +185,11 @@ export default function start() {
 						describe: 'Do not fail if directory already exists',
 						type: 'boolean',
 						default: false
+					})
+					.option('depth', {
+						describe: '--depth option to pass to git when cloning a fresh repository',
+						number: true,
+						default: 5
 					})
 					.argv;
 
