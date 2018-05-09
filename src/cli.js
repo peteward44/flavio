@@ -50,9 +50,9 @@ export default function start() {
 						default: false
 					})
 					.option('depth', {
-						describe: '--depth option to pass to git when cloning a fresh repository',
+						describe: '--depth option to pass to git when cloning a fresh repository. Use zero or negative value to get entire history',
 						number: true,
-						default: 5
+						default: 0
 					})
 					.argv;
 				flavio.commands.update(options)
@@ -187,9 +187,9 @@ export default function start() {
 						default: false
 					})
 					.option('depth', {
-						describe: '--depth option to pass to git when cloning a fresh repository',
+						describe: '--depth option to pass to git when cloning a fresh repository. Use zero or negative value to get entire history',
 						number: true,
-						default: 5
+						default: 0
 					})
 					.argv;
 

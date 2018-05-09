@@ -34,7 +34,7 @@ async function clone( repo, options = {} ) {
 	}
 	console.log( util.formatConsoleDependencyName( 'main' ), `Clone complete, executing update...` );
 	options.cwd = cwd;
-	options.skipMain = true;
+	options.fromCloneCommand = true;
 	await flavio.commands.update( options );
 }
 

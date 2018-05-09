@@ -63,12 +63,17 @@ async function update( options ) {
 		return;
 	}
 
-	if ( !options.skipMain ) {
+	if ( !options.fromCloneCommand ) {
 		updateCount++;
 		if ( await updateMainProject( options ) ) {
 			updateResult.changed = true;
 			changeCount++;
 		}
+	} else {
+		// Called from the 'clone' command - Automatically increment update/change count to account for main project
+		updateResult.changed = true;
+		updateCount++;
+		changeCount++;
 	}
 	
 	// re-read config file in case the .flaviorc has changed
