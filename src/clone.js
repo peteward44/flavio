@@ -2,7 +2,6 @@ import path from 'path';
 import fs from 'fs-extra';
 import chalk from 'chalk';
 import * as util from './util.js';
-import * as resolve from './resolve.js';
 import * as git from './git.js';
 import flavio from './index.js';
 
@@ -25,13 +24,8 @@ async function clone( repo, options = {} ) {
 		throw new Error( `Target directory ${cwd} already exists!` );
 	}
 	console.log( util.formatConsoleDependencyName( 'main' ), `Cloning main respository to ${chalk.yellow(cwd)}` );
-	await git.clone( repoUrl.url, cwd, { master: true, depth: options.depth } );
-	const targetObj = await resolve.getTargetFromRepoUrl( repo, cwd );
-	try {
-		await git.checkout( cwd, targetObj );
-	} catch ( err ) {
-		console.error( `Could not checkout target (${targetObj.branch || targetObj.tag || targetObj.commit}). Using 'master'...` );
-	}
+	await git.clone( repoUrl.url, cwd, { branch: repoUrl.target || 'master', depth: options.depth } );
+
 	console.log( util.formatConsoleDependencyName( 'main' ), `Clone complete, executing update...` );
 	options.cwd = cwd;
 	options.fromCloneCommand = true;

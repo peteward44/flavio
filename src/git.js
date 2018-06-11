@@ -256,12 +256,12 @@ export async function clone( url, dir, options = {} ) {
 	if ( depth > 0 ) {
 		args.push( `--depth=${depth}` );
 	}
-	await executeGit( args, { outputStderr: true } );
-	if ( options.tag ) {
-		await executeGit( ['checkout', `tags/${options.tag}`], { cwd: dir } );
-	} else if ( options.branch || options.commit ) {
-		await executeGit( ['checkout', options.branch || options.commit], { cwd: dir } );
+	if ( options.branch ) {
+		args.push( `--branch=${options.branch}` );
+	} else if ( options.tag ) {
+		args.push( `--branch=tags/${options.tag}` );
 	}
+	await executeGit( args, { outputStderr: true } );
 }
 
 

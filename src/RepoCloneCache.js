@@ -24,9 +24,7 @@ async function changeRepo( pkgdir, repo, options ) {
 		const newPkgDir = findNewRepoDir( pkgdir );
 		fs.renameSync( pkgdir, newPkgDir );
 		// then clone new one
-		await git.clone( repoUrl.url, pkgdir, { master: true, depth: options.depth } );
-		const targetObj = await resolve.getTargetFromRepoUrl( repo, pkgdir );
-		await git.checkout( pkgdir, targetObj );
+		await git.clone( repoUrl.url, pkgdir, { branch: repoUrl.target || 'master', depth: options.depth } );
 	} else if ( repoState === 'target' ) {
 		const targetObj = await resolve.getTargetFromRepoUrl( repo, pkgdir );
 		await git.checkout( pkgdir, targetObj );
@@ -42,21 +40,7 @@ async function doFreshClone( name, module, options, repoUrl ) {
 	if ( !options.json ) {
 		console.log( util.formatConsoleDependencyName( name ), `Repository missing, performing fresh clone...` );
 	}
-	await git.clone( repoUrl.url, pkgdir, { master: true, depth: options.depth } );
-	const targetObj = await resolve.getTargetFromRepoUrl( module.repo, pkgdir );
-	try {
-		await git.checkout( pkgdir, targetObj );
-	} catch ( err ) {
-		let type;
-		if ( targetObj.branch ) {
-			type = 'branch';
-		} else if ( targetObj.tag ) {
-			type = 'tag';
-		} else {
-			type = 'commit';
-		}
-		console.error( util.formatConsoleDependencyName( name ), `Could not checkout ${type} ${targetObj.branch || targetObj.tag || targetObj.commit}` );
-	}
+	await git.clone( repoUrl.url, pkgdir, { branch: repoUrl.target || 'master', depth: options.depth } );
 }
 
 /**
