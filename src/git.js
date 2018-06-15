@@ -16,8 +16,15 @@ export function executeGit( args, options ) {
 	options = options || {};
 	return new Promise( ( resolve, reject ) => {
 		let stdo = '';
+		let stde = '';
 	//	console.log( `Executing git ${args.join(" ")}` );
-		let proc = spawn( 'git', args, { cwd: options.cwd ? options.cwd : process.cwd(), stdio: ['ignore', options.captureStdout ? 'pipe' : 'inherit', options.outputStderr ? 'inherit' : 'ignore'] } );
+		let stderr = 'ignore';
+		if ( options.captureStderr ) {
+			stderr = 'pipe';
+		} else if ( options.outputStderr ) {
+			stderr = 'inherit';
+		}
+		let proc = spawn( 'git', args, { cwd: options.cwd ? options.cwd : process.cwd(), stdio: ['ignore', options.captureStdout ? 'pipe' : 'inherit', stderr] } );
 
 		function unpipe() {
 		}
@@ -27,10 +34,15 @@ export function executeGit( args, options ) {
 				stdo += data.toString();
 			} );
 		}
+		if ( options.captureStderr ) {
+			proc.stderr.on( 'data', ( data ) => {
+				stde += data.toString();
+			} );
+		}
 		proc.on( 'error', ( err ) => {
 			unpipe();
 			if ( options.ignoreError ) {
-				resolve( { out: stdo, code: 0 } );
+				resolve( { out: stdo, err: stde, code: 0 } );
 			} else {
 				if ( !options.quiet ) {
 					printError( err, args );
@@ -49,7 +61,7 @@ export function executeGit( args, options ) {
 				}
 				reject( new Error( "Error running git" ) );
 			} else {
-				resolve( { out: stdo, code: code } );
+				resolve( { out: stdo, err: stde, code: code } );
 			}
 		} );
 	} );
@@ -232,7 +244,8 @@ export async function getCurrentTarget( dir ) {
 }
 
 
-/** Gets information on a working copy
+/**
+ * Gets information on a working copy
  *
  * @param {string} dir - Working copy directory
  * @param {boolean} [bare=false] - If true, just return URL without target on end
@@ -342,11 +355,14 @@ export async function stashPop( dir, stashName ) {
 }
 
 
-export async function pull( dir ) {
+export async function pull( dir, options = {} ) {
+	let result = null;
 	const target = await getCurrentTarget( dir );
 	if ( target.branch ) {
-		await executeGit( ['pull'], { cwd: dir, outputStderr: true } );
+		const merged = Object.assign( { cwd: dir, outputStderr: true }, options );
+		result = await executeGit( ['pull'], merged );
 	}
+	return result;
 }
 
 export async function checkout( dir, target, ...files ) {

@@ -120,54 +120,71 @@ class RepoCloneCache {
 			}
 			if ( !pullDone ) {
 				const repoState = await util.hasRepoChanged( module.repo, pkgdir );
-				if ( repoState === 'url' ) {
-					// dir has already been used by different repo - conflict
-					const repo = await handleConflict( this._options, name, module, this._rootFlavioJson );
-					if ( repo !== module.repo ) {
-						await changeRepo( pkgdir, repo, options );
-						changed = true;
-						await stashAndPull( pkgdir );
-					} else {
-						changed = await stashAndPull( pkgdir );
-					}
-				} else if ( repoState === 'target' ) {
-					// branch / tag / commit is different on clone than in flavio.json, but repo is the same.
-					if ( !this._lockedDirs.has( module.dir ) ) {
-						// already existing version has not been used already, use that cloned repo to do a switch
-						if ( options.switch ) {
-							const stashName = await git.stash( pkgdir );
-							await git.pull( pkgdir );
-							if ( targetObj.tag || targetObj.commit || ( targetObj.branch && await git.doesRemoteBranchExist( repoUrl.url, targetObj.branch ) ) ) {
-								if ( !options.json ) {
-									console.log( util.formatConsoleDependencyName( name ), `Switching to ${targetObj.tag || targetObj.commit || targetObj.branch}` );
-								}
-								await git.checkout( pkgdir, targetObj );
-								await git.pull( pkgdir );
-								changed = true;
-							}
-							await git.stashPop( pkgdir, stashName );
+				try {
+					if ( repoState === 'url' ) {
+						// dir has already been used by different repo - conflict
+						const repo = await handleConflict( this._options, name, module, this._rootFlavioJson );
+						if ( repo !== module.repo ) {
+							await changeRepo( pkgdir, repo, options );
+							changed = true;
+							await stashAndPull( pkgdir );
 						} else {
 							changed = await stashAndPull( pkgdir );
 						}
-					} else {
-						if ( options.switch ) {
-							// dir has already been used by a different branch - conflict
-							const repo = await handleConflict( this._options, name, module, this._rootFlavioJson );
-							if ( repo !== module.repo ) {
-								await changeRepo( pkgdir, repo );
-								changed = true;
-								await stashAndPull( pkgdir );
+					} else if ( repoState === 'target' ) {
+						// branch / tag / commit is different on clone than in flavio.json, but repo is the same.
+						if ( !this._lockedDirs.has( module.dir ) ) {
+							// already existing version has not been used already, use that cloned repo to do a switch
+							if ( options.switch ) {
+								const stashName = await git.stash( pkgdir );
+								await git.pull( pkgdir );
+								if ( targetObj.tag || targetObj.commit || ( targetObj.branch && await git.doesRemoteBranchExist( repoUrl.url, targetObj.branch ) ) ) {
+									if ( !options.json ) {
+										console.log( util.formatConsoleDependencyName( name ), `Switching to ${targetObj.tag || targetObj.commit || targetObj.branch}` );
+									}
+									await git.checkout( pkgdir, targetObj );
+									await git.pull( pkgdir );
+									changed = true;
+								}
+								await git.stashPop( pkgdir, stashName );
 							} else {
 								changed = await stashAndPull( pkgdir );
 							}
 						} else {
-							// switch option not specified - just do normal update
-							changed = await stashAndPull( pkgdir );
+							if ( options.switch ) {
+								// dir has already been used by a different branch - conflict
+								const repo = await handleConflict( this._options, name, module, this._rootFlavioJson );
+								if ( repo !== module.repo ) {
+									await changeRepo( pkgdir, repo );
+									changed = true;
+									await stashAndPull( pkgdir );
+								} else {
+									changed = await stashAndPull( pkgdir );
+								}
+							} else {
+								// switch option not specified - just do normal update
+								changed = await stashAndPull( pkgdir );
+							}
+						}
+					} else {
+						// repo is the same - do a plain update
+						changed = await stashAndPull( pkgdir );
+					}
+				} catch ( err ) {
+					// On a repo that looks like everything should work fine but doesn't, the repo has probably been recreated.
+					// if the repo is clean, hard reset and pull.
+					const errout = ( await git.pull( pkgdir, { captureStderr: true, captureStdout: true, ignoreError: true } ) ).err.trim();
+					if ( errout === 'fatal: refusing to merge unrelated histories' ) {
+						if ( await git.isWorkingCopyClean( pkgdir ) ) {
+							changed = true;
+							console.log( util.formatConsoleDependencyName( name ), `Unrelated histories detected, performing hard reset...` );
+							await git.fetch( pkgdir, ['--all'] );
+							await git.executeGit( ['reset', '--hard', `origin/${targetObj.tag || targetObj.commit || targetObj.branch}`], { cwd: pkgdir } );
+							await git.pull( pkgdir );
+						} else {
+							console.log( util.formatConsoleDependencyName( name ), `Unrelated histories detected, but cannot reset due to local changes!` );
 						}
 					}
-				} else {
-					// repo is the same - do a plain update
-					changed = await stashAndPull( pkgdir );
 				}
 			}
 		}
