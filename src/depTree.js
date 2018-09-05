@@ -16,7 +16,7 @@ async function buildTree( options, name, parentRepo, dir, isRoot = false, nodeCa
 		repo: parentRepo,
 		children: new Map()
 	};
-	
+
 	if ( fs.existsSync( dir ) ) {
 		const repoState = await util.hasRepoChanged( parentRepo, dir );
 		if ( repoState === 'url' ) {
@@ -29,20 +29,22 @@ async function buildTree( options, name, parentRepo, dir, isRoot = false, nodeCa
 	} else {
 		element.status = 'missing';
 	}
-	
+
 	if ( !isRoot && nodeCallback ) {
 		await nodeCallback( name, element );
 	}
-	
-	const flavioJson = await util.loadFlavioJson( dir );
 
-	// make sure all dependencies specified in flavio.json are installed and up-to-date
-	if ( flavioJson && _.isObject( flavioJson.dependencies ) ) {
-		for ( const childName of Object.keys( flavioJson.dependencies ) ) {
-			const repoPath = flavioJson.dependencies[childName];
-			const childPath = path.join( rootPath, childName );
-			const child = await buildTree( options, childName, repoPath, childPath, false, nodeCallback );
-			element.children.set( childName, child );
+	if (!options['ignore-dependencies']) {
+		const flavioJson = await util.loadFlavioJson( dir );
+
+		// make sure all dependencies specified in flavio.json are installed and up-to-date
+		if ( flavioJson && _.isObject( flavioJson.dependencies ) ) {
+			for ( const childName of Object.keys( flavioJson.dependencies ) ) {
+				const repoPath = flavioJson.dependencies[childName];
+				const childPath = path.join( rootPath, childName );
+				const child = await buildTree( options, childName, repoPath, childPath, false, nodeCallback );
+				element.children.set( childName, child );
+			}
 		}
 	}
 
@@ -68,7 +70,7 @@ async function traverse( options, nodeCallback = null ) {
 	} catch ( err ) {
 	}
 
-	const tree = await buildTree( options, mainName, repoUrl, options.cwd, true, nodeCallback );	
+	const tree = await buildTree( options, mainName, repoUrl, options.cwd, true, nodeCallback );
 	return tree;
 }
 
