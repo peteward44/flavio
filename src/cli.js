@@ -54,6 +54,11 @@ export default function start() {
 						number: true,
 						default: 0
 					})
+					.option('ignore-dependencies', {
+						describe: 'Only perform commands on the main repository (not on any dependencies)',
+						boolean: true,
+						default: false
+					})
 					.argv;
 				flavio.commands.update(options)
 					.then(resolve)
