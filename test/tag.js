@@ -114,6 +114,33 @@ describe(`tag tests`, function() {
 		await result.assertTagNotExists( 'dep1', '0.2.0' );
 	});
 
+	helpers.test( 'Modify a dependency-of-a-dependency and make sure new tags are created for the main project as well as the 2 dependencies', async (tempDir) => {
+		const result = await TestRepo.create( tempDir, 'simpleNest' );
+
+		await update( { cwd: result.project.checkoutDir, interactive: false } );
+
+		await result.assertTagNotExists( 'main', '0.1.0' );
+		await result.assertTagNotExists( 'dep1', '0.1.0' );
+		await result.assertTagNotExists( 'dep2', '0.1.0' );
+
+		await tag( { cwd: result.project.checkoutDir, interactive: false } );
+
+		await result.assertTagExists( 'main', '0.1.0' );
+		await result.assertTagExists( 'dep1', '0.1.0' );
+		await result.assertTagExists( 'dep2', '0.1.0' );
+
+		// commit change to dep2-1, then make sure new tag is created for main project, dep2, and dep2-1
+		fs.writeFileSync( path.join( result.project.checkoutDir, 'flavio_modules', 'dep2-1', 'file2.txt' ), 'changes changes changes' );
+		await git.addAndCommit( path.join( result.project.checkoutDir, 'flavio_modules', 'dep2-1' ), 'file2.txt', 'commit message' );
+		await git.push( path.join( result.project.checkoutDir, 'flavio_modules', 'dep2-1' ) );
+
+		await tag( { cwd: result.project.checkoutDir, interactive: false } );
+
+		await result.assertTagExists( 'main', '0.2.0' );
+		await result.assertTagExists( 'dep2', '0.2.0' );
+		await result.assertTagExists( 'dep2-1', '0.2.0' );
+	});
+
 	helpers.test.skip( 'tag when dependency is pointing at a commit', async (tempDir) => {
 
 	});
