@@ -1,7 +1,7 @@
 const presets = [
   ["@babel/env", {
     targets: {
-      node: "6"
+      node: "0.12.0"
     },
     useBuiltIns: "usage"
   }]
