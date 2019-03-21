@@ -116,6 +116,38 @@ export default function start() {
 					.then(resolve)
 					.catch(reject);
 			})
+			.command('checkout', 'If a branch exists for a dependency, will checkout', (subyargs) => {
+				const options = subyargs
+					.usage('Usage: flavio checkout [<branch>]')
+					.example('flavio branch my-branch-name', 'Checks out given branch on all dependencies')
+					.help('help')
+					.option('cwd', {
+						describe: 'Working directory to use',
+						default: process.cwd()
+					})
+					.argv;
+				const branch = options._[1];
+				flavio.commands.checkout(branch, options)
+					.then(resolve)
+					.catch(reject);
+			})
+			.command('when', 'Attempts to set all dependencies to their state at the given date & time', (subyargs) => {
+				const options = subyargs
+					.usage('Usage: flavio when <date> [<time>]')
+					.example('flavio when 20180512 0633', 'Sets the repo to the state at 2018-05-21 06:33')
+					.help('help')
+					.option('cwd', {
+						describe: 'Working directory to use',
+						default: process.cwd()
+					})
+					.argv;
+				const date = options._[1];
+				const time = options._[2] || '';
+				// TODO:
+				flavio.commands.when(date, options)
+					.then(resolve)
+					.catch(reject);
+			})
 			.command('tag', 'Tags main project as well as any dependencies', (subyargs) => {
 				const options = subyargs
 					.usage('Usage: flavio tag [options]')
