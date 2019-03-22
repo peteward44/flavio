@@ -15,7 +15,7 @@ export default function start() {
 			.help('help')
 			.alias( 'h', 'help' )
 			.alias( 'v', 'version' )
-			.version(() => pkgJson.version)
+			.version(pkgJson.version)
 			.command('update', 'Installs and updates all dependencies', (subyargs) => {
 				const options = subyargs
 					.usage(`Usage: flavio update [options]`)
