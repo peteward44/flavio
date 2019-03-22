@@ -15,6 +15,7 @@ function printError( err, args ) {
 export function executeGit( args, options ) {
 	options = options || {};
 	return new Promise( ( resolve, reject ) => {
+		let connected = true;
 		let stdo = '';
 		let stde = '';
 	//	console.log( `Executing git ${args.join(" ")}` );
@@ -26,7 +27,19 @@ export function executeGit( args, options ) {
 		}
 		let proc = spawn( 'git', args, { cwd: options.cwd ? options.cwd : process.cwd(), stdio: ['ignore', options.captureStdout ? 'pipe' : 'inherit', stderr] } );
 
-		function unpipe() {
+		function unpipe( code ) {
+			if ( !connected ) {
+				return;
+			}
+			connected = false;
+			if ( code !== 0 && !options.ignoreError ) {
+				if ( !options.quiet ) {
+					printError( '', args );
+				}
+				reject( new Error( "Error running git" ) );
+			} else {
+				resolve( { out: stdo, err: stde, code: code } );
+			}
 		}
 
 		if ( options.captureStdout ) {
@@ -40,7 +53,6 @@ export function executeGit( args, options ) {
 			} );
 		}
 		proc.on( 'error', ( err ) => {
-			unpipe();
 			if ( options.ignoreError ) {
 				resolve( { out: stdo, err: stde, code: 0 } );
 			} else {
@@ -51,18 +63,10 @@ export function executeGit( args, options ) {
 			}
 		} );
 		proc.on( 'exit', ( code ) => {
-			unpipe();
+			unpipe( code );
 		} );
 		proc.on( 'close', ( code ) => {
-			unpipe();
-			if ( code !== 0 && !options.ignoreError ) {
-				if ( !options.quiet ) {
-					printError( '', args );
-				}
-				reject( new Error( "Error running git" ) );
-			} else {
-				resolve( { out: stdo, err: stde, code: code } );
-			}
+			unpipe( code );
 		} );
 	} );
 }
