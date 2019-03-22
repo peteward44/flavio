@@ -1,4 +1,5 @@
 import yargs from 'yargs';
+import moment from 'moment';
 import pkgJson from '../package.json';
 import flavio from './index.js';
 
@@ -133,17 +134,19 @@ export default function start() {
 			})
 			.command('when', 'Attempts to set all dependencies to their state at the given date & time', (subyargs) => {
 				const options = subyargs
-					.usage('Usage: flavio when <date> [<time>]')
-					.example('flavio when 20180512 0633', 'Sets the repo to the state at 2018-05-21 06:33')
+					.usage('Usage: flavio when <date>')
+					.example('flavio when 20180512 0633', 'Sets the repo to the state at 2018-05-21 06:33. Can accept any format string moment.js supports')
 					.help('help')
+					.option('format', {
+						describe: 'Format of date string used'
+					})
 					.option('cwd', {
 						describe: 'Working directory to use',
 						default: process.cwd()
 					})
 					.argv;
-				const date = options._[1];
-				const time = options._[2] || '';
-				// TODO:
+				const dateParts = options._.slice( 1 );
+				const date = moment( dateParts.join( " " ), options.format );
 				flavio.commands.when(date, options)
 					.then(resolve)
 					.catch(reject);
@@ -256,4 +259,3 @@ export default function start() {
 			.argv;
 	});
 }
-

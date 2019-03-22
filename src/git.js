@@ -324,7 +324,7 @@ export async function isWorkingCopyClean( dir, filename ) {
 			args.push( filename );
 		}
 	}
-	let out = ( await executeGit( args, { cwd: dir, captureStdout: true } ) ).out;
+	let { out } = await executeGit( args, { cwd: dir, captureStdout: true } );
 	out.trim();
 	return out.length === 0;
 }
@@ -374,7 +374,7 @@ export async function checkout( dir, target, ...files ) {
 }
 
 export async function getLastCommit( dir ) {
-	const out = ( await executeGit( ['log', '-n', '1', '--pretty=format:%H'], { cwd: dir, captureStdout: true } ) ).out;
+	const { out } = await executeGit( ['log', '-n', '1', '--pretty=format:%H'], { cwd: dir, captureStdout: true } );
 	return out.trim();
 }
 
@@ -427,12 +427,12 @@ export async function listFiles( dir ) {
 }
 
 export async function doesLocalBranchExist( dir, branchName ) {
-	const code = ( await executeGit( ['rev-parse', '--verify', branchName], { cwd: dir, ignoreError: true } ) ).code;
+	const { code } = await executeGit( ['rev-parse', '--verify', branchName], { cwd: dir, ignoreError: true } );
 	return code === 0;
 }
 
 export async function doesRemoteBranchExist( url, branchName ) {
-	const code = ( await executeGit( ['ls-remote', '--exit-code', url, branchName], { ignoreError: true, quiet: true } ) ).code;
+	const { code } = await executeGit( ['ls-remote', '--exit-code', url, branchName], { ignoreError: true, quiet: true } );
 	return code === 0;
 }
 

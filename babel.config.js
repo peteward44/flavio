@@ -3,7 +3,8 @@ const presets = [
     targets: {
       node: "0.12.0"
     },
-    useBuiltIns: "usage"
+    useBuiltIns: "usage",
+	corejs: 3
   }]
 ];
 

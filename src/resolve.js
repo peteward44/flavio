@@ -15,7 +15,7 @@ export async function getTargetFromRepoUrl( repo, localClonePath ) {
 	await git.fetch( localClonePath );
 	const tags = await git.listTags( localClonePath );
 	const semverTags = tags.filter( semver.valid );
-	const target = repoUrl.target;
+	const { target } = repoUrl;
 	if ( !target ) {
 		// none specifed
 		// try to get latest tag version
@@ -65,4 +65,3 @@ export async function getTargetFromRepoUrl( repo, localClonePath ) {
 	}
 	throw new Error( `resolve.getTargetFromRepoUrl() - Could not determine target for repository URL ${repo}` );
 }
-

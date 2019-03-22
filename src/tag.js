@@ -159,13 +159,17 @@ async function determineTagsRecursive( options, node, recycleTagMap, tagMap ) {
 		const target = await git.getCurrentTarget( node.dir );
 		const recycledTag = await determineRecycledTagForElement( node, recycleTagMap );
 		if ( recycledTag ) {
-			tagMap.set( node.name, { tag: recycledTag, originalTarget: target, create: false, dir: node.dir } );
+			tagMap.set( node.name, {
+				tag: recycledTag, originalTarget: target, create: false, dir: node.dir 
+			} );
 		} else {
 			const tagName = await determineTagName( options, node );
 			if ( tagName ) {
 				const branchName = `release/${tagName}`;
 				const incrementVersion = await git.isUpToDate( node.dir ); // only increment version in flavio.json if our local HEAD is up to date with the remote branch
-				tagMap.set( node.name, { tag: tagName, originalTarget: target, branch: branchName, create: true, dir: node.dir, incrementMasterVersion: incrementVersion } );
+				tagMap.set( node.name, {
+					tag: tagName, originalTarget: target, branch: branchName, create: true, dir: node.dir, incrementMasterVersion: incrementVersion 
+				} );
 			} else {
 				console.log( util.formatConsoleDependencyName( node.name ), `Dependency has no valid flavio.json, so will not be tagged` );
 			}
@@ -218,7 +222,7 @@ async function writeVersionToJsonFile( pkgJsonPath, version ) {
 
 async function prepareTags( reposToTag ) {
 	for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
-		const dir = tagObject.dir;
+		const { dir } = tagObject;
 		if ( tagObject.create ) {
 			const lastCommit = await git.getLastCommit( dir );
 			await git.createAndCheckoutBranch( dir, tagObject.branch );
@@ -251,7 +255,7 @@ function incrementMasterVersion( options, version ) {
 
 async function incrementOriginalVersions( options, reposToTag ) {
 	for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
-		const dir = tagObject.dir;
+		const { dir } = tagObject;
 		if ( tagObject.incrementMasterVersion ) {
 			// modify flavio.json
 			let flavioJson = await util.loadFlavioJson( dir );
@@ -274,7 +278,7 @@ async function incrementOriginalVersions( options, reposToTag ) {
 
 async function pushTags( options, reposToTag ) {
 	for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
-		const dir = tagObject.dir;
+		const { dir } = tagObject;
 		if ( tagObject.create ) {
 			// push release branch
 			await git.push( dir, ['origin', `${tagObject.branch}`] );

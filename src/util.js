@@ -138,9 +138,9 @@ export async function loadFlavioJson( cwd ) {
 			err ? resolv( '{}' ) : resolv( txt );
 		} );
 	} )
-	.then( (txt) => {
-		return JSON.parse( txt.toString() );
-	} );
+		.then( (txt) => {
+			return JSON.parse( txt.toString() );
+		} );
 }
 
 /**

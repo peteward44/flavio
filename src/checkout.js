@@ -17,6 +17,7 @@ async function exe( name, dir, branch ) {
 			}
 		} catch ( err ) {
 			console.error( `Error executing checkout` );
+			console.error( err );
 		}
 	}
 }

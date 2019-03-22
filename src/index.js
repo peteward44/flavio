@@ -6,6 +6,7 @@ import status from './status.js';
 import execute from './execute.js';
 import exportProject from './exportProject.js';
 import checkout from './checkout.js';
+import when from './when.js';
 import init from './init.js';
 
 // import branch from './branch.js';
@@ -19,7 +20,7 @@ const commands = {
 	execute,
 	init,
 	checkout,
-	// branch,
+	when,
 	'export': exportProject
 };
 
