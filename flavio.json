@@ -1,4 +1,10 @@
 {
   "name": "flavio",
-  "version": "2.7.0-snapshot.0"
+  "version": "2.6.0",
+  "tag": {
+    "commit": "658a58de1e647ba5492ec002d10eeab7daa79d7c",
+    "target": {
+      "branch": "master"
+    }
+  }
 }
