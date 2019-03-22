@@ -8,7 +8,7 @@ import * as git from '../lib/git.js';
 describe(`checkout tests`, function() {
 	this.timeout(30 * 60 * 1000); // 30 minutes
 	
-	helpers.test.only('1 dependency', async (tempDir) => {
+	helpers.test('1 dependency', async (tempDir) => {
 		const result = await git.addProject( tempDir, {
 			name: 'main',
 			version: '0.1.0-snapshot.0',
