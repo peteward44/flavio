@@ -5,6 +5,18 @@ import uuid from 'uuid';
 import { spawn } from 'child_process';
 
 
+export async function getDepthForRepo( cwd ) {
+	// increase depth after clone so we can retrieve depth setting from flavio.json
+	let flavioJson = {};
+	if ( fs.existsSync( path.join( cwd, 'flavio.json' ) ) ) {
+		flavioJson = JSON.parse( fs.readFileSync( path.join( cwd, 'flavio.json' ), 'utf8' ) );
+	}
+	if ( flavioJson.options && typeof flavioJson.options.depth === 'number' ) {
+		return flavioJson.options.depth;
+	}
+	return 0;
+}
+
 function printError( err, args ) {
 	let argsString = args.join( " " );
 	console.error( "'git " + argsString + "'" );
@@ -265,20 +277,31 @@ export async function getWorkingCopyUrl( dir, bare = false ) {
 }
 
 
+export async function isShallow( dir ) {
+	const result = await executeGit( ['rev-parse', '--is-shallow-repository'], { cwd: dir, ignoreError: true, captureStdout: true } );
+	return result.out.trim() === 'true';
+}
+
+
 export async function clone( url, dir, options = {} ) {
 	dir = path.resolve( dir );
 	fs.ensureDirSync( dir );
 	const args = ['clone', url, dir];
-	const depth = typeof options.depth === 'number' ? options.depth : 0;
-	if ( depth > 0 ) {
-		args.push( `--depth=${depth}` );
+	let depth = typeof options.depth === 'number' ? options.depth : 1;
+	if ( depth === 0 ) {
+		depth = 1;
 	}
+	args.push( `--depth=${depth}` );
 	if ( options.branch ) {
 		args.push( `--branch=${options.branch}` );
 	} else if ( options.tag ) {
 		args.push( `--branch=tags/${options.tag}` );
 	}
 	await executeGit( args, { outputStderr: true } );
+	const repoDepth = typeof options.depth === 'number' ? options.depth : await getDepthForRepo( dir );
+	if ( repoDepth !== depth ) {
+		await pull( dir );
+	}
 }
 
 
@@ -363,8 +386,17 @@ export async function pull( dir, options = {} ) {
 	let result = null;
 	const target = await getCurrentTarget( dir );
 	if ( target.branch ) {
+		const depth = typeof options.depth === 'number' ? options.depth : await getDepthForRepo( dir );
 		const merged = Object.assign( { cwd: dir, outputStderr: true }, options );
-		result = await executeGit( ['pull'], merged );
+		const args = ['pull'];
+		if ( depth > 0 ) {
+			args.push( `--depth=${depth}` );
+		} else {
+			if ( await isShallow( dir ) ) {
+				args.push( `--unshallow` );
+			}
+		}
+		result = await executeGit( args, merged );
 	}
 	return result;
 }
@@ -411,7 +443,16 @@ export async function push( dir, args = [] ) {
 	await executeGit( ['push', ...args], { cwd: dir, outputStderr: true } );
 }
 
-export async function fetch( dir, args = [] ) {
+export async function fetch( dir, args = [], options = {} ) {
+	const depth = typeof options.depth === 'number' ? options.depth : await getDepthForRepo( dir );
+	args = args.slice( 0 );
+	if ( depth > 0 ) {
+		args.push( `--depth=${depth}` );
+	} else {
+		if ( await isShallow( dir ) ) {
+			args.push( `--unshallow` );
+		}
+	}
 	await executeGit( ['fetch', ...args], { cwd: dir, outputStderr: true } );
 }
 

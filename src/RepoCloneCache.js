@@ -66,7 +66,7 @@ async function checkRemoteResetRequired( targetObj, name, module, options, repoU
 			}
 			const stashName = await git.stash( pkgdir );
 			await git.checkout( pkgdir, { branch: targetBranchName } );
-			await git.pull( pkgdir );
+			await git.pull( pkgdir, { depth: options.depth } );
 			await git.stashPop( pkgdir, stashName );	
 			return true;
 		}
@@ -74,11 +74,11 @@ async function checkRemoteResetRequired( targetObj, name, module, options, repoU
 	return false;
 }
 
-async function stashAndPull( pkgdir ) {
+async function stashAndPull( pkgdir, options ) {
 	const changed = !await git.isUpToDate( pkgdir );
 	// repo is the same - do an update
 	const stashName = await git.stash( pkgdir );
-	await git.pull( pkgdir );
+	await git.pull( pkgdir, { depth: options.depth } );
 	await git.stashPop( pkgdir, stashName );
 	return changed;
 }
@@ -127,9 +127,9 @@ class RepoCloneCache {
 						if ( repo !== module.repo ) {
 							await changeRepo( pkgdir, repo, options );
 							changed = true;
-							await stashAndPull( pkgdir );
+							await stashAndPull( pkgdir, options );
 						} else {
-							changed = await stashAndPull( pkgdir );
+							changed = await stashAndPull( pkgdir, options );
 						}
 					} else if ( repoState === 'target' ) {
 						// branch / tag / commit is different on clone than in flavio.json, but repo is the same.
@@ -137,18 +137,18 @@ class RepoCloneCache {
 							// already existing version has not been used already, use that cloned repo to do a switch
 							if ( options.switch ) {
 								const stashName = await git.stash( pkgdir );
-								await git.pull( pkgdir );
+								await git.pull( pkgdir, { depth: options.depth } );
 								if ( targetObj.tag || targetObj.commit || ( targetObj.branch && await git.doesRemoteBranchExist( repoUrl.url, targetObj.branch ) ) ) {
 									if ( !options.json ) {
 										console.log( util.formatConsoleDependencyName( name ), `Switching to ${targetObj.tag || targetObj.commit || targetObj.branch}` );
 									}
 									await git.checkout( pkgdir, targetObj );
-									await git.pull( pkgdir );
+									await git.pull( pkgdir, { depth: options.depth } );
 									changed = true;
 								}
 								await git.stashPop( pkgdir, stashName );
 							} else {
-								changed = await stashAndPull( pkgdir );
+								changed = await stashAndPull( pkgdir, options );
 							}
 						} else {
 							if ( options.switch ) {
@@ -157,30 +157,30 @@ class RepoCloneCache {
 								if ( repo !== module.repo ) {
 									await changeRepo( pkgdir, repo );
 									changed = true;
-									await stashAndPull( pkgdir );
+									await stashAndPull( pkgdir, options );
 								} else {
-									changed = await stashAndPull( pkgdir );
+									changed = await stashAndPull( pkgdir, options );
 								}
 							} else {
 								// switch option not specified - just do normal update
-								changed = await stashAndPull( pkgdir );
+								changed = await stashAndPull( pkgdir, options );
 							}
 						}
 					} else {
 						// repo is the same - do a plain update
-						changed = await stashAndPull( pkgdir );
+						changed = await stashAndPull( pkgdir, options );
 					}
 				} catch ( err ) {
 					// On a repo that looks like everything should work fine but doesn't, the repo has probably been recreated.
 					// if the repo is clean, hard reset and pull.
-					const errout = ( await git.pull( pkgdir, { captureStderr: true, captureStdout: true, ignoreError: true } ) ).err.trim();
+					const errout = ( await git.pull( pkgdir, { captureStderr: true, captureStdout: true, ignoreError: true, depth: options.depth } ) ).err.trim();
 					if ( errout === 'fatal: refusing to merge unrelated histories' ) {
 						if ( await git.isWorkingCopyClean( pkgdir ) ) {
 							changed = true;
 							console.log( util.formatConsoleDependencyName( name ), `Unrelated histories detected, performing hard reset...` );
 							await git.fetch( pkgdir, ['--all'] );
 							await git.executeGit( ['reset', '--hard', `origin/${targetObj.tag || targetObj.commit || targetObj.branch}`], { cwd: pkgdir } );
-							await git.pull( pkgdir );
+							await git.pull( pkgdir, { depth: options.depth } );
 						} else {
 							console.log( util.formatConsoleDependencyName( name ), `Unrelated histories detected, but cannot reset due to local changes!` );
 						}

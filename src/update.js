@@ -20,7 +20,7 @@ async function updateMainProject( options ) {
 		changed = true;
 	}
 	try {
-		await git.pull( options.cwd );
+		await git.pull( options.cwd, { depth: options.depth } );
 	} catch ( err ) {
 		console.error( util.formatConsoleDependencyName( mainProjectName, true ), `Main project pull failed, does your branch exist on the remote?` );
 	}
