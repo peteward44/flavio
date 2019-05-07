@@ -53,7 +53,7 @@ export default function start() {
 					.option('depth', {
 						describe: '--depth option to pass to git when cloning a fresh repository. Use zero or negative value to get entire history',
 						number: true,
-						default: 0
+						default: undefined
 					})
 					.option('ignore-dependencies', {
 						describe: 'Only perform commands on the main repository (not on any dependencies)',
@@ -229,7 +229,7 @@ export default function start() {
 					.option('depth', {
 						describe: '--depth option to pass to git when cloning a fresh repository. Use zero or negative value to get entire history',
 						number: true,
-						default: 0
+						default: undefined
 					})
 					.argv;
 

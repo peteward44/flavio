@@ -458,7 +458,7 @@ export async function fetch( dir, args = [], options = {} ) {
 
 export async function isUpToDate( dir ) {
 	try {
-		await executeGit( ['fetch'], { cwd: dir, quiet: true, outputStderr: true } );
+		await fetch( dir, [], { quiet: true, outputStderr: true } );
 		const local = ( await executeGit( ['rev-parse', 'HEAD'], { cwd: dir, quiet: true, captureStdout: true } ) ).out;
 		const remote = ( await executeGit( ['rev-parse', '@{u}'], { cwd: dir, quiet: true, captureStdout: true } ) ).out;
 		return local.trim() === remote.trim();
@@ -482,7 +482,7 @@ export async function doesRemoteBranchExist( url, branchName ) {
 }
 
 export async function deleteRemoteBranch( dir, branchName ) {
-	await executeGit( ['fetch'], { cwd: dir, outputStderr: true } );
+	await fetch( dir );
 	await executeGit( ['push', 'origin', '--delete', branchName], { cwd: dir } );
 }
 
