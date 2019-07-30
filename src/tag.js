@@ -144,7 +144,9 @@ async function determineTagName( options, node ) {
 				choices: [nextMajor, nextMinor, nextPatch],
 				default: defaultVal
 			};
-			const answer = await inquirer.prompt( [question] );
+			const answer = await new Promise( resolve => {
+				inquirer.prompt( [question], answers => resolve( answers ) );
+			} );
 			return answer.q;
 		} else {
 			return defaultVal;
@@ -312,7 +314,9 @@ async function confirmUser( options, reposToTag ) {
 			name: 'q',
 			message: `Commit changes?`
 		};
-		const answer = await inquirer.prompt( [question] );
+		const answer = await new Promise( resolve => {
+			inquirer.prompt( [question], answers => resolve( answers ) );
+		} );
 		return answer.q;
 	}
 	return true;

@@ -15,7 +15,7 @@ const webpack = require('webpack');
  */
 
 module.exports = {
-	mode: 'development',
+	mode: 'production',
 	target: 'node',
 	entry: './cli.js',
 
@@ -50,6 +50,19 @@ module.exports = {
 							}
 						]
 					]
+				}
+			},
+			{
+				parser: {
+					amd: false, // disable AMD
+					commonjs: true, // enable CommonJS
+					system: false, // disable SystemJS
+					harmony: true, // enable ES2015 Harmony import/export
+					requireInclude: false, // disable require.include
+					requireEnsure: false, // disable require.ensure
+					requireContext: false, // disable require.context
+					browserify: true, // enable special handling of Browserify bundles
+					requireJs: false // disable requirejs.*
 				}
 			}
 		]
