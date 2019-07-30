@@ -7,13 +7,14 @@ import { spawn } from 'child_process';
 
 export async function getDepthForRepo( cwd ) {
 	// increase depth after clone so we can retrieve depth setting from flavio.json
-	let flavioJson = {};
-	if ( fs.existsSync( path.join( cwd, 'flavio.json' ) ) ) {
-		flavioJson = JSON.parse( fs.readFileSync( path.join( cwd, 'flavio.json' ), 'utf8' ) );
-	}
-	if ( flavioJson.options && typeof flavioJson.options.depth === 'number' ) {
-		return flavioJson.options.depth;
-	}
+	// NOTE: Disabled for now after issues tracking branches
+	// let flavioJson = {};
+	// if ( fs.existsSync( path.join( cwd, 'flavio.json' ) ) ) {
+		// flavioJson = JSON.parse( fs.readFileSync( path.join( cwd, 'flavio.json' ), 'utf8' ) );
+	// }
+	// if ( flavioJson.options && typeof flavioJson.options.depth === 'number' ) {
+		// return flavioJson.options.depth;
+	// }
 	return 0;
 }
 
