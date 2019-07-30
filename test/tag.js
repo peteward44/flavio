@@ -2,9 +2,9 @@ import fs from 'fs';
 import path from 'path';
 import * as helpers from '../testutil/helpers.js';
 import TestRepo from '../testutil/TestRepo.js';
-import * as git from '../lib/git.js';
-import tag from '../lib/tag.js';
-import update from '../lib/update.js';
+import * as git from '../src/git.js';
+import tag from '../src/tag.js';
+import update from '../src/update.js';
 
 describe(`tag tests`, function() {
 	this.timeout(30 * 60 * 1000); // 30 minutes

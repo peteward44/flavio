@@ -1,3 +1,3 @@
 /* eslint-disable */
-var flavio = require( './lib/index.js' );
+var flavio = require( './src/index.js' );
 module.exports = flavio;

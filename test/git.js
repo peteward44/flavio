@@ -3,7 +3,7 @@ import path from 'path';
 import uuid from 'uuid';
 import chai from 'chai';
 import * as helpers from '../testutil/helpers.js';
-import * as git from '../lib/git.js';
+import * as git from '../src/git.js';
 
 describe(`git tests`, function() {
 	this.timeout(30 * 60 * 1000); // 30 minutes

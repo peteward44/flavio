@@ -1,7 +1,7 @@
 import * as helpers from '../testutil/helpers.js';
 import TestRepo from '../testutil/TestRepo.js';
-import add from '../lib/add.js';
-import update from '../lib/update.js';
+import add from '../src/add.js';
+import update from '../src/update.js';
 
 describe(`add tests`, function() {
 	this.timeout(30 * 60 * 1000); // 30 minutes

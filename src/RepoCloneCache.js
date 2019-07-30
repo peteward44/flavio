@@ -173,7 +173,9 @@ class RepoCloneCache {
 				} catch ( err ) {
 					// On a repo that looks like everything should work fine but doesn't, the repo has probably been recreated.
 					// if the repo is clean, hard reset and pull.
-					const errout = ( await git.pull( pkgdir, { captureStderr: true, captureStdout: true, ignoreError: true, depth: options.depth } ) ).err.trim();
+					const errout = ( await git.pull( pkgdir, {
+						captureStderr: true, captureStdout: true, ignoreError: true, depth: options.depth 
+					} ) ).err.trim();
 					if ( errout === 'fatal: refusing to merge unrelated histories' ) {
 						if ( await git.isWorkingCopyClean( pkgdir ) ) {
 							changed = true;

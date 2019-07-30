@@ -2,9 +2,9 @@ import fs from 'fs-extra';
 import path from 'path';
 import chai from 'chai';
 import * as helpers from '../testutil/helpers.js';
-import * as git from '../lib/git.js';
-import * as util from '../lib/util.js';
-import update from '../lib/update.js';
+import * as git from '../src/git.js';
+import * as util from '../src/util.js';
+import update from '../src/update.js';
 import TestRepo from '../testutil/TestRepo.js';
 
 describe(`update tests`, function() {

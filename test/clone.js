@@ -2,7 +2,7 @@ import path from 'path';
 import uuid from 'uuid';
 import * as helpers from '../testutil/helpers.js';
 import TestRepo from '../testutil/TestRepo.js';
-import clone from '../lib/clone.js';
+import clone from '../src/clone.js';
 
 describe(`clone tests`, function() {
 	this.timeout(30 * 60 * 1000); // 30 minutes
