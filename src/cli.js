@@ -169,6 +169,15 @@ export default function start() {
 						boolean: true,
 						default: true
 					})
+					.option('show', {
+						describe: 'Outputs what versions *would* be tagged if it were executed without any arguments',
+						boolean: true,
+						default: false
+					})
+					.option('input', {
+						describe: 'Location to a JSON file which contains the version strings to create for each dependency, in the same format outputted by the "show" argument',
+						type: 'string'
+					})
 					.argv;
 				flavio.commands.tag(options)
 					.then(resolve)

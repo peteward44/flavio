@@ -374,6 +374,14 @@ async function tagOperation( options = {} ) {
 		}
 		return;
 	}
+	if ( options.show ) {
+		console.log( "{" );
+		for ( const [key, value] of reposToTag ) {
+			console.log( `\t"${key}": "${value.tag}",` );
+		}
+		console.log( "}" );
+		return;
+	}
 	// confirm with user the values to tag
 	if ( !( await confirmUser( options, reposToTag ) ) ) {
 		return;
