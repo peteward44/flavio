@@ -76,12 +76,12 @@ async function getTagPointingAtCurrentHEAD( repoDir ) {
 
 async function determineRecycledTagForElement( node, recycleTagMap ) {
 	// if a node can recycle it's tag, and all of it's dependencies can also recycle their tag, then we can do a recycle.
-	if ( !recycleTagMap.has( node.dir ) ) {
+	if ( !recycleTagMap.has( node.name ) ) {
 		const tagName = await getTagPointingAtCurrentHEAD( node.dir );
-		recycleTagMap.set( node.dir, tagName );
+		recycleTagMap.set( node.name, tagName );
 	}
 	
-	if ( !recycleTagMap.get( node.dir ) ) {
+	if ( !recycleTagMap.get( node.name ) ) {
 		// has no valid tag to recycle - don't bother checking children
 		return '';
 	}
@@ -95,7 +95,56 @@ async function determineRecycledTagForElement( node, recycleTagMap ) {
 		}
 	}
 	
-	return recycleTagMap.get( node.dir );
+	return recycleTagMap.get( node.name );
+}
+
+
+// makes sure any modules with dependencies have matching versions for those deps in the recycle map
+async function validateRecycledTagDependencies( node, recycledTag, recycleTagMap ) {
+	if ( !recycledTag ) {
+		return false;
+	}
+	// switch to tag, then load the flavio.json for that tag, then switch back so we know the dependencies
+	const currentTarget = await git.getCurrentTarget( node.dir );
+	await git.checkout( node.dir, { tag: recycledTag } );
+	const flavioJson = await util.loadFlavioJson( node.dir );
+	flavioJson.dependencies = flavioJson.dependencies || {};
+	await git.checkout( node.dir, currentTarget );
+	
+	for ( const depName of Object.keys( flavioJson.dependencies ) ) {
+		const url = flavioJson.dependencies[depName];
+		if ( !recycleTagMap.has( depName ) ) {
+			// tag contains depedency we don't have
+//			console.log( `Failing ${depName} because not in tag for ${node.name} - ${recycledTag}` );
+			return false;
+		}
+		const repo = util.parseRepositoryUrl( url );
+		const childRecycledTag = recycleTagMap.get( depName );
+		if ( childRecycledTag !== repo.target ) {
+			// Child dependency tag doesn't match the one we have on disk - fail
+//			console.log( `Failing ${depName} - ${repo.target} because wrong tag for ${node.name} - ${childRecycledTag}` );
+			return false;
+		}
+	}
+	// make sure children match
+	if ( node.children.size !== Object.keys( flavioJson.dependencies ).length ) {
+//		console.log( `Failing because dependency count doesn't match: ${node.name} - ${recycledTag}` );
+		return false;
+	}
+	for ( const [depName, module] of node.children ) { // eslint-disable-line no-unused-vars
+		if ( !flavioJson.dependencies.hasOwnProperty( depName ) ) {
+			// we have a depedency that the tag doesn't have
+//			console.log( `Failing because dependency "${depName}" has been added to: ${node.name} - ${recycledTag}` );
+			return false;
+		}
+		
+		// validate the dependencies' dependencies too
+		if ( !await validateRecycledTagDependencies( module, recycleTagMap.get( depName ), recycleTagMap ) ) {
+//			console.log( `Failing because dependency "${depName}" children have failed` );
+			return false;
+		}
+	}
+	return true;
 }
 
 
@@ -160,7 +209,8 @@ async function determineTagsRecursive( options, node, recycleTagMap, tagMap ) {
 		await git.fetch( node.dir );
 		const target = await git.getCurrentTarget( node.dir );
 		const recycledTag = await determineRecycledTagForElement( node, recycleTagMap );
-		if ( recycledTag ) {
+		const recycledTagsAreValid = await validateRecycledTagDependencies( node, recycledTag, recycleTagMap );
+		if ( recycledTag && recycledTagsAreValid ) {
 			tagMap.set( node.name, {
 				tag: recycledTag, originalTarget: target, create: false, dir: node.dir 
 			} );
