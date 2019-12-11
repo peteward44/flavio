@@ -58,7 +58,7 @@ async function handleConflict( options, name, module, rootFlavioJson ) {
 			],
 			default: latest === localUrl ? 0 : 1
 		};
-		const answer = await new Promise( resolve => {
+		const answer = await new Promise( (resolve) => {
 			inquirer.prompt( [question], answers => resolve( answers ) );
 		} );
 		return isSameRepo ? `${localRepoUrl.url}#${answer.q}` : answer.q;
