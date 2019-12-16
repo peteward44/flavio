@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import chalk from 'chalk';
 import * as util from './util.js';
 import * as git from './git.js';
-import flavio from './index.js';
+import update from './update.js';
 
 /**
  *
@@ -29,7 +29,7 @@ async function clone( repo, options = {} ) {
 	console.log( util.formatConsoleDependencyName( 'main' ), `Clone complete, executing update...` );
 	options.cwd = cwd;
 	options.fromCloneCommand = true;
-	await flavio.commands.update( options );
+	await update( options );
 }
 
 export default clone;

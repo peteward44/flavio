@@ -140,6 +140,42 @@ describe(`tag tests`, function() {
 		await result.assertTagExists( 'dep2', '0.2.0' );
 		await result.assertTagExists( 'dep2-1', '0.2.0' );
 	});
+	
+	helpers.test( 'Make sure tagging process doesn\'t attempt to recycle a tag with incorrect dependencies', async (tempDir) => {
+		const result = await TestRepo.create( tempDir, 'simpleNest' );
+		
+		await update( { cwd: result.project.checkoutDir, interactive: false } );
+
+		console.log( JSON.stringify( result, null, 2 ) );
+
+		await result.assertTagNotExists( 'main', '0.1.0' );
+		await result.assertTagNotExists( 'dep1', '0.1.0' );
+		await result.assertTagNotExists( 'dep2', '0.1.0' );
+		
+		// Create tag of project as a whole (0.1.0)
+		await tag( { cwd: result.project.checkoutDir, interactive: false } );
+
+		await result.assertTagExists( 'main', '0.1.0' );
+		await result.assertTagExists( 'dep1', '0.1.0' );
+		await result.assertTagExists( 'dep2', '0.1.0' );
+		
+		const dep1Dir = path.join( result.project.checkoutDir, 'flavio_modules', 'dep1' );
+		
+		fs.writeFileSync( path.join( dep1Dir, 'file2.txt' ), 'changes changes changes' );
+		await git.addAndCommit( dep1Dir, 'file2.txt', 'commit message' );
+		await git.push( dep1Dir );
+
+		// then create tag of dep1, without re-tagging anything else (0.2.0)
+		await tag( { cwd: dep1Dir, interactive: false } );
+		
+		// so now if we create a new tag of the root project, it should use 0.2.0 of dep1 and create a new tag of the root project,
+		// instead of attempting to recycle 0.1.0 of the root project
+		await tag( { cwd: result.project.checkoutDir, interactive: false } );
+		
+		await result.assertTagExists( 'main', '0.2.0' );
+		await result.assertTagExists( 'dep1', '0.2.0' );
+		await result.assertTagExists( 'dep2', '0.1.0' );
+	});
 
 	helpers.test.skip( 'tag when dependency is pointing at a commit', async (tempDir) => {
 
