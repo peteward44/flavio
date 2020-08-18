@@ -87,7 +87,7 @@ async function listChildren( options ) {
 	// for modules with multiple conflicts, make sure the one that occupies the current folder is first in the array
 	for ( const [name, moduleArray] of modules ) { // eslint-disable-line no-unused-vars
 		if ( moduleArray.length > 1 ) {
-			const index = _.findIndex( moduleArray, mod => mod.status === 'installed' );
+			const index = _.findIndex( moduleArray, (mod) => mod.status === 'installed' );
 			if ( index > 0 ) {
 				const installedMod = moduleArray.splice( index, 1 )[0];
 				moduleArray.unshift( installedMod );

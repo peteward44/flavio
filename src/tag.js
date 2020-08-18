@@ -190,11 +190,24 @@ async function determineTagName( options, node ) {
 				type: 'list',
 				name: 'q',
 				message: util.formatConsoleDependencyName( node.name ) + ` Tag ${tagName} already exists. Use available alternative?`,
-				choices: [nextMajor, nextMinor, nextPatch],
+				choices: [nextMajor, nextMinor, nextPatch, 'Custom?'],
 				default: defaultVal
 			};
-			const answer = await inquirer.prompt( [question], answers => resolve( answers ) );
-			return answer.q;
+			const answer = await inquirer.prompt( [question] );
+			if ( answer.q === 'Custom?' ) {
+				let customAnswer;
+				let exists = false;
+				do {
+					customAnswer = await inquirer.prompt( [{ type: 'input', name: 'q', message: 'Custom tag name?' }] );
+					exists = tagList.indexOf( customAnswer.q ) >= 0;
+					if ( exists ) {
+						console.log( `Tag ${customAnswer.q} already exists` );
+					}
+				} while ( exists );
+				return customAnswer.q;
+			} else {
+				return answer.q;
+			}
 		} else {
 			return defaultVal;
 		}
@@ -362,7 +375,7 @@ async function confirmUser( options, reposToTag ) {
 			name: 'q',
 			message: `Commit changes?`
 		};
-		const answer = await inquirer.prompt( [question], answers => resolve( answers ) );
+		const answer = await inquirer.prompt( [question] );
 		return answer.q;
 	}
 	return true;

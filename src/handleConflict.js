@@ -58,7 +58,7 @@ async function handleConflict( options, name, module, rootFlavioJson ) {
 			],
 			default: latest === localUrl ? 0 : 1
 		};
-		const answer = await inquirer.prompt( [question], answers => resolve( answers ) );
+		const answer = await inquirer.prompt( [question] );
 		return isSameRepo ? `${localRepoUrl.url}#${answer.q}` : answer.q;
 	}
 	// always fall back to the pre-existing repo if no other alternative can be found

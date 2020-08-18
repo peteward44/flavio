@@ -389,7 +389,7 @@ export async function pull( dir, options = {} ) {
 	const target = await getCurrentTarget( dir );
 	if ( target.branch ) {
 		const depth = typeof options.depth === 'number' ? options.depth : await getDepthForRepo( dir );
-		const merged = Object.assign( { cwd: dir, outputStderr: true }, options );
+		const merged = { cwd: dir, outputStderr: true, ...options };
 		const args = ['pull'];
 		if ( depth > 0 ) {
 			args.push( `--depth=${depth}` );
@@ -470,7 +470,7 @@ export async function isUpToDate( dir ) {
 
 export async function listFiles( dir ) {
 	const raw = ( await executeGit( ['ls-files'], { cwd: dir, captureStdout: true } ) ).out;
-	return raw.trim().split( '\n' ).map( file => file.trim() );
+	return raw.trim().split( '\n' ).map( (file) => file.trim() );
 }
 
 export async function doesLocalBranchExist( dir, branchName ) {
