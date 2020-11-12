@@ -285,25 +285,26 @@ export async function isShallow( dir ) {
 
 
 export async function clone( url, dir, options = {} ) {
-	// TODO: Re-enable depth option
 	dir = path.resolve( dir );
 	fs.ensureDirSync( dir );
-	const args = ['clone', url, dir];
-	// let depth = typeof options.depth === 'number' ? options.depth : 1;
-	// if ( depth === 0 ) {
-		// depth = 1;
-	// }
-	// args.push( `--depth=${depth}` );
+	const args = ['lfs', 'clone', url, dir];
 	if ( options.branch ) {
 		args.push( `--branch=${options.branch}` );
 	} else if ( options.tag ) {
 		args.push( `--branch=tags/${options.tag}` );
 	}
 	await executeGit( args, { outputStderr: true } );
-	// const repoDepth = typeof options.depth === 'number' ? options.depth : await getDepthForRepo( dir );
-	// if ( repoDepth !== depth ) {
-		// await pull( dir );
-	// }
+}
+
+
+export async function initLFS( dir ) {
+	try {
+		await executeGit( ['lfs', 'install'], { cwd: dir } );
+		await executeGit( ['config', 'lfs.contenttype', 'false'], { cwd: dir } );
+	} catch ( err ) {
+		throw new Error( `LFS init failed - do you have the Git LFS client installed?` );
+	}
+	await pull( dir );
 }
 
 

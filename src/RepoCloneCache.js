@@ -1,4 +1,5 @@
 import fs from 'fs-extra';
+import path from 'path';
 import * as git from './git.js';
 import * as resolve from './resolve.js';
 import * as util from './util.js';
@@ -25,6 +26,10 @@ async function changeRepo( pkgdir, repo, options ) {
 		fs.renameSync( pkgdir, newPkgDir );
 		// then clone new one
 		await git.clone( repoUrl.url, pkgdir, { branch: repoUrl.target || 'master', depth: options.depth } );
+		const flavioJson = await util.loadFlavioJson( pkgdir );
+		if ( flavioJson.lfs ) {
+			await git.initLFS( pkgdir );
+		}
 	} else if ( repoState === 'target' ) {
 		const targetObj = await resolve.getTargetFromRepoUrl( repo, pkgdir );
 		await git.checkout( pkgdir, targetObj );
@@ -40,7 +45,15 @@ async function doFreshClone( name, module, options, repoUrl ) {
 	if ( !options.json ) {
 		console.log( util.formatConsoleDependencyName( name ), `Repository missing, performing fresh clone...` );
 	}
+	if ( fs.existsSync( pkgdir ) ) {
+		fs.emptyDirSync( pkgdir );
+		fs.unlinkSync( pkgdir );
+	}
 	await git.clone( repoUrl.url, pkgdir, { branch: repoUrl.target || 'master', depth: options.depth } );
+	const flavioJson = await util.loadFlavioJson( pkgdir );
+	if ( flavioJson.lfs ) {
+		await git.initLFS( pkgdir );
+	}
 }
 
 /**
@@ -104,7 +117,7 @@ class RepoCloneCache {
 		const pkgdir = module.dir;
 		let changed = false;
 		const repoUrl = util.parseRepositoryUrl( module.repo );
-		if ( !fs.existsSync( pkgdir ) ) {
+		if ( !fs.existsSync( path.join( pkgdir, '.git' ) ) ) {
 			// fresh checkout
 			await doFreshClone( name, module, options, repoUrl );
 			changed = true;
