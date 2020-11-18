@@ -2,6 +2,7 @@ import _ from 'lodash';
 import fs from 'fs';
 import path from 'path';
 import chalk from 'chalk';
+import os from 'os';
 import * as git from './git.js';
 
 let gConfig = null;
@@ -169,4 +170,28 @@ export async function getMainProjectName( cwd ) {
 		}
 	}
 	return mainProjectName;
+}
+
+
+export function getDefaultLinkDir() {
+	// get default dir for drive we are on
+	if ( os.platform() === "win32" ) {
+		// on windows, make sure link dir is on the same drive as the repo
+		const parsedHome = path.parse( os.homedir() );
+		const parsedCwd = path.parse( process.cwd() );
+		if ( parsedHome.root !== parsedCwd.root ) {
+			return path.join( parsedCwd.root, '.flavio', 'link' );
+		}
+	}
+	return path.join( os.homedir(), '.flavio', 'link' );
+}
+
+
+export function defaultOptions( options ) {
+	if ( !options.linkdir ) {
+		options.linkdir = getDefaultLinkDir();
+	}
+	if ( options.link === undefined ) {
+		options.link = true;
+	}
 }

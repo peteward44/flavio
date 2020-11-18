@@ -387,6 +387,7 @@ async function confirmUser( options, reposToTag ) {
  *
  */
 async function tagOperation( options = {} ) {
+	util.defaultOptions( options );
 	options.increment = options.increment || 'minor';
 	await util.readConfigFile( options.cwd );
 	console.log( `Inspecting dependencies for tagging operation...` );

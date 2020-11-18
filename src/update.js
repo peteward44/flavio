@@ -1,12 +1,28 @@
 import _ from 'lodash';
 import chalk from 'chalk';
+import fs from 'fs-extra';
+import path from 'path';
 import * as depTree from './depTree.js';
 import * as util from './util.js';
 import * as git from './git.js';
-import RepoCloneCache from './RepoCloneCache.js';
 import checkForConflicts from './checkForConflicts.js';
+import handleConflict from './handleConflict.js';
+import { clone, checkAndSwitch, checkRemoteResetRequired } from './dependencies.js';
+import { getTargetFromRepoUrl } from './resolve.js';
+
+
+async function stashAndPull( pkgdir, options ) {
+	const changed = !await git.isUpToDate( pkgdir );
+	// repo is the same - do an update
+	const stashName = await git.stash( pkgdir );
+	await git.pull( pkgdir, { depth: options.depth } );
+	await git.stashPop( pkgdir, stashName );
+	return changed;
+}
+
 
 async function updateMainProject( options ) {
+	util.defaultOptions( options );
 	let changed = false;
 	// update main project first
 	// get name of main project if flavio.json exists
@@ -36,6 +52,7 @@ async function updateMainProject( options ) {
 	}
 	return changed;
 }
+
 
 /**
  * Executes update on given directory
@@ -79,27 +96,95 @@ async function update( options ) {
 	// re-read config file in case the .flaviorc has changed
 	await util.readConfigFile( options.cwd );
 	
-	let repoCache = new RepoCloneCache( options );
-	await repoCache.init( await util.loadFlavioJson( options.cwd ) );
+	// keep listing children until we have no more missing modules
+	let missingCount = 0;
+	do {
+		missingCount = 0;
+		const modules = await depTree.listChildren( options );
+		for ( const moduleArray of modules.values() ) {
+			const module = moduleArray[0];
+			switch ( module.status ) {
+				case 'missing':
+					if ( !fs.existsSync( path.join( module.dir, '.git' ) ) ) {
+						if ( !options.json ) {
+							console.log( util.formatConsoleDependencyName( module.name ), `Repository missing, performing fresh clone...` );
+						}
+						const repoUrl = util.parseRepositoryUrl( module.repo );
+						await clone( module.dir, options, repoUrl, options.link );
+						missingCount++;
+					}
+					break;
+				default:
+					break;
+			}
+		}
+	} while ( missingCount > 0 );
 
-	// traverse tree, checking out / updating modules as we go
-	await depTree.traverse( options, async ( name, childModule ) => {
-		if ( !options.json ) {
-			console.log( util.formatConsoleDependencyName( name ), `Updating...` );
+	const modules = await depTree.listChildren( options );
+	// this module list may contain multiple versions of the same repo.
+	// resolve all conflicts
+	const rootFlavioJson = await util.loadFlavioJson( options.cwd );
+	for ( const [name, modulesArray] of modules.entries() ) {
+		if ( modulesArray.length > 1 ) {
+			const module = await handleConflict( options, name, modulesArray, rootFlavioJson );
+			modules.set( module.name, [module] );
+			if ( !fs.existsSync( path.join( module.dir, '.git' ) ) ) {
+				const repoUrl = util.parseRepositoryUrl( module.repo );
+				await clone( module.dir, options, repoUrl, options.link );
+			} else {
+				await checkAndSwitch( options, module.dir, module.repo );
+			}
 		}
-		const addResult = await repoCache.add( name, childModule, options );
-		if ( addResult.changed ) {
-			updateResult.changed = true;
-			changeCount++;
+	}
+	// now make sure all modules point to the right bits
+	for ( const modulesArray of modules.values() ) {
+		const module = modulesArray[0];
+		switch ( module.status ) {
+			default:
+				break;
+			case 'installed':
+			{
+				if ( !options.json ) {
+					console.log( util.formatConsoleDependencyName( module.name ), `Updating...` );
+				}
+				const targetObj = await getTargetFromRepoUrl( module.repo, module.dir );
+				// check to see if the local branch still exists on the remote, reset if not
+				if ( options['remote-reset'] !== false ) {
+					const repoUrl = util.parseRepositoryUrl( module.repo );
+					if ( await checkRemoteResetRequired( targetObj, module.name, module, options, repoUrl ) ) {
+						break;
+					}
+				}
+				if ( options.switch ) {
+					await checkAndSwitch( options, module.dir, module.repo );
+				}
+				try {
+					await stashAndPull( module.dir, options );
+				} catch ( err ) {
+					// On a repo that looks like everything should work fine but doesn't, the repo has probably been recreated.
+					// if the repo is clean, hard reset and pull.
+					const pkgdir = module.dir;
+					const errout = ( await git.pull( pkgdir, {
+						captureStderr: true, captureStdout: true, ignoreError: true, depth: options.depth 
+					} ) ).err.trim();
+					if ( errout === 'fatal: refusing to merge unrelated histories' ) {
+						if ( await git.isWorkingCopyClean( pkgdir ) ) {
+							console.log( util.formatConsoleDependencyName( module.name ), `Unrelated histories detected, performing hard reset...` );
+							await git.fetch( pkgdir, ['--all'] );
+							await git.executeGit( ['reset', '--hard', `origin/${targetObj.tag || targetObj.commit || targetObj.branch}`], { cwd: pkgdir } );
+							await git.pull( pkgdir, { depth: options.depth } );
+						} else {
+							console.log( util.formatConsoleDependencyName( module.name ), `Unrelated histories detected, but cannot reset due to local changes!` );
+						}
+					} else {
+						throw err;
+					}
+				}
+				break;
+			}
 		}
-		if ( !options.json ) {
-			const target = await git.getCurrentTarget( childModule.dir );
-			const targetName = target.tag || target.commit || target.branch;
-			console.log( util.formatConsoleDependencyName( name ), `Complete`, targetName ? `[${chalk.magenta(targetName)}]` : ``, addResult.changed ? `[${chalk.yellow( 'changes detected' )}]` : `` );
-		}
-		updateCount++;
-		return addResult.dir;
-	} );
+	}
+
 	if ( options.json ) {
 		console.log( JSON.stringify( updateResult, null, 2 ) );
 	} else {

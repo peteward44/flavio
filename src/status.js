@@ -19,6 +19,7 @@ async function addTableRow( table, name, mod, options ) {
 }
 
 async function status( options ) {
+	util.defaultOptions( options );
 	await util.readConfigFile( options.cwd );
 	const modules = await depTree.listChildren( options );
 

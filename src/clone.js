@@ -10,6 +10,7 @@ import update from './update.js';
  *
  */
 async function clone( repo, options = {} ) {
+	util.defaultOptions( options );
 	await util.readConfigFile( options.cwd );
 	const repoUrl = util.parseRepositoryUrl( repo );
 	// clone the repo first so it'll be on master, then checkout to the target object.

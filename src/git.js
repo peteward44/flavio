@@ -18,10 +18,11 @@ export async function getDepthForRepo( cwd ) {
 	return 0;
 }
 
-function printError( err, args ) {
+function printError( err, args, cwd ) {
 	let argsString = args.join( " " );
-	console.error( "'git " + argsString + "'" );
-	console.error( err );
+	console.error( `'git ${argsString}'` );
+	console.error( `'dir ${cwd}'` );
+	console.error( err.stack || err );
 }
 
 
@@ -70,9 +71,9 @@ export function executeGit( args, options ) {
 				resolve( { out: stdo, err: stde, code: 0 } );
 			} else {
 				if ( !options.quiet ) {
-					printError( err, args );
+					printError( err, args, options.cwd ? options.cwd : process.cwd() );
 				}
-				reject( err );
+				reject( new Error( err ) );
 			}
 		} );
 		proc.on( 'exit', ( code ) => {
@@ -287,24 +288,13 @@ export async function isShallow( dir ) {
 export async function clone( url, dir, options = {} ) {
 	dir = path.resolve( dir );
 	fs.ensureDirSync( dir );
-	const args = ['lfs', 'clone', url, dir];
+	const args = ['clone', url, dir];
 	if ( options.branch ) {
 		args.push( `--branch=${options.branch}` );
 	} else if ( options.tag ) {
 		args.push( `--branch=tags/${options.tag}` );
 	}
 	await executeGit( args, { outputStderr: true } );
-}
-
-
-export async function initLFS( dir ) {
-	try {
-		await executeGit( ['lfs', 'install'], { cwd: dir } );
-		await executeGit( ['config', 'lfs.contenttype', 'false'], { cwd: dir } );
-	} catch ( err ) {
-		throw new Error( `LFS init failed - do you have the Git LFS client installed?` );
-	}
-	await pull( dir );
 }
 
 
@@ -502,4 +492,14 @@ export async function isValidCommit( dir, sha ) {
 export async function isConflicted( dir ) {
 	const output = ( await executeGit( ['ls-files', '--unmerged'], { cwd: dir, captureStdout: true } ) ).out;
 	return output.trim().length > 0;
+}
+
+export async function initLFS( dir ) {
+	try {
+		await executeGit( ['lfs', 'install'], { cwd: dir } );
+		await executeGit( ['config', 'lfs.contenttype', 'false'], { cwd: dir } );
+	} catch ( err ) {
+		throw new Error( `LFS init failed - do you have the Git LFS client installed?` );
+	}
+	await pull( dir );
 }

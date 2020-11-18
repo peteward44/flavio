@@ -31,6 +31,7 @@ async function checkout( branch, options = {} ) {
 	if ( !_.isString( options.cwd ) ) {
 		throw new Error( `Invalid cwd argument ${options.cwd}` );
 	}
+	util.defaultOptions( options );
 	await util.readConfigFile( options.cwd );
 	
 	await exe( 'root', options.cwd, branch );

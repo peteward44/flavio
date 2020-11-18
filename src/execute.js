@@ -17,6 +17,7 @@ async function exe( name, dir, args ) {
 
 
 async function execute( options ) {
+	util.defaultOptions( options );
 	await util.readConfigFile( options.cwd );
 	const args = options._.slice( 1 ); // "execute" will appear as first element in array
 	if ( args.length === 0 ) {

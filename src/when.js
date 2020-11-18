@@ -76,6 +76,7 @@ async function when( date, options = {} ) {
 	if ( !_.isString( options.cwd ) ) {
 		throw new Error( `Invalid cwd argument ${options.cwd}` );
 	}
+	util.defaultOptions( options );
 	await util.readConfigFile( options.cwd );
 	
 	console.log( `Setting date as ${date.toString()}...` );

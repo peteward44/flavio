@@ -149,6 +149,7 @@ describe(`update tests`, function() {
 		} );
 		// do force-latest to make sure we get v1.1.0 of main2
 		await update( { 'cwd': result.checkoutDir, 'force-latest': true } );
+		console.log( `checkoutDir = ${path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.1.1.0.txt' )}` );
 		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.1.1.0.txt' ) ), 'main2 dependency installed' );
 		chai.assert.ok( !fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.0.2.0.txt' ) ), 'main2 dependency installed' );
 		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main3', 'file3.txt' ) ), 'main3 dependency installed' );

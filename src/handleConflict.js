@@ -1,26 +1,31 @@
 import _ from 'lodash';
 import inquirer from 'inquirer';
 import semver from 'semver';
-import * as git from './git.js';
 import * as util from './util.js';
 
 
 /**
- * @returns {string} - Returns the repo to use
+ * @returns {module} - Returns the repo to use
  */
-async function handleConflict( options, name, module, rootFlavioJson ) {
-	console.log( `Conflict! ${name} ${JSON.stringify(module)}` );
-	const pkgdir = module.dir;
-	const localUrl = await git.getWorkingCopyUrl( pkgdir, false );
-	const localRepoUrl = util.parseRepositoryUrl( localUrl );
-	const otherRepoUrl = util.parseRepositoryUrl( module.repo );
-	const isSameRepo = localRepoUrl.url === otherRepoUrl.url;
-	
+async function handleConflict( options, name, moduleArray, rootFlavioJson ) {
+	console.log( `Conflict! ${name}` );
+
 	// check the root flavio.json to see if a conflict resolver has been defined already
 	if ( _.isObject( rootFlavioJson.resolutions ) ) {
 		if ( rootFlavioJson.resolutions.hasOwnProperty( name ) ) {
 			// resolution has been defined, return that
-			return rootFlavioJson.resolutions[name];
+			// prefer to return our own object, if we dont have it return a new one
+			const found = _.find( moduleArray, (module) => module.name.toLowerCase() === name.toLowerCase() );
+			if ( !found ) {
+				return {
+					name,
+					dir: moduleArray[0].dir,
+					repo: rootFlavioJson.resolutions[name],
+					children: new Map()
+				};
+			} else {
+				return found;
+			}
 		}
 	}
 	
@@ -29,40 +34,38 @@ async function handleConflict( options, name, module, rootFlavioJson ) {
 
 	// if the conflict is between different versions of the same repo, then always try to work out the latest version
 	// (assuming they use semantic versioning for their tags)
-	let latest;
-	if ( isSameRepo ) {
-		const lhs = semver.valid( semver.clean( localRepoUrl.target ) );
-		const rhs = semver.valid( semver.clean( otherRepoUrl.target ) );
-		if ( lhs && rhs ) {
-			// both target names are valid semver names, figure out which is higher
-			const gt = semver.gt( lhs, rhs );
-			latest = gt ? localUrl : module.repo;
+	let latest = null;
+	let latestSem = null;
+	let master = null;
+	for ( const module of moduleArray ) {
+		const repoUrl = util.parseRepositoryUrl( module.repo );
+		if ( repoUrl.target === 'master' ) {
+			master = module;
+		}
+		const sem = semver.valid( semver.clean( repoUrl.target ) );
+		if ( sem ) {
+			if ( latest === null || semver.gt( sem, latestSem ) ) {	
+				latest = module;
+				latestSem = sem;
+			}
 		}
 	}
-	
-	if ( options['force-latest'] || !isInteractive ) {
-		if ( latest ) {
-			return latest;
-		}
+	if ( latest === null ) {
+		latest = master;
 	}
-	
-	if ( isInteractive ) {
+	if ( isInteractive && !options['force-latest'] ) {
 		// ask user	which they prefer - if it's the same repo, then just display the target names. Otherwise display full repo URLs
 		const question = {
 			type: 'list',
 			name: 'q',
-			message: `Conflict detected for package ${name}` + ( isSameRepo ? ` ${localRepoUrl.url}` : `` ),
-			choices: [
-				isSameRepo ? localRepoUrl.target : localUrl,
-				isSameRepo ? otherRepoUrl.target : module.repo
-			],
-			default: latest === localUrl ? 0 : 1
+			message: `Conflict detected for package ${name}`,
+			choices: moduleArray.map( (module) => module.repo ),
+			default: _.findIndex( (module) => module === latest ) || 0
 		};
 		const answer = await inquirer.prompt( [question] );
-		return isSameRepo ? `${localRepoUrl.url}#${answer.q}` : answer.q;
+		return _.find( moduleArray, (module) => answer.q === module.repo );
 	}
-	// always fall back to the pre-existing repo if no other alternative can be found
-	return localUrl;
+	return latest || master || moduleArray[0];
 }
 
 export default handleConflict;
