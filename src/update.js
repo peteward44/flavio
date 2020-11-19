@@ -67,8 +67,6 @@ async function update( options ) {
 	}
 	await util.readConfigFile( options.cwd );
 
-	let updateCount = 0;
-	let changeCount = 0;
 	let updateResult = {
 		changed: false
 	};
@@ -79,18 +77,28 @@ async function update( options ) {
 		console.error( chalk.red( `Conflicts detected` ), `aborting update` );
 		return;
 	}
-
+	
+	const inspectionMap = new Map();
+	
+	function incrementInspectionMap( depName, change = true ) {
+		if ( !inspectionMap.has( depName ) ) {
+			inspectionMap.set( depName, { changed: false } );
+		}
+		if ( change ) {
+			inspectionMap.get( depName ).changed = true;
+		}
+	}
+	
+	incrementInspectionMap( 'main', false );
 	if ( !options.fromCloneCommand ) {
-		updateCount++;
 		if ( await updateMainProject( options ) ) {
 			updateResult.changed = true;
-			changeCount++;
+			incrementInspectionMap( 'main' );
 		}
 	} else {
 		// Called from the 'clone' command - Automatically increment update/change count to account for main project
 		updateResult.changed = true;
-		updateCount++;
-		changeCount++;
+		incrementInspectionMap( 'main' );
 	}
 	
 	// re-read config file in case the .flaviorc has changed
@@ -103,6 +111,7 @@ async function update( options ) {
 		const modules = await depTree.listChildren( options );
 		for ( const moduleArray of modules.values() ) {
 			const module = moduleArray[0];
+			incrementInspectionMap( module.name, false );
 			switch ( module.status ) {
 				case 'missing':
 					if ( !fs.existsSync( path.join( module.dir, '.git' ) ) ) {
@@ -111,7 +120,7 @@ async function update( options ) {
 						}
 						const repoUrl = util.parseRepositoryUrl( module.repo );
 						await clone( module.dir, options, repoUrl, options.link );
-						missingCount++;
+						incrementInspectionMap( module.name );
 					}
 					break;
 				default:
@@ -131,8 +140,11 @@ async function update( options ) {
 			if ( !fs.existsSync( path.join( module.dir, '.git' ) ) ) {
 				const repoUrl = util.parseRepositoryUrl( module.repo );
 				await clone( module.dir, options, repoUrl, options.link );
+				incrementInspectionMap( module.name );
 			} else {
-				await checkAndSwitch( options, module.dir, module.repo );
+				if ( await checkAndSwitch( options, module.dir, module.repo ) ) {
+					incrementInspectionMap( module.name );
+				}
 			}
 		}
 	}
@@ -151,13 +163,19 @@ async function update( options ) {
 				// check to see if the local branch still exists on the remote, reset if not
 				if ( options['remote-reset'] !== false ) {
 					const repoUrl = util.parseRepositoryUrl( module.repo );
-					await checkRemoteResetRequired( targetObj, module.name, module, options, repoUrl );
+					if ( await checkRemoteResetRequired( targetObj, module.name, module, options, repoUrl ) ) {
+						incrementInspectionMap( module.name );
+					}
 				}
 				if ( options.switch ) {
-					await checkAndSwitch( options, module.dir, module.repo );
+					if ( await checkAndSwitch( options, module.dir, module.repo ) ) {
+						incrementInspectionMap( module.name );
+					}
 				}
 				try {
-					await stashAndPull( module.dir, options );
+					if ( await stashAndPull( module.dir, options ) ) {
+						incrementInspectionMap( module.name );
+					}
 				} catch ( err ) {
 					// On a repo that looks like everything should work fine but doesn't, the repo has probably been recreated.
 					// if the repo is clean, hard reset and pull.
@@ -171,6 +189,7 @@ async function update( options ) {
 							await git.fetch( pkgdir, ['--all'] );
 							await git.executeGit( ['reset', '--hard', `origin/${targetObj.tag || targetObj.commit || targetObj.branch}`], { cwd: pkgdir } );
 							await git.pull( pkgdir, { depth: options.depth } );
+							incrementInspectionMap( module.name );
 						} else {
 							console.log( util.formatConsoleDependencyName( module.name ), `Unrelated histories detected, but cannot reset due to local changes!` );
 						}
@@ -186,6 +205,13 @@ async function update( options ) {
 	if ( options.json ) {
 		console.log( JSON.stringify( updateResult, null, 2 ) );
 	} else {
+		const updateCount = inspectionMap.size;
+		let changeCount = 0;
+		for ( const value of inspectionMap.values() ) {
+			if ( value.changed ) {
+				changeCount++;
+			}
+		}
 		console.log( chalk.yellow( `${updateCount}` ), `${updateCount === 1 ? 'repository' : 'repositories'} inspected,`, chalk.yellow( `${changeCount}` ), `changed` );
 	}
 }

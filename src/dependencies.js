@@ -76,7 +76,7 @@ export async function checkAndSwitch( options, pkgdir, repo ) {
 		// check if pkgdir is already pointing to right place. If it is, leave it alone
 		repoState = await util.hasRepoChanged( repo, pkgdir );
 		if ( !repoState || repoState === '' ) {
-			return;
+			return false;
 		}
 		try {
 			// If the directory is a junction, it'll delete without throwing an error. If it's a proper directory, it will throw an exception
@@ -133,6 +133,7 @@ export async function checkAndSwitch( options, pkgdir, repo ) {
 		fs.symlinkSync( cloneDir, pkgdir, os.platform() === "win32" ? 'junction' : 'dir' );
 		console.log( `Linked ${path.basename(pkgdir)} -> ${cloneDir}` );
 	}
+	return true;
 }
 
 
