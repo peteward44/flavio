@@ -151,9 +151,7 @@ async function update( options ) {
 				// check to see if the local branch still exists on the remote, reset if not
 				if ( options['remote-reset'] !== false ) {
 					const repoUrl = util.parseRepositoryUrl( module.repo );
-					if ( await checkRemoteResetRequired( targetObj, module.name, module, options, repoUrl ) ) {
-						break;
-					}
+					await checkRemoteResetRequired( targetObj, module.name, module, options, repoUrl );
 				}
 				if ( options.switch ) {
 					await checkAndSwitch( options, module.dir, module.repo );

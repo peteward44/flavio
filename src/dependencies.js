@@ -38,8 +38,14 @@ export async function clone( pkgdir, options, repoUrl, isLinked ) {
 		}
 		cloneDir = pkgdir;
 	}
-	if ( !fs.existsSync( cloneDir ) ) {
+	if ( !fs.existsSync( path.join( cloneDir, '.git' ) ) ) {
 		fs.ensureDirSync( path.dirname( cloneDir ) );
+		if ( fs.existsSync( cloneDir ) ) {
+			try {
+				fs.unlinkSync( cloneDir );
+			} catch ( err ) {
+			}
+		}
 		await git.clone( repoUrl.url, cloneDir, { branch: repoUrl.target || 'master', depth: options.depth } );
 		const flavioJson = await util.loadFlavioJson( cloneDir );
 		if ( flavioJson && flavioJson.lfs ) {
@@ -48,6 +54,7 @@ export async function clone( pkgdir, options, repoUrl, isLinked ) {
 	}
 	
 	if ( isLinked ) {
+		console.log( `Creating symlink cloneDir=${cloneDir} pkgdir=${pkgdir}` );
 		fs.ensureDirSync( path.dirname( pkgdir ) );
 		if ( fs.existsSync( pkgdir ) ) {
 			try {
@@ -62,8 +69,15 @@ export async function clone( pkgdir, options, repoUrl, isLinked ) {
 
 
 export async function checkAndSwitch( options, pkgdir, repo ) {
+	const repoUrl = util.parseRepositoryUrl( repo );
+	let repoState = '';
 	let isLinked = options.link !== false;
-	if ( fs.existsSync( pkgdir ) ) {
+	if ( fs.existsSync( path.join( pkgdir, '.git' ) ) ) {
+		// check if pkgdir is already pointing to right place. If it is, leave it alone
+		repoState = await util.hasRepoChanged( repo, pkgdir );
+		if ( !repoState || repoState === '' ) {
+			return;
+		}
 		try {
 			// If the directory is a junction, it'll delete without throwing an error. If it's a proper directory, it will throw an exception
 			fs.unlinkSync( pkgdir );
@@ -72,15 +86,20 @@ export async function checkAndSwitch( options, pkgdir, repo ) {
 			isLinked = false;
 		}
 	}
-	const repoUrl = util.parseRepositoryUrl( repo );
 	let cloneDir;
 	if ( isLinked ) {
 		cloneDir = path.join( options.linkdir, repoUrlToLinkDirString( repoUrl ) );
 	} else {
 		cloneDir = pkgdir;
 	}
-	if ( !fs.existsSync( cloneDir ) ) {
+	if ( !fs.existsSync( path.join( cloneDir, '.git' ) ) ) {
 		fs.ensureDirSync( path.dirname( cloneDir ) );
+		if ( fs.existsSync( cloneDir ) ) {
+			try {
+				fs.unlinkSync( cloneDir );
+			} catch ( err ) {
+			}
+		}
 		await git.clone( repoUrl.url, cloneDir, { branch: repoUrl.target || 'master', depth: options.depth } );
 		const flavioJson = await util.loadFlavioJson( cloneDir );
 		if ( flavioJson && flavioJson.lfs ) {
@@ -88,7 +107,6 @@ export async function checkAndSwitch( options, pkgdir, repo ) {
 		}
 	} else {
 		// switch to right target if necessary
-		const repoState = await util.hasRepoChanged( repo, cloneDir );
 		if ( repoState === 'url' ) {
 			// completely different repo - rename old directory to preverse data
 			if ( fs.existsSync( pkgdir ) && cloneDir === pkgdir ) {
@@ -96,7 +114,7 @@ export async function checkAndSwitch( options, pkgdir, repo ) {
 				fs.renameSync( cloneDir, newPkgDir );
 			}
 			// then clone new one
-			await clone( cloneDir, options, repoUrl, options.link );
+			await clone( pkgdir, options, repoUrl, options.link );
 		} else if ( repoState === 'target' ) {
 			const targetObj = await resolve.getTargetFromRepoUrl( repo, cloneDir );
 			await git.checkout( cloneDir, targetObj );
@@ -104,6 +122,7 @@ export async function checkAndSwitch( options, pkgdir, repo ) {
 	}
 	
 	if ( isLinked ) {
+		console.log( `(CheckAndSwitch) Creating symlink cloneDir=${cloneDir} pkgdir=${pkgdir}` );
 		fs.ensureDirSync( path.dirname( pkgdir ) );
 		if ( fs.existsSync( pkgdir ) ) {
 			try {
@@ -112,7 +131,7 @@ export async function checkAndSwitch( options, pkgdir, repo ) {
 			}
 		}
 		fs.symlinkSync( cloneDir, pkgdir, os.platform() === "win32" ? 'junction' : 'dir' );
-		console.log( `Linked ${pkgdir} -> ${cloneDir}` );
+		console.log( `Linked ${path.basename(pkgdir)} -> ${cloneDir}` );
 	}
 }
 

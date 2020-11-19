@@ -17,15 +17,8 @@ async function buildTree( options, name, parentRepo, dir, isRoot = false, nodeCa
 		children: new Map()
 	};
 
-	if ( fs.existsSync( dir ) ) {
-		const repoState = await util.hasRepoChanged( parentRepo, dir );
-		if ( repoState === 'url' ) {
-			element.status = 'conflict-url';
-		} else if ( repoState === 'target' ) {
-			element.status = 'conflict-target';
-		} else {
-			element.status = 'installed';
-		}
+	if ( fs.existsSync( path.join( dir, '.git' ) ) ) {
+		element.status = 'installed';
 	} else {
 		element.status = 'missing';
 	}

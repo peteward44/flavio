@@ -3,9 +3,10 @@ import _ from 'lodash';
 import * as util from './util.js';
 import * as git from './git.js';
 import * as depTree from './depTree.js';
+import { checkAndSwitch } from './dependencies.js';
 
 
-async function exe( name, dir, branch ) {
+async function exe( options, name, dir, branch ) {
 	if ( fs.existsSync( dir ) ) {
 		try {
 			const local = await git.doesLocalBranchExist( dir, branch );
@@ -13,7 +14,9 @@ async function exe( name, dir, branch ) {
 			const remote = await git.doesRemoteBranchExist( url, branch );
 			if ( local || remote ) {
 				console.log( `${name}: Checking out branch ${branch}` );
-				await git.checkout( dir, { branch } );
+				const repo = await git.getWorkingCopyUrl( dir );
+				const repoUrl = util.parseRepositoryUrl( repo );
+				await checkAndSwitch( options, dir, `${repoUrl.url}#${branch}` );
 			}
 		} catch ( err ) {
 			console.error( `Error executing checkout` );
@@ -34,13 +37,13 @@ async function checkout( branch, options = {} ) {
 	util.defaultOptions( options );
 	await util.readConfigFile( options.cwd );
 	
-	await exe( 'root', options.cwd, branch );
+	await exe( options, 'root', options.cwd, branch );
 	
 	const modules = await depTree.listChildren( options );
 	console.log( `${modules.size} dependencies found` );
 	
 	for ( const [name, moduleArray] of modules ) {
-		await exe( name, moduleArray[0].dir, branch );
+		await exe( options, name, moduleArray[0].dir, branch );
 	}
 }
 
