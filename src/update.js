@@ -65,6 +65,7 @@ async function update( options ) {
 	if ( !_.isString( options.cwd ) ) {
 		throw new Error( `Invalid cwd argument ${options.cwd}` );
 	}
+	util.defaultOptions( options );
 	await util.readConfigFile( options.cwd );
 
 	let updateResult = {
@@ -114,6 +115,7 @@ async function update( options ) {
 			incrementInspectionMap( module.name, false );
 			switch ( module.status ) {
 				case 'missing':
+					missingCount++;
 					if ( !fs.existsSync( path.join( module.dir, '.git' ) ) ) {
 						if ( !options.json ) {
 							console.log( util.formatConsoleDependencyName( module.name ), `Repository missing, performing fresh clone...` );
