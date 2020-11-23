@@ -16,6 +16,16 @@ export default function start() {
 			.help('help')
 			.alias( 'h', 'help' )
 			.alias( 'v', 'version' )
+			.option('link', {
+				describe: 'Dependencies are cloned in a common directory then symbolic links are created in the flavio_dependencies directory',
+				boolean: true,
+				default: true
+			})
+			.option('linkdir', {
+				describe: 'Directory to use for dependencies when using --link option',
+				string: true,
+				default: util.getDefaultLinkDir()
+			})
 			.version(pkgJson.version)
 			.command('update', 'Installs and updates all dependencies', (subyargs) => {
 				const options = subyargs
@@ -60,16 +70,6 @@ export default function start() {
 						describe: 'Only perform commands on the main repository (not on any dependencies)',
 						boolean: true,
 						default: false
-					})
-					.option('link', {
-						describe: 'Dependencies are cloned in a common directory then symbolic links are created in the flavio_dependencies directory',
-						boolean: true,
-						default: true
-					})
-					.option('linkdir', {
-						describe: 'Directory to use for dependencies when using --link option',
-						string: true,
-						default: util.getDefaultLinkDir()
 					})
 					.argv;
 				flavio.commands.update(options)
@@ -241,16 +241,6 @@ export default function start() {
 						describe: '--depth option to pass to git when cloning a fresh repository. Use zero or negative value to get entire history',
 						number: true,
 						default: undefined
-					})
-					.option('link', {
-						describe: 'Dependencies are cloned in a common directory then symbolic links are created in the flavio_dependencies directory',
-						boolean: true,
-						default: true
-					})
-					.option('linkdir', {
-						describe: 'Directory to use for dependencies when using --link option',
-						string: true,
-						default: util.getDefaultLinkDir()
 					})
 					.argv;
 

@@ -54,7 +54,6 @@ export async function clone( pkgdir, options, repoUrl, isLinked ) {
 	}
 	
 	if ( isLinked ) {
-		console.log( `Creating symlink cloneDir=${cloneDir} pkgdir=${pkgdir}` );
 		fs.ensureDirSync( path.dirname( pkgdir ) );
 		if ( fs.existsSync( pkgdir ) ) {
 			try {
@@ -122,7 +121,6 @@ export async function checkAndSwitch( options, pkgdir, repo ) {
 	}
 	
 	if ( isLinked ) {
-		console.log( `(CheckAndSwitch) Creating symlink cloneDir=${cloneDir} pkgdir=${pkgdir}` );
 		fs.ensureDirSync( path.dirname( pkgdir ) );
 		if ( fs.existsSync( pkgdir ) ) {
 			try {
