@@ -9,6 +9,7 @@ import checkForConflicts from './checkForConflicts.js';
 import handleConflict from './handleConflict.js';
 import { clone, checkAndSwitch, checkRemoteResetRequired } from './dependencies.js';
 import { getTargetFromRepoUrl } from './resolve.js';
+import DependencyStatusMap from './DependencyStatusMap.js';
 
 
 async function stashAndPull( pkgdir, options ) {
@@ -68,9 +69,7 @@ async function update( options ) {
 	util.defaultOptions( options );
 	await util.readConfigFile( options.cwd );
 
-	let updateResult = {
-		changed: false
-	};
+	const depStatusMap = new DependencyStatusMap();
 
 	// make sure there are no conflicts in any dependencies before doing update
 	const isConflicted = await checkForConflicts( options );
@@ -79,28 +78,15 @@ async function update( options ) {
 		return;
 	}
 	
-	const inspectionMap = new Map();
-	
-	function incrementInspectionMap( depName, change = true ) {
-		if ( !inspectionMap.has( depName ) ) {
-			inspectionMap.set( depName, { changed: false } );
-		}
-		if ( change ) {
-			inspectionMap.get( depName ).changed = true;
-		}
-	}
-	
-	incrementInspectionMap( 'main', false );
 	if ( !options.fromCloneCommand ) {
 		if ( await updateMainProject( options ) ) {
-			updateResult.changed = true;
-			incrementInspectionMap( 'main' );
+			depStatusMap.markChanged( 'main' );
 		}
 	} else {
 		// Called from the 'clone' command - Automatically increment update/change count to account for main project
-		updateResult.changed = true;
-		incrementInspectionMap( 'main' );
+		depStatusMap.markChanged( 'main' );
 	}
+	depStatusMap.markUpToDate( 'main' );
 	
 	// re-read config file in case the .flaviorc has changed
 	await util.readConfigFile( options.cwd );
@@ -112,7 +98,7 @@ async function update( options ) {
 		const modules = await depTree.listChildren( options );
 		for ( const moduleArray of modules.values() ) {
 			const module = moduleArray[0];
-			incrementInspectionMap( module.name, false );
+			depStatusMap.markInspected( module.name );
 			switch ( module.status ) {
 				case 'missing':
 					missingCount++;
@@ -122,7 +108,8 @@ async function update( options ) {
 						}
 						const repoUrl = util.parseRepositoryUrl( module.repo );
 						await clone( module.dir, options, repoUrl, options.link );
-						incrementInspectionMap( module.name );
+						depStatusMap.markChanged( module.name );
+						depStatusMap.markUpToDate( module.name );
 					}
 					break;
 				default:
@@ -142,10 +129,23 @@ async function update( options ) {
 			if ( !fs.existsSync( path.join( module.dir, '.git' ) ) ) {
 				const repoUrl = util.parseRepositoryUrl( module.repo );
 				await clone( module.dir, options, repoUrl, options.link );
-				incrementInspectionMap( module.name );
+				depStatusMap.markChanged( module.name );
+				depStatusMap.markUpToDate( module.name );
 			} else {
-				if ( await checkAndSwitch( options, module.dir, module.repo ) ) {
-					incrementInspectionMap( module.name );
+				if ( !depStatusMap.isUpToDate( module.name ) ) {
+					const status = await checkAndSwitch( options, module.dir, module.repo );
+					switch ( status ) {
+						default:
+						case 'none':
+							break;
+						case 'clone':
+							depStatusMap.markChanged( module.name );
+							depStatusMap.markUpToDate( module.name );
+							break;
+						case 'switch':
+							depStatusMap.markChanged( module.name );
+							break;
+					}
 				}
 			}
 		}
@@ -158,45 +158,69 @@ async function update( options ) {
 				break;
 			case 'installed':
 			{
-				if ( !options.json ) {
-					console.log( util.formatConsoleDependencyName( module.name ), `Updating...` );
-				}
-				const targetObj = await getTargetFromRepoUrl( module.repo, module.dir );
-				// check to see if the local branch still exists on the remote, reset if not
-				if ( options['remote-reset'] !== false ) {
-					const repoUrl = util.parseRepositoryUrl( module.repo );
-					if ( await checkRemoteResetRequired( targetObj, module.name, module, options, repoUrl ) ) {
-						incrementInspectionMap( module.name );
+				depStatusMap.markInspected( module.name );
+				if ( !depStatusMap.isUpToDate( module.name ) ) {
+					if ( !options.json ) {
+						console.log( util.formatConsoleDependencyName( module.name ), `Updating...` );
 					}
-				}
-				if ( options.switch ) {
-					if ( await checkAndSwitch( options, module.dir, module.repo ) ) {
-						incrementInspectionMap( module.name );
-					}
-				}
-				try {
-					if ( await stashAndPull( module.dir, options ) ) {
-						incrementInspectionMap( module.name );
-					}
-				} catch ( err ) {
-					// On a repo that looks like everything should work fine but doesn't, the repo has probably been recreated.
-					// if the repo is clean, hard reset and pull.
-					const pkgdir = module.dir;
-					const errout = ( await git.pull( pkgdir, {
-						captureStderr: true, captureStdout: true, ignoreError: true, depth: options.depth 
-					} ) ).err.trim();
-					if ( errout === 'fatal: refusing to merge unrelated histories' ) {
-						if ( await git.isWorkingCopyClean( pkgdir ) ) {
-							console.log( util.formatConsoleDependencyName( module.name ), `Unrelated histories detected, performing hard reset...` );
-							await git.fetch( pkgdir, ['--all'] );
-							await git.executeGit( ['reset', '--hard', `origin/${targetObj.tag || targetObj.commit || targetObj.branch}`], { cwd: pkgdir } );
-							await git.pull( pkgdir, { depth: options.depth } );
-							incrementInspectionMap( module.name );
-						} else {
-							console.log( util.formatConsoleDependencyName( module.name ), `Unrelated histories detected, but cannot reset due to local changes!` );
+					const targetObj = await getTargetFromRepoUrl( module.repo, module.dir );
+					// check to see if the local branch still exists on the remote, reset if not
+					if ( options['remote-reset'] !== false ) {
+						const repoUrl = util.parseRepositoryUrl( module.repo );
+						const status = await checkRemoteResetRequired( targetObj, module.name, module, options, repoUrl );
+						switch ( status ) {
+							default:
+							case 'none':
+								break;
+							case 'clone':
+								depStatusMap.markChanged( module.name );
+								depStatusMap.markUpToDate( module.name );
+								break;
+							case 'switch':
+								depStatusMap.markChanged( module.name );
+								break;
 						}
-					} else {
-						throw err;
+					}
+					if ( options.switch ) {
+						const status = await checkAndSwitch( options, module.dir, module.repo );
+						switch ( status ) {
+							default:
+							case 'none':
+								break;
+							case 'clone':
+								depStatusMap.markChanged( module.name );
+								depStatusMap.markUpToDate( module.name );
+								break;
+							case 'switch':
+								depStatusMap.markChanged( module.name );
+								break;
+						}
+					}
+					try {
+						if ( await stashAndPull( module.dir, options ) ) {
+							depStatusMap.markChanged( module.name );
+						}
+					} catch ( err ) {
+						// On a repo that looks like everything should work fine but doesn't, the repo has probably been recreated.
+						// if the repo is clean, hard reset and pull.
+						const pkgdir = module.dir;
+						const errout = ( await git.pull( pkgdir, {
+							captureStderr: true, captureStdout: true, ignoreError: true, depth: options.depth 
+						} ) ).err.trim();
+						if ( errout === 'fatal: refusing to merge unrelated histories' ) {
+							if ( await git.isWorkingCopyClean( pkgdir ) ) {
+								console.log( util.formatConsoleDependencyName( module.name ), `Unrelated histories detected, performing hard reset...` );
+								await git.fetch( pkgdir, ['--all'] );
+								await git.executeGit( ['reset', '--hard', `origin/${targetObj.tag || targetObj.commit || targetObj.branch}`], { cwd: pkgdir } );
+								await git.pull( pkgdir, { depth: options.depth } );
+								depStatusMap.markChanged( module.name );
+								depStatusMap.markUpToDate( module.name );
+							} else {
+								console.log( util.formatConsoleDependencyName( module.name ), `Unrelated histories detected, but cannot reset due to local changes!` );
+							}
+						} else {
+							throw err;
+						}
 					}
 				}
 				break;
@@ -204,16 +228,9 @@ async function update( options ) {
 		}
 	}
 
-	if ( options.json ) {
-		console.log( JSON.stringify( updateResult, null, 2 ) );
-	} else {
-		const updateCount = inspectionMap.size;
-		let changeCount = 0;
-		for ( const value of inspectionMap.values() ) {
-			if ( value.changed ) {
-				changeCount++;
-			}
-		}
+	if ( !options.json ) {
+		const updateCount = depStatusMap.inspectedCount();
+		const changeCount = depStatusMap.changedCount();
 		console.log( chalk.yellow( `${updateCount}` ), `${updateCount === 1 ? 'repository' : 'repositories'} inspected,`, chalk.yellow( `${changeCount}` ), `changed` );
 	}
 }

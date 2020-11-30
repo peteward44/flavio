@@ -67,6 +67,12 @@ export async function clone( pkgdir, options, repoUrl, isLinked ) {
 }
 
 
+/**
+ * @returns {string} - Either "none", "clone", "switch"
+ * - None for no changes made or required
+ * - clone for a new repo was cloned
+ * - switch for repo was there but checkout operation done to switch to correct branch
+ */
 export async function checkAndSwitch( options, pkgdir, repo ) {
 	const repoUrl = util.parseRepositoryUrl( repo );
 	let repoState = '';
@@ -75,7 +81,7 @@ export async function checkAndSwitch( options, pkgdir, repo ) {
 		// check if pkgdir is already pointing to right place. If it is, leave it alone
 		repoState = await util.hasRepoChanged( repo, pkgdir );
 		if ( !repoState || repoState === '' ) {
-			return false;
+			return "none";
 		}
 		try {
 			// If the directory is a junction, it'll delete without throwing an error. If it's a proper directory, it will throw an exception
@@ -85,6 +91,7 @@ export async function checkAndSwitch( options, pkgdir, repo ) {
 			isLinked = false;
 		}
 	}
+	let status = "";
 	let cloneDir;
 	if ( isLinked ) {
 		cloneDir = path.join( options.linkdir, repoUrlToLinkDirString( repoUrl ) );
@@ -104,6 +111,7 @@ export async function checkAndSwitch( options, pkgdir, repo ) {
 		if ( flavioJson && flavioJson.lfs ) {
 			await git.initLFS( cloneDir );
 		}
+		status = "clone";
 	} else {
 		// switch to right target if necessary
 		if ( repoState === 'url' ) {
@@ -114,9 +122,11 @@ export async function checkAndSwitch( options, pkgdir, repo ) {
 			}
 			// then clone new one
 			await clone( pkgdir, options, repoUrl, options.link );
+			status = "clone";
 		} else if ( repoState === 'target' ) {
 			const targetObj = await resolve.getTargetFromRepoUrl( repo, cloneDir );
 			await git.checkout( cloneDir, targetObj );
+			status = "switch";
 		}
 	}
 	
@@ -131,7 +141,7 @@ export async function checkAndSwitch( options, pkgdir, repo ) {
 		fs.symlinkSync( cloneDir, pkgdir, os.platform() === "win32" ? 'junction' : 'dir' );
 		console.log( `Linked ${path.basename(pkgdir)} -> ${cloneDir}` );
 	}
-	return true;
+	return status;
 }
 
 
@@ -157,9 +167,8 @@ export async function checkRemoteResetRequired( targetObj, name, module, options
 				console.log( util.formatConsoleDependencyName( name ), `Switching branch to "${targetBranchName}" from "${target.branch}" as remote branch no longer exists` );
 			}
 			
-			await checkAndSwitch( options, pkgdir, `${repoUrl.url}#${targetBranchName}` );
-			return true;
+			return checkAndSwitch( options, pkgdir, `${repoUrl.url}#${targetBranchName}` );
 		}
 	}
-	return false;
+	return 'none';
 }
