@@ -54,7 +54,7 @@ async function handleConflict( options, name, moduleArray, rootFlavioJson ) {
 		latest = master;
 	}
 	if ( isInteractive && !options['force-latest'] ) {
-		// ask user	which they prefer - if it's the same repo, then just display the target names. Otherwise display full repo URLs
+		// ask user	which they prefer
 		const question = {
 			type: 'list',
 			name: 'q',

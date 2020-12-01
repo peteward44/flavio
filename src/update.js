@@ -123,8 +123,9 @@ async function update( options ) {
 	// resolve all conflicts
 	const rootFlavioJson = await util.loadFlavioJson( options.cwd );
 	for ( const [name, modulesArray] of modules.entries() ) {
-		if ( modulesArray.length > 1 ) {
-			const module = await handleConflict( options, name, modulesArray, rootFlavioJson );
+		const filtered = _.uniqBy( modulesArray, ( module ) => module.repo.toLowerCase() );
+		if ( filtered.length > 1 ) {
+			const module = await handleConflict( options, name, filtered, rootFlavioJson );
 			modules.set( module.name, [module] );
 			if ( !fs.existsSync( path.join( module.dir, '.git' ) ) ) {
 				const repoUrl = util.parseRepositoryUrl( module.repo );
