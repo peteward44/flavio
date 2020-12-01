@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import yargs from 'yargs';
 import moment from 'moment';
 import pkgJson from '../package.json';
@@ -28,7 +29,7 @@ export default function start() {
 			})
 			.version(pkgJson.version)
 			.command('update', 'Installs and updates all dependencies', (subyargs) => {
-				const options = subyargs
+				const options = _.cloneDeep( subyargs
 					.usage(`Usage: flavio update [options]`)
 					.example('flavio update', 'Installs and updates all dependencies')
 					.help('help')
@@ -71,13 +72,13 @@ export default function start() {
 						boolean: true,
 						default: false
 					})
-					.argv;
+					.argv );
 				flavio.commands.update(options)
 					.then(resolve)
 					.catch(reject);
 			} )
 			.command('add', 'Adds a new dependency', ( subyargs ) => {
-				const options = subyargs
+				const options = _.cloneDeep( subyargs
 					.usage('Usage: flavio add [options] <name> <repourl>')
 					.example('flavio add My_Repo http://github.com/myuser/myrepo.git#0.2.0', 'Adds myrepo.git to dependency list using the name My_Repo')
 					.help('help')
@@ -85,7 +86,7 @@ export default function start() {
 						describe: 'Working directory to use',
 						default: process.cwd()
 					})
-					.argv;
+					.argv );
 				if ( options._.length < 3 ) {
 					console.error( `Not enough arguments specified for add command - Example: flavio add My_Repo https://github.com/my_repo.git` );
 					resolve();
@@ -96,7 +97,7 @@ export default function start() {
 				}
 			} )
 			.command('status', 'Prints out dependency status to console', (subyargs) => {
-				const options = subyargs
+				const options = _.cloneDeep( subyargs
 					.usage('Usage: flavio status [options]')
 					.example('flavio status', 'Prints out dependency status')
 					.help('help')
@@ -109,13 +110,13 @@ export default function start() {
 						boolean: true,
 						default: false
 					})
-					.argv;
+					.argv );
 				flavio.commands.status(options)
 					.then(resolve)
 					.catch(reject);
 			})
 			.command('execute', 'Executes a git command on main project and all dependencies - use with caution', (subyargs) => {
-				const options = subyargs
+				const options = _.cloneDeep( subyargs
 					.usage('Usage: flavio execute -- [<command>]')
 					.example('flavio execute -- reset --hard', 'Hard resets all repos')
 					.help('help')
@@ -123,13 +124,13 @@ export default function start() {
 						describe: 'Working directory to use',
 						default: process.cwd()
 					})
-					.argv;
+					.argv );
 				flavio.commands.execute(options)
 					.then(resolve)
 					.catch(reject);
 			})
 			.command('checkout', 'If a branch exists for a dependency, will checkout', (subyargs) => {
-				const options = subyargs
+				const options = _.cloneDeep( subyargs
 					.usage('Usage: flavio checkout [<branch>]')
 					.example('flavio branch my-branch-name', 'Checks out given branch on all dependencies')
 					.help('help')
@@ -137,14 +138,14 @@ export default function start() {
 						describe: 'Working directory to use',
 						default: process.cwd()
 					})
-					.argv;
+					.argv );
 				const branch = options._[1];
 				flavio.commands.checkout(branch, options)
 					.then(resolve)
 					.catch(reject);
 			})
 			.command('when', 'Attempts to set all dependencies to their state at the given date & time', (subyargs) => {
-				const options = subyargs
+				const options = _.cloneDeep( subyargs
 					.usage('Usage: flavio when <date>')
 					.example('flavio when 20180512 0633', 'Sets the repo to the state at 2018-05-21 06:33. Can accept any format string moment.js supports')
 					.help('help')
@@ -155,7 +156,7 @@ export default function start() {
 						describe: 'Working directory to use',
 						default: process.cwd()
 					})
-					.argv;
+					.argv );
 				const dateParts = options._.slice( 1 );
 				const date = moment( dateParts.join( " " ), options.format );
 				flavio.commands.when(date, options)
@@ -163,7 +164,7 @@ export default function start() {
 					.catch(reject);
 			})
 			.command('tag', 'Tags main project as well as any dependencies', (subyargs) => {
-				const options = subyargs
+				const options = _.cloneDeep( subyargs
 					.usage('Usage: flavio tag [options]')
 					.example('flavio tag', 'Creates a tag for main project and all linked dependencies')
 					.help('help')
@@ -180,13 +181,13 @@ export default function start() {
 						boolean: true,
 						default: true
 					})
-					.argv;
+					.argv );
 				flavio.commands.tag(options)
 					.then(resolve)
 					.catch(reject);
 			})
 			// .command('branch', 'Branches main project and/or all linked modules', (subyargs) => {
-				// const options = subyargs
+				// const options = _.cloneDeep( subyargs
 					// .usage('Usage: flavio branch <branch name> <modules> [options]')
 					// .example('flavio branch branch_name main', 'Creates a branch for main project only')
 					// .example('flavio branch branch_name my_module my_module2', 'Creates a branch for my_module and my_module2 only')
@@ -196,7 +197,7 @@ export default function start() {
 						// describe: 'Working directory to use',
 						// default: process.cwd()
 					// })
-					// .argv;
+					// .argv );
 				// let branchName;
 				// let names;
 				// if (options._.length > 1) {
@@ -208,7 +209,7 @@ export default function start() {
 					// .catch(reject);
 			// })
 			.command('export', 'Export main project and all modules to a provided output directory', (subyargs) => {
-				const options = subyargs
+				const options = _.cloneDeep( subyargs
 					.usage('Usage: flavio export <output directory> [options]')
 					.example('flavio export /home/user/myexport', 'Exports main project and all modules')
 					.help('help')
@@ -217,13 +218,37 @@ export default function start() {
 						default: process.cwd()
 					})
 					.demand(1)
-					.argv;
+					.argv );
 				flavio.commands.export(options._[1], options)
 					.then(resolve)
 					.catch(reject);
 			})
+			.command('clear', 'Deletes linked dependency repositories for this project', (subyargs) => {
+				const options = _.cloneDeep( subyargs
+					.usage('Usage: flavio clear')
+					.example('flavio clear', 'Deletes linked dependency repositories for this project')
+					.help('help')
+					.option('cwd', {
+						describe: 'Working directory to use',
+						default: process.cwd()
+					})
+					.argv );
+				flavio.commands.clear(options)
+					.then(resolve)
+					.catch(reject);
+			})
+			.command('clearall', 'Deletes all linked dependency repositories for all projects', (subyargs) => {
+				const options = _.cloneDeep( subyargs
+					.usage('Usage: flavio clearall')
+					.example('flavio clearall', 'Deletes all linked dependency repositories for all projects')
+					.help('help')
+					.argv );
+				flavio.commands.clear(options, true)
+					.then(resolve)
+					.catch(reject);
+			})
 			.command('clone', 'Clones / Checks out fresh project and installs all dependencies', (subyargs) => {
-				const options = subyargs
+				const options = _.cloneDeep( subyargs
 					.usage('Usage: flavio clone <url> [options]')
 					.example('flavio clone user@server:/var/repo.git', 'Clones / checks out repo.git and any dependencies')
 					.help('help')
@@ -242,7 +267,7 @@ export default function start() {
 						number: true,
 						default: undefined
 					})
-					.argv;
+					.argv );
 
 				const url = options._[1];
 				flavio.commands.clone( url, options )
@@ -250,7 +275,7 @@ export default function start() {
 					.catch(reject);
 			})
 			.command('init', 'Initialises a flavio project', (subyargs) => {
-				const options = subyargs
+				const options = _.cloneDeep( subyargs
 					.usage('Usage: flavio init [options]')
 					.example('flavio init', 'Initialises a flavio project')
 					.help('help')
@@ -258,7 +283,7 @@ export default function start() {
 						describe: 'Working directory to use',
 						default: process.cwd()
 					})
-					.argv;
+					.argv );
 				flavio.commands.init( options )
 					.then(resolve)
 					.catch(reject);

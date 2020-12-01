@@ -48,7 +48,7 @@ export function executeGit( args, options ) {
 			connected = false;
 			if ( code !== 0 && !options.ignoreError ) {
 				if ( !options.quiet ) {
-					printError( '', args );
+					printError( '', args, options.cwd ? options.cwd : process.cwd() );
 				}
 				reject( new Error( "Error running git" ) );
 			} else {

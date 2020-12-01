@@ -8,12 +8,14 @@ import exportProject from './exportProject.js';
 import checkout from './checkout.js';
 import when from './when.js';
 import init from './init.js';
+import clear from './clear.js';
 
 // import branch from './branch.js';
 
 const commands = {
 	update,
 	add,
+	clear,
 	tag,
 	clone,
 	status,

@@ -1,11 +1,13 @@
 import fs from 'fs-extra';
 import path from 'path';
 import chai from 'chai';
+import { execSync } from 'child_process';
 import * as helpers from '../testutil/helpers.js';
 import * as git from '../src/git.js';
 import * as util from '../src/util.js';
 import update from '../src/update.js';
 import TestRepo from '../testutil/TestRepo.js';
+
 
 describe(`update tests`, function() {
 	this.timeout(30 * 60 * 1000); // 30 minutes
@@ -236,5 +238,47 @@ describe(`update tests`, function() {
 
 	helpers.test.skip('update should be aborted if conflicts are detected', async (tempDir) => {
 
+	});
+
+	helpers.test('if a dependency has been recreated (ie assets wipe), old repo should be deleted and recreated', async (tempDir) => {
+		const result = await git.addProject( tempDir, {
+			name: 'main',
+			version: '0.1.0-snapshot.0',
+			files: [
+				{
+					path: 'file.txt',
+					contents: 'this is on the main project'
+				}
+			],
+			modules: [
+				{
+					name: 'main2',
+					version: '0.2.0-snapshot.0',
+					files: [
+						{
+							path: 'file2.txt',
+							contents: 'this is on the main2 project'
+						}
+					]
+				}
+			]
+		} );
+		
+		await update( { cwd: result.checkoutDir } );
+		
+		// recreate main2 repo
+		const tmpCheckoutDir = path.join( tempDir, "__recreate__" );
+		execSync( `git clone ${result.deps.main2.repoDir} ${path.basename( tmpCheckoutDir )}`, { stdio: 'inherit', cwd: path.dirname( tmpCheckoutDir ) } );
+		fs.removeSync( path.join( tmpCheckoutDir, '.git' ) );
+		execSync( `git init`, { cwd: tmpCheckoutDir, stdio: 'inherit' } );
+		execSync( `git remote add origin ${result.deps.main2.repoDir}`, { cwd: tmpCheckoutDir, stdio: 'inherit' } );
+		fs.writeFileSync( path.join( tmpCheckoutDir, 'file3.txt' ), 'file contents', 'utf8' );
+		execSync( `git add --all`, { cwd: tmpCheckoutDir, stdio: 'inherit' } );
+		execSync( `git commit -am "Git history wiped to reduce repo size"`, { cwd: tmpCheckoutDir, stdio: 'inherit' } );
+		execSync( `git push -f origin master`, { cwd: tmpCheckoutDir, stdio: 'inherit' } );
+		
+		await update( { cwd: result.checkoutDir } );
+		
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file3.txt' ) ), 'Repo recreated and updated successfully' );
 	});
 });

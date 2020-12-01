@@ -172,3 +172,7 @@ export async function checkRemoteResetRequired( targetObj, name, module, options
 	}
 	return 'none';
 }
+
+export function getLinkedRepoDir( options, repoUrl ) {
+	return path.join( options.linkdir, repoUrlToLinkDirString( repoUrl ) );
+}
