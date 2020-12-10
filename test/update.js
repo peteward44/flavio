@@ -9,6 +9,18 @@ import update from '../src/update.js';
 import TestRepo from '../testutil/TestRepo.js';
 
 
+async function addFileToRepo( tempDir, repoDir, file, contents ) {
+	const tmpCheckoutDir = path.join( tempDir, `${Math.floor( Math.random() * 1000000 )}` );
+	execSync( `git clone ${repoDir} ${path.basename( tmpCheckoutDir )}`, { stdio: 'inherit', cwd: path.dirname( tmpCheckoutDir ) } );
+	fs.ensureDirSync( path.dirname( path.join( tmpCheckoutDir, file ) ) );
+	fs.writeFileSync( path.join( tmpCheckoutDir, file ), contents, 'utf8' );
+	execSync( `git add --all`, { cwd: tmpCheckoutDir, stdio: 'inherit' } );
+	execSync( `git commit -am "Added new file"`, { cwd: tmpCheckoutDir, stdio: 'inherit' } );
+	execSync( `git push -f origin master`, { cwd: tmpCheckoutDir, stdio: 'inherit' } );
+	fs.removeSync( tmpCheckoutDir );
+}
+
+
 describe(`update tests`, function() {
 	this.timeout(30 * 60 * 1000); // 30 minutes
 
@@ -31,6 +43,28 @@ describe(`update tests`, function() {
 		await result.assertDependencyExists( 'dep1' );
 		await result.assertDependencyExists( 'dep2' );
 		await result.assertDependencyExists( 'dep2-1' );
+	});
+
+	helpers.test.only('more complicated tree, making sure changes in dependencies-of-dependencies are updated', async (tempDir) => {
+		const result = await TestRepo.create( tempDir, 'simpleNest' );
+		await update( { cwd: result.project.checkoutDir } );
+		await result.assertDependencyExists( 'dep1' );
+		await result.assertDependencyExists( 'dep2' );
+		await result.assertDependencyExists( 'dep2-1' );
+		
+		const rootDependenciesDir = path.join( result.project.checkoutDir, 'flavio_modules' );
+		
+		await addFileToRepo( tempDir, result.project.deps.dep1.repoDir, 'file_added1.txt', 'file contents' );
+		await update( { cwd: result.project.checkoutDir } );
+		chai.assert.ok( fs.existsSync( path.join( rootDependenciesDir, 'dep1', 'file_added1.txt' ) ), 'Immediate dependency dep1 updates correctly' );
+
+		await addFileToRepo( tempDir, result.project.deps.dep2.repoDir, 'file_added2.txt', 'file contents' );
+		await update( { cwd: result.project.checkoutDir } );
+		chai.assert.ok( fs.existsSync( path.join( rootDependenciesDir, 'dep2', 'file_added2.txt' ) ), 'Immediate dependency dep2 updates correctly' );
+		
+		await addFileToRepo( tempDir, result.project.alldeps["dep2-1"].repoDir, 'file_added2-1.txt', 'file contents' );
+		await update( { cwd: result.project.checkoutDir } );
+		chai.assert.ok( fs.existsSync( path.join( rootDependenciesDir, 'dep2-1', 'file_added2-1.txt' ) ), 'Dependency-of-dependency updates correctly' );
 	});
 
 	helpers.test('complicated tree should not be checked out with ignore-dependencies flag', async (tempDir) => {

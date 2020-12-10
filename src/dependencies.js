@@ -28,6 +28,7 @@ function repoUrlToLinkDirString( repoUrl ) {
  *
  */
 export async function clone( pkgdir, options, repoUrl, isLinked ) {
+	let freshClone = false;
 	let cloneDir;
 	if ( isLinked ) {
 		cloneDir = path.join( options.linkdir, repoUrlToLinkDirString( repoUrl ) );
@@ -51,6 +52,7 @@ export async function clone( pkgdir, options, repoUrl, isLinked ) {
 		if ( flavioJson && flavioJson.lfs ) {
 			await git.initLFS( cloneDir );
 		}
+		freshClone = true;
 	}
 	
 	if ( isLinked ) {
@@ -64,6 +66,7 @@ export async function clone( pkgdir, options, repoUrl, isLinked ) {
 		fs.symlinkSync( cloneDir, pkgdir, os.platform() === "win32" ? 'junction' : 'dir' );
 		console.log( `Linked ${pkgdir} -> ${cloneDir}` );
 	}
+	return freshClone;
 }
 
 
@@ -121,8 +124,11 @@ export async function checkAndSwitch( options, pkgdir, repo ) {
 				fs.renameSync( cloneDir, newPkgDir );
 			}
 			// then clone new one
-			await clone( pkgdir, options, repoUrl, options.link );
-			status = "clone";
+			if ( await clone( pkgdir, options, repoUrl, options.link ) ) {
+				status = "clone";
+			} else {
+				status = "switch";
+			}
 		} else if ( repoState === 'target' ) {
 			const targetObj = await resolve.getTargetFromRepoUrl( repo, cloneDir );
 			await git.checkout( cloneDir, targetObj );

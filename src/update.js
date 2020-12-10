@@ -107,9 +107,10 @@ async function update( options ) {
 							console.log( util.formatConsoleDependencyName( module.name ), `Repository missing, performing fresh clone...` );
 						}
 						const repoUrl = util.parseRepositoryUrl( module.repo );
-						await clone( module.dir, options, repoUrl, options.link );
+						if ( await clone( module.dir, options, repoUrl, options.link ) ) {
+							depStatusMap.markUpToDate( module.name );
+						}
 						depStatusMap.markChanged( module.name );
-						depStatusMap.markUpToDate( module.name );
 					}
 					break;
 				default:
@@ -129,9 +130,10 @@ async function update( options ) {
 			modules.set( module.name, [module] );
 			if ( !fs.existsSync( path.join( module.dir, '.git' ) ) ) {
 				const repoUrl = util.parseRepositoryUrl( module.repo );
-				await clone( module.dir, options, repoUrl, options.link );
+				if ( await clone( module.dir, options, repoUrl, options.link ) ) {
+					depStatusMap.markUpToDate( module.name );
+				}
 				depStatusMap.markChanged( module.name );
-				depStatusMap.markUpToDate( module.name );
 			} else {
 				if ( !depStatusMap.isUpToDate( module.name ) ) {
 					const status = await checkAndSwitch( options, module.dir, module.repo );
