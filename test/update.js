@@ -45,7 +45,7 @@ describe(`update tests`, function() {
 		await result.assertDependencyExists( 'dep2-1' );
 	});
 
-	helpers.test.only('more complicated tree, making sure changes in dependencies-of-dependencies are updated', async (tempDir) => {
+	helpers.test('more complicated tree, making sure changes in dependencies-of-dependencies are updated', async (tempDir) => {
 		const result = await TestRepo.create( tempDir, 'simpleNest' );
 		await update( { cwd: result.project.checkoutDir } );
 		await result.assertDependencyExists( 'dep1' );
