@@ -12,11 +12,19 @@ import { getTargetFromRepoUrl } from './resolve.js';
 import DependencyStatusMap from './DependencyStatusMap.js';
 
 
-async function stashAndPull( pkgdir, options ) {
+async function stashAndPull( pkgdir, options, propagateErrors = false ) {
 	const changed = !await git.isUpToDate( pkgdir );
 	// repo is the same - do an update
 	const stashName = await git.stash( pkgdir );
-	await git.pull( pkgdir, { depth: options.depth } );
+	try {
+		await git.pull( pkgdir, { depth: options.depth } );
+	} catch ( err ) {
+		console.error( `Error executing pull on repository` );
+		console.error( err.message || err );
+		if ( propagateErrors ) {
+			throw err;
+		}
+	}
 	await git.stashPop( pkgdir, stashName );
 	return changed;
 }
@@ -200,7 +208,7 @@ async function update( options ) {
 						}
 					}
 					try {
-						if ( await stashAndPull( module.dir, options ) ) {
+						if ( await stashAndPull( module.dir, options, true ) ) {
 							depStatusMap.markChanged( module.name );
 						}
 					} catch ( err ) {
@@ -213,9 +221,19 @@ async function update( options ) {
 						if ( errout === 'fatal: refusing to merge unrelated histories' ) {
 							if ( await git.isWorkingCopyClean( pkgdir ) ) {
 								console.log( util.formatConsoleDependencyName( module.name ), `Unrelated histories detected, performing hard reset...` );
-								await git.fetch( pkgdir, ['--all'] );
+								try {
+									await git.fetch( pkgdir, ['--all'] );
+								} catch ( err2 ) {
+									console.error( `Error executing fetch on repository` );
+									console.error( err2.message || err2 );
+								}
 								await git.executeGit( ['reset', '--hard', `origin/${targetObj.tag || targetObj.commit || targetObj.branch}`], { cwd: pkgdir } );
-								await git.pull( pkgdir, { depth: options.depth } );
+								try {
+									await git.pull( pkgdir, { depth: options.depth } );
+								} catch ( err2 ) {
+									console.error( `Error executing pull on repository` );
+									console.error( err2.message || err2 );
+								}
 								depStatusMap.markChanged( module.name );
 								depStatusMap.markUpToDate( module.name );
 							} else {

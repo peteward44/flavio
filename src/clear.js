@@ -44,7 +44,7 @@ async function clear( options = {}, all = false ) {
 		if ( dirs.length === 0 ) {
 			console.log( `Link directory is empty, nothing to do` );
 		} else {
-			console.log( `Processing ${dirs.length} module${ dirs.length > 1 ? 's' : '' }...` );
+			console.log( `Processing ${dirs.length} module${dirs.length > 1 ? 's' : ''}...` );
 		}
 		for ( const leaf of dirs ) {
 			const p = path.join( options.linkdir, leaf );
@@ -60,7 +60,7 @@ async function clear( options = {}, all = false ) {
 		if ( count === 0 ) {
 			console.log( `No dependencies found, nothing to do` );
 		} else {
-			console.log( `Processing ${count} module${ count > 1 ? 's' : '' }...` );
+			console.log( `Processing ${count} module${count > 1 ? 's' : ''}...` );
 		}
 		for ( const moduleArray of modules.values() ) {
 			const module = moduleArray[0];
