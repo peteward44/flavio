@@ -94,6 +94,21 @@ export async function checkAndSwitch( options, pkgdir, repo ) {
 			isLinked = false;
 		}
 	}
+
+	function recreateLinkIfRequired() {
+		if ( isLinked ) {
+			fs.ensureDirSync( path.dirname( pkgdir ) );
+			if ( fs.existsSync( pkgdir ) ) {
+				try {
+					fs.unlinkSync( pkgdir );
+				} catch ( err ) {
+				}
+			}
+			fs.symlinkSync( cloneDir, pkgdir, os.platform() === "win32" ? 'junction' : 'dir' );
+			console.log( `Linked ${path.basename(pkgdir)} -> ${cloneDir}` );
+		}
+	}
+
 	let status = "";
 	let cloneDir;
 	if ( isLinked ) {
@@ -115,37 +130,29 @@ export async function checkAndSwitch( options, pkgdir, repo ) {
 			await git.initLFS( cloneDir );
 		}
 		status = "clone";
+		recreateLinkIfRequired();
 	} else {
+		recreateLinkIfRequired();
 		// switch to right target if necessary
 		if ( repoState === 'url' ) {
 			// completely different repo - rename old directory to preverse data
 			if ( fs.existsSync( pkgdir ) && cloneDir === pkgdir ) {
 				const newPkgDir = findNewRepoDir( cloneDir );
 				fs.renameSync( cloneDir, newPkgDir );
-			}
-			// then clone new one
-			if ( await clone( pkgdir, options, repoUrl, options.link ) ) {
-				status = "clone";
-			} else {
-				status = "switch";
+				// then clone new one
+				if ( await clone( pkgdir, options, repoUrl, options.link ) ) {
+					status = "clone";
+				} else {
+					status = "switch";
+				}
 			}
 		} else if ( repoState === 'target' ) {
 			const targetObj = await resolve.getTargetFromRepoUrl( repo, cloneDir );
+			const stashName = await git.stash( cloneDir );
 			await git.checkout( cloneDir, targetObj );
+			await git.stashPop( cloneDir, stashName );
 			status = "switch";
 		}
-	}
-	
-	if ( isLinked ) {
-		fs.ensureDirSync( path.dirname( pkgdir ) );
-		if ( fs.existsSync( pkgdir ) ) {
-			try {
-				fs.unlinkSync( pkgdir );
-			} catch ( err ) {
-			}
-		}
-		fs.symlinkSync( cloneDir, pkgdir, os.platform() === "win32" ? 'junction' : 'dir' );
-		console.log( `Linked ${path.basename(pkgdir)} -> ${cloneDir}` );
 	}
 	return status;
 }

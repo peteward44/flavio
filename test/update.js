@@ -238,6 +238,52 @@ describe(`update tests`, function() {
 		chai.assert.equal( ( await git.getCurrentTarget( path.join( result.checkoutDir, 'flavio_modules', 'main2' ) ) ).branch, 'master', 'main3 dependency installed' );
 	});
 
+
+	helpers.test('remote-reset flag resets the branch on a module which has a missing upstream branch, with outstanding merge conflict', async (tempDir) => {
+		const result = await git.addProject( tempDir, {
+			name: 'main',
+			version: '0.1.0-snapshot.0',
+			files: [
+				{
+					path: 'file.txt',
+					contents: 'this is on the main project'
+				}
+			],
+			modules: [
+				{
+					name: 'main2',
+					version: '0.2.0-snapshot.0',
+					files: [
+						{
+							path: 'file2.txt',
+							contents: 'this is on the main2 project v0.1.0'
+						}
+					]
+				}
+			]
+		} );
+		addFileToRepo( tempDir, result.deps.main2.repoDir, "file3.txt", 'original\n\nsfwefwefwef\n\nasssssssssssssssss\n\n' );
+		
+		// set up first
+		await update( { 'cwd': result.checkoutDir } );
+		
+		// add a new branch, switch to it manually, delete it, add some conflicting changes, then update
+		execSync( `git checkout -b my_branch`, { cwd: path.join( result.checkoutDir, 'flavio_modules', 'main2' ), stdio: 'inherit' } );
+
+	//	await git.deleteRemoteBranch( path.join( result.checkoutDir, 'flavio_modules', 'main2' ), 'my_branch' );
+
+		// make a local change to dependency master with missing branch
+		addFileToRepo( tempDir, result.deps.main2.repoDir, "file3.txt", 'sausages\n\nfile contents\n\npineapples\n\n' );
+		
+		fs.writeFileSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file3.txt' ), 'sausages\n\nfiewl cwontents\n\npineapples\n\n', 'utf8' );
+		execSync( `git add --all`, { cwd: path.join( result.checkoutDir, 'flavio_modules', 'main2' ), stdio: 'inherit' } );
+
+		// then this should perform branch reset on main2 to master
+		await update( { 'cwd': result.checkoutDir, 'remote-reset': true } );
+
+		chai.assert.equal( ( await git.getCurrentTarget( path.join( result.checkoutDir, 'flavio_modules', 'main2' ) ) ).branch, 'master', 'main3 dependency installed' );
+	});
+
 	helpers.test('one dependency on a branch', async (tempDir) => {
 		const result = await git.addProject( tempDir, {
 			name: 'main',

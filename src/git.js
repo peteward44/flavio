@@ -32,8 +32,8 @@ export function executeGit( args, options ) {
 		let connected = true;
 		let stdo = '';
 		let stde = '';
-	//	console.log( `Executing git ${args.join(" ")}` );
-		let stderr = 'ignore';
+		console.log( `Executing git ${args.join(" ")} [dir=${options.cwd ? options.cwd : process.cwd()}]` );
+		let stderr = 'inherit';
 		if ( options.captureStderr ) {
 			stderr = 'pipe';
 		} else if ( options.outputStderr ) {
@@ -70,6 +70,7 @@ export function executeGit( args, options ) {
 			if ( options.ignoreError ) {
 				resolve( { out: stdo, err: stde, code: 0 } );
 			} else {
+				console.log( stde );
 				if ( !options.quiet ) {
 					printError( err, args, options.cwd ? options.cwd : process.cwd() );
 				}
