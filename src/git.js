@@ -1,7 +1,7 @@
 import path from 'path';
 import _ from 'lodash';
 import fs from 'fs-extra';
-import uuid from 'uuid';
+import * as uuid from 'uuid';
 import { spawn } from 'child_process';
 
 

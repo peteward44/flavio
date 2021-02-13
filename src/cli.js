@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import { hideBin } from 'yargs/helpers';
 import yargs from 'yargs';
 import moment from 'moment';
 import pkgJson from '../package.json';
@@ -7,10 +8,8 @@ import * as util from './util.js';
 
 
 export default function start() {
-	// winston.level = 'verbose';
-
 	return new Promise((resolve, reject) => {
-		yargs // eslint-disable-line no-unused-expressions
+		yargs(hideBin(process.argv))
 			.usage('Usage: flavio <command> [options]')
 			.example('flavio update', 'clones/checks out and/or updates all dependencies for project')
 			.example('flavio add user@server:/var/repo.git', 'clones/checks out repo.git and any dependencies, adds repo.git to dependency list')
