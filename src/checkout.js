@@ -5,7 +5,6 @@ import * as git from './git.js';
 import * as depTree from './depTree.js';
 import { checkAndSwitch } from './dependencies.js';
 
-
 async function exe( options, name, dir, branch ) {
 	if ( fs.existsSync( dir ) ) {
 		try {
@@ -24,7 +23,6 @@ async function exe( options, name, dir, branch ) {
 		}
 	}
 }
-
 
 /**
  *

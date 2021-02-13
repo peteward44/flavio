@@ -2,7 +2,6 @@ import semver from 'semver';
 import * as util from './util.js';
 import * as git from './git.js';
 
-
 /**
  * Returns a target description object used by the git-svn-interface library from a repo url
  *

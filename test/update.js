@@ -8,7 +8,6 @@ import * as util from '../src/util.js';
 import update from '../src/update.js';
 import TestRepo from '../testutil/TestRepo.js';
 
-
 async function addFileToRepo( tempDir, repoDir, file, contents ) {
 	const tmpCheckoutDir = path.join( tempDir, `${Math.floor( Math.random() * 1000000 )}` );
 	execSync( `git clone ${repoDir} ${path.basename( tmpCheckoutDir )}`, { stdio: 'inherit', cwd: path.dirname( tmpCheckoutDir ) } );
@@ -19,7 +18,6 @@ async function addFileToRepo( tempDir, repoDir, file, contents ) {
 	execSync( `git push -f origin master`, { cwd: tmpCheckoutDir, stdio: 'inherit' } );
 	fs.removeSync( tmpCheckoutDir );
 }
-
 
 describe(`update tests`, function() {
 	this.timeout(30 * 60 * 1000); // 30 minutes
@@ -237,7 +235,6 @@ describe(`update tests`, function() {
 
 		chai.assert.equal( ( await git.getCurrentTarget( path.join( result.checkoutDir, 'flavio_modules', 'main2' ) ) ).branch, 'master', 'main3 dependency installed' );
 	});
-
 
 	helpers.test('remote-reset flag resets the branch on a module which has a missing upstream branch, with outstanding merge conflict', async (tempDir) => {
 		const result = await git.addProject( tempDir, {

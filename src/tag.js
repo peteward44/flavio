@@ -10,7 +10,6 @@ import * as git from './git.js';
 import * as depTree from './depTree.js';
 import checkForConflicts from './checkForConflicts.js';
 
-
 function areTargetsEqual( lhs, rhs ) {
 	if ( lhs.branch && rhs.branch ) {
 		return lhs.branch === rhs.branch;
@@ -23,7 +22,6 @@ function areTargetsEqual( lhs, rhs ) {
 	}
 	return false;
 }
-
 
 // Returns tag name of tag that can be recycled for this repo, or empty string if nothing can be found
 async function getTagPointingAtCurrentHEAD( repoDir ) {
@@ -73,7 +71,6 @@ async function getTagPointingAtCurrentHEAD( repoDir ) {
 	return tagFound;
 }
 
-
 async function determineRecycledTagForElement( node, recycleTagMap ) {
 	// if a node can recycle it's tag, and all of it's dependencies can also recycle their tag, then we can do a recycle.
 	if ( !recycleTagMap.has( node.name ) ) {
@@ -97,7 +94,6 @@ async function determineRecycledTagForElement( node, recycleTagMap ) {
 	
 	return recycleTagMap.get( node.name );
 }
-
 
 // makes sure any modules with dependencies have matching versions for those deps in the recycle map
 async function validateRecycledTagDependencies( node, recycledTag, recycleTagMap ) {
@@ -147,7 +143,6 @@ async function validateRecycledTagDependencies( node, recycledTag, recycleTagMap
 	return true;
 }
 
-
 function getNextAvailableVersion( tagList, version, versionType ) {
 	let test = version;
 	do {
@@ -155,7 +150,6 @@ function getNextAvailableVersion( tagList, version, versionType ) {
 	} while ( tagList.indexOf( test ) >= 0 );
 	return test;
 }
-
 
 async function determineTagName( options, node ) {
 	const isInteractive = options.interactive !== false;
@@ -380,7 +374,6 @@ async function confirmUser( options, reposToTag ) {
 	}
 	return true;
 }
-
 
 /**
  *

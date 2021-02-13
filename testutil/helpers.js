@@ -6,7 +6,6 @@ import * as uuid from 'uuid';
 
 const tempRoot = path.join( os.tmpdir(), 'flavio' );
 
-
 export function createTempFolder( name ) {
 	let p = tempRoot;
 	if ( name ) {

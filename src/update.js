@@ -11,7 +11,6 @@ import { clone, checkAndSwitch, checkRemoteResetRequired } from './dependencies.
 import { getTargetFromRepoUrl } from './resolve.js';
 import DependencyStatusMap from './DependencyStatusMap.js';
 
-
 async function stashAndPull( pkgdir, options, propagateErrors = false ) {
 	const changed = !await git.isUpToDate( pkgdir );
 	// repo is the same - do an update
@@ -28,7 +27,6 @@ async function stashAndPull( pkgdir, options, propagateErrors = false ) {
 	await git.stashPop( pkgdir, stashName );
 	return changed;
 }
-
 
 async function updateMainProject( options ) {
 	util.defaultOptions( options );
@@ -61,7 +59,6 @@ async function updateMainProject( options ) {
 	}
 	return changed;
 }
-
 
 /**
  * Executes update on given directory

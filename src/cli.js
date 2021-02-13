@@ -6,10 +6,9 @@ import pkgJson from '../package.json';
 import flavio from './index.js';
 import * as util from './util.js';
 
-
 export default function start() {
 	return new Promise((resolve, reject) => {
-		yargs(hideBin(process.argv))
+		yargs(hideBin(process.argv)) // eslint-disable-line no-unused-expressions
 			.usage('Usage: flavio <command> [options]')
 			.example('flavio update', 'clones/checks out and/or updates all dependencies for project')
 			.example('flavio add user@server:/var/repo.git', 'clones/checks out repo.git and any dependencies, adds repo.git to dependency list')

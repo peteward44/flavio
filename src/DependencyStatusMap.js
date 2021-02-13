@@ -1,4 +1,3 @@
-
 class DependencyStatusMap {
 	constructor() {
 		this._deps = new Map();

@@ -5,7 +5,6 @@ import * as git from './git.js';
 import * as resolve from './resolve.js';
 import * as util from './util.js';
 
-
 function findNewRepoDir( pkgdir ) {
 	let index = 0;
 	let newdir;
@@ -69,7 +68,6 @@ export async function clone( pkgdir, options, repoUrl, isLinked ) {
 	return freshClone;
 }
 
-
 /**
  * @returns {string} - Either "none", "clone", "switch"
  * - None for no changes made or required
@@ -95,6 +93,15 @@ export async function checkAndSwitch( options, pkgdir, repo ) {
 		}
 	}
 
+	let status = "";
+	let cloneDir;
+
+	if ( isLinked ) {
+		cloneDir = path.join( options.linkdir, repoUrlToLinkDirString( repoUrl ) );
+	} else {
+		cloneDir = pkgdir;
+	}
+
 	function recreateLinkIfRequired() {
 		if ( isLinked ) {
 			fs.ensureDirSync( path.dirname( pkgdir ) );
@@ -109,13 +116,6 @@ export async function checkAndSwitch( options, pkgdir, repo ) {
 		}
 	}
 
-	let status = "";
-	let cloneDir;
-	if ( isLinked ) {
-		cloneDir = path.join( options.linkdir, repoUrlToLinkDirString( repoUrl ) );
-	} else {
-		cloneDir = pkgdir;
-	}
 	if ( !fs.existsSync( path.join( cloneDir, '.git' ) ) ) {
 		fs.ensureDirSync( path.dirname( cloneDir ) );
 		if ( fs.existsSync( cloneDir ) ) {
@@ -156,7 +156,6 @@ export async function checkAndSwitch( options, pkgdir, repo ) {
 	}
 	return status;
 }
-
 
 /**
  * If the CLI option remote-reset is specified, 

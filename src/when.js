@@ -5,7 +5,6 @@ import * as util from './util.js';
 import * as git from './git.js';
 import * as depTree from './depTree.js';
 
-
 async function executeRevList( dir, args ) {
 	try {
 		const out = ( await git.executeGit( ['rev-list', ...args], { cwd: dir, captureStdout: true } ) ).out.trim();
@@ -19,7 +18,6 @@ async function executeRevList( dir, args ) {
 	}
 	return '';
 }
-
 
 async function getClosestRevision( dir, date ) {
 	const dateString = moment( date ).format( 'YYYY-MM-DD HH:mm' );
@@ -49,7 +47,6 @@ async function getClosestRevision( dir, date ) {
 	return '';
 }
 
-
 async function exe( name, dir, date ) {
 	if ( fs.existsSync( dir ) ) {
 		try {
@@ -66,7 +63,6 @@ async function exe( name, dir, date ) {
 		}
 	}
 }
-
 
 /**
  *

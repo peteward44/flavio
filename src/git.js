@@ -4,27 +4,12 @@ import fs from 'fs-extra';
 import * as uuid from 'uuid';
 import { spawn } from 'child_process';
 
-
-export async function getDepthForRepo( cwd ) {
-	// increase depth after clone so we can retrieve depth setting from flavio.json
-	// NOTE: Disabled for now after issues tracking branches
-	// let flavioJson = {};
-	// if ( fs.existsSync( path.join( cwd, 'flavio.json' ) ) ) {
-		// flavioJson = JSON.parse( fs.readFileSync( path.join( cwd, 'flavio.json' ), 'utf8' ) );
-	// }
-	// if ( flavioJson.options && typeof flavioJson.options.depth === 'number' ) {
-		// return flavioJson.options.depth;
-	// }
-	return 0;
-}
-
 function printError( err, args, cwd ) {
 	let argsString = args.join( " " );
 	console.error( `'git ${argsString}'` );
 	console.error( `'dir ${cwd}'` );
 	console.error( err.stack || err );
 }
-
 
 export function executeGit( args, options ) {
 	options = options || {};
@@ -92,7 +77,6 @@ function touchFile( filepath, contents ) {
 	fs.writeFileSync( filepath, contents );
 	return Promise.resolve();
 }
-
 
 export async function createRepo( dir, checkoutDir, options = {} ) {
 	const alreadyExists = fs.existsSync( dir );
@@ -170,7 +154,6 @@ export async function createRepo( dir, checkoutDir, options = {} ) {
 	}
 }
 
-
 export async function addProject( tempDir, project, rootObj = null, repoMap = new Map() ) {
 	project.name = project.name || 'default';
 	if ( !repoMap.has( project.name ) ) {
@@ -229,7 +212,6 @@ export async function addProject( tempDir, project, rootObj = null, repoMap = ne
 	return result;
 }
 
-
 export async function getCurrentTarget( dir ) {
 	// from http://stackoverflow.com/questions/18659425/get-git-current-branch-tag-name
 	// check for branch name
@@ -262,7 +244,6 @@ export async function getCurrentTarget( dir ) {
 	throw new Error( `git.getCurrentTarget() - Could not determine target for repo ${dir}` );
 }
 
-
 /**
  * Gets information on a working copy
  *
@@ -279,12 +260,10 @@ export async function getWorkingCopyUrl( dir, bare = false ) {
 	return bare ? url : `${url}#${target.branch || target.tag || target.commit}`;
 }
 
-
 export async function isShallow( dir ) {
 	const result = await executeGit( ['rev-parse', '--is-shallow-repository'], { cwd: dir, ignoreError: true, captureStdout: true } );
 	return result.out.trim() === 'true';
 }
-
 
 export async function clone( url, dir, options = {} ) {
 	dir = path.resolve( dir );
@@ -297,7 +276,6 @@ export async function clone( url, dir, options = {} ) {
 	}
 	await executeGit( args, { outputStderr: true } );
 }
-
 
 /** Lists all the tags that are part of the repository
  * @param {string} url URL
@@ -350,7 +328,6 @@ export async function isWorkingCopyClean( dir, filename ) {
 	return out.length === 0;
 }
 
-
 export async function stash( dir ) {
 	let clean = await isWorkingCopyClean( dir );
 	const stashName = uuid.v4();
@@ -365,7 +342,6 @@ export async function stash( dir ) {
 	return clean ? null : stashName;
 }
 
-
 export async function stashPop( dir, stashName ) {
 	if ( stashName ) {
 		try {
@@ -375,22 +351,12 @@ export async function stashPop( dir, stashName ) {
 	}
 }
 
-
 export async function pull( dir, options = {} ) {
 	let result = null;
 	const target = await getCurrentTarget( dir );
 	if ( target.branch ) {
-		const depth = typeof options.depth === 'number' ? options.depth : await getDepthForRepo( dir );
 		const merged = { cwd: dir, outputStderr: true, ...options };
-		const args = ['pull'];
-		if ( depth > 0 ) {
-			args.push( `--depth=${depth}` );
-		} else {
-			if ( await isShallow( dir ) ) {
-				args.push( `--unshallow` );
-			}
-		}
-		result = await executeGit( args, merged );
+		result = await executeGit( ['pull'], merged );
 	}
 	return result;
 }
@@ -438,15 +404,6 @@ export async function push( dir, args = [] ) {
 }
 
 export async function fetch( dir, args = [], options = {} ) {
-	const depth = typeof options.depth === 'number' ? options.depth : await getDepthForRepo( dir );
-	args = args.slice( 0 );
-	if ( depth > 0 ) {
-		args.push( `--depth=${depth}` );
-	} else {
-		if ( await isShallow( dir ) ) {
-			args.push( `--unshallow` );
-		}
-	}
 	await executeGit( ['fetch', ...args], { cwd: dir, outputStderr: true } );
 }
 

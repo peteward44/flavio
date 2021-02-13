@@ -3,7 +3,6 @@ import * as depTree from './depTree.js';
 import * as util from './util.js';
 import * as git from './git.js';
 
-
 async function exe( name, dir, args ) {
 	if ( fs.existsSync( dir ) ) {
 		console.log( `${name}: "git ${args.join( " " )}"` );
@@ -14,7 +13,6 @@ async function exe( name, dir, args ) {
 		}
 	}
 }
-
 
 async function execute( options ) {
 	util.defaultOptions( options );

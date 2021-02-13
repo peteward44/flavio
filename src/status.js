@@ -4,7 +4,6 @@ import * as depTree from './depTree.js';
 import * as util from './util.js';
 import * as git from './git.js';
 
-
 async function addTableRow( table, name, mod, options ) {
 	const target = await git.getCurrentTarget( mod.dir );
 	table.cell( 'Repository', name );

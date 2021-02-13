@@ -25,7 +25,6 @@ async function safeDelete( filename ) {
 	}
 }
 
-
 /**
  *
  *

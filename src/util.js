@@ -18,7 +18,6 @@ export async function readConfigFile( cwd = process.cwd() ) {
 	}
 }
 
-
 export async function getPackageRootPath( cwd ) {
 	// read from .flaviorc
 	if ( _.isString( gConfig.directory ) ) {
@@ -95,12 +94,10 @@ export function getGitProjectNameFromUrl( repo ) {
 	return '';
 }
 
-
 // Removes any credentials and protocol from a URL so they can be compared correctly
 function stripRepoUrl( repo ) {
 	return repo.replace( /^http[s]*:\/\/(.*@)*/, '' );
 }
-
 
 /**
  * @returns {Promise.<string>} - Either 'url', 'target' or empty string, depending what has changed on the repo
@@ -172,7 +169,6 @@ export async function getMainProjectName( cwd ) {
 	return mainProjectName;
 }
 
-
 export function getDefaultLinkDir() {
 	// get default dir for drive we are on
 	if ( os.platform() === "win32" ) {
@@ -185,7 +181,6 @@ export function getDefaultLinkDir() {
 	}
 	return path.join( os.homedir(), '.flavio', 'link' );
 }
-
 
 export function defaultOptions( options ) {
 	if ( !options.linkdir ) {

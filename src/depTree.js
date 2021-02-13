@@ -4,7 +4,6 @@ import fs from 'fs';
 import * as git from './git.js';
 import * as util from './util.js';
 
-
 /**
  * Creates tree structure of all dependencies
  */
@@ -67,7 +66,6 @@ async function traverse( options, nodeCallback = null ) {
 	return tree;
 }
 
-
 async function listChildren( options ) {
 	let modules = new Map();
 	// build map of all modules
@@ -89,6 +87,5 @@ async function listChildren( options ) {
 	}
 	return modules;
 }
-
 
 export { traverse, listChildren };
