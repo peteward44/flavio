@@ -29,30 +29,12 @@ module.exports = {
 		rules: [
 			{
 				test: /.(js|jsx)$/,
-				loader: 'babel-loader',
-				exclude: [],
-
-				options: {
-					presets: [
-						[
-							'@babel/preset-env',
-							{
-								targets: {
-									'node': 'v6.0.0'
-								},
-								modules: false
-							}
-						]
-					]
-				}
+				loader: 'babel-loader'
 			}
 		]
 	},
 	node: {
 		__filename: false,
 		__dirname: false
-	},
-	devServer: {
-		open: true
 	}
 };

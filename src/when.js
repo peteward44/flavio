@@ -1,6 +1,6 @@
 import fs from 'fs-extra';
-import _ from 'lodash';
-import moment from 'moment';
+import * as _ from 'lodash';
+import * as moment from 'moment';
 import * as util from './util.js';
 import * as git from './git.js';
 import * as depTree from './depTree.js';

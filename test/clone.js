@@ -1,5 +1,5 @@
 import path from 'path';
-import uuid from 'uuid';
+import * as uuid from 'uuid';
 import * as helpers from '../testutil/helpers.js';
 import TestRepo from '../testutil/TestRepo.js';
 import clone from '../src/clone.js';

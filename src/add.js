@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import * as _ from 'lodash';
 import * as util from './util.js';
 import update from './update.js';
 

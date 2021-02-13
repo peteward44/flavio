@@ -1,6 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
-import uuid from 'uuid';
+import * as uuid from 'uuid';
 import chai from 'chai';
 import * as helpers from '../testutil/helpers.js';
 import TestRepo from '../testutil/TestRepo.js';

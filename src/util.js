@@ -1,4 +1,4 @@
-import _ from 'lodash';
+import * as _ from 'lodash';
 import fs from 'fs';
 import path from 'path';
 import chalk from 'chalk';
