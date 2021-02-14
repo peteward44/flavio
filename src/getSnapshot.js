@@ -10,7 +10,7 @@ function getExistingKeyName( depMap, key ) {
 	return key;
 }
 
-async function walk( depMap, repo ) {
+export async function walk( depMap, repo ) {
 	const dependencies = await repo.getDependencies();
 	for ( const depName of Object.keys( dependencies ) ) {
 		const depUrl = dependencies[depName];
@@ -31,7 +31,7 @@ async function walk( depMap, repo ) {
 	}
 }
 
-async function getSnapshot( dir ) {
+export async function getSnapshot( dir ) {
 	const main = await GitRepositorySnapshot.fromDir( dir );
 	const result = {
 		main,
@@ -41,5 +41,3 @@ async function getSnapshot( dir ) {
 	await walk( result.deps, main );
 	return result;
 }
-
-export default getSnapshot;

@@ -34,6 +34,10 @@ class GitRepositorySnapshot {
 		return this._name;
 	}
 	
+	get dir() {
+		return this._dir;
+	}
+	
 	static async fromDir( dir ) {
 		const snapshot = new GitRepositorySnapshot( '', dir );
 		snapshot._name = ( await snapshot.getFlavioJson() )?.name || 'unknown'; // eslint-disable-line no-underscore-dangle

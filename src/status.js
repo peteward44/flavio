@@ -2,7 +2,7 @@ import Table from 'easy-table';
 import chalk from 'chalk';
 import * as util from './util.js';
 import globalConfig from './globalConfig.js';
-import getSnapshot from './getSnapshot.js';
+import * as getSnapshot from './getSnapshot.js';
 
 async function addTableRow( table, name, snapshot, options ) {
 	const target = await snapshot.getTarget();
@@ -34,7 +34,7 @@ async function status( options ) {
 	await globalConfig.init( options.cwd );
 	await util.readConfigFile( options.cwd );
 	
-	const snapshot = await getSnapshot( options.cwd );
+	const snapshot = await getSnapshot.getSnapshot( options.cwd );
 	const table = new Table();
 	await addTableRow( table, 'main', snapshot.main, options );
 

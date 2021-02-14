@@ -10,7 +10,8 @@ import { clone, checkAndSwitch, checkRemoteResetRequired } from './dependencies.
 import { getTargetFromRepoUrl } from './resolve.js';
 import DependencyStatusMap from './DependencyStatusMap.js';
 import globalConfig from './globalConfig.js';
-import getSnapshot from './getSnapshot.js';
+import * as getSnapshot from './getSnapshot.js';
+import GitRepositorySnapshot from './GitRepositorySnapshot.js';
 
 async function checkForConflicts( snapshot ) {
 	let conflicts = [];
@@ -90,12 +91,12 @@ async function update( options ) {
 	util.defaultOptions( options );
 	await util.readConfigFile( options.cwd );
 	
-	const snapshot = await getSnapshot( options.cwd );
+	const initialSnapshot = await getSnapshot.getSnapshot( options.cwd );
 
 	const depStatusMap = new DependencyStatusMap();
 
 	// make sure there are no conflicts in any dependencies before doing update
-	const conflicts = await checkForConflicts( snapshot );
+	const conflicts = await checkForConflicts( initialSnapshot );
 	if ( conflicts.length > 0 ) {
 		for ( const ss of conflicts ) {
 			console.error( util.formatConsoleDependencyName( ss.name ), `Git conflict detected` );
@@ -105,7 +106,7 @@ async function update( options ) {
 	}
 	
 	if ( !options.fromCloneCommand ) {
-		if ( await updateMainProject( options, snapshot.main ) ) {
+		if ( await updateMainProject( options, initialSnapshot.main ) ) {
 			depStatusMap.markChanged( 'main' );
 		}
 	} else {
@@ -114,33 +115,38 @@ async function update( options ) {
 	}
 	depStatusMap.markUpToDate( 'main' );
 	
+	if (options['ignore-dependencies']) {
+		return;
+	}
+	
 	// re-read config file in case the .flaviorc has changed
 	await util.readConfigFile( options.cwd );
-	
+	await globalConfig.init( options.cwd );
+
+	const snapshot = await getSnapshot.getSnapshot( options.cwd );
+
 	// keep listing children until we have no more missing modules
 	let missingCount = 0;
 	do {
 		missingCount = 0;
-		const modules = await depTree.listChildren( options );
-		for ( const moduleArray of modules.values() ) {
-			const module = moduleArray[0];
-			depStatusMap.markInspected( module.name );
-			switch ( module.status ) {
-				case 'missing':
-					missingCount++;
-					if ( !fs.existsSync( path.join( module.dir, '.git' ) ) ) {
-						if ( !options.json ) {
-							console.log( util.formatConsoleDependencyName( module.name ), `Repository missing, performing fresh clone...` );
-						}
-						const repoUrl = util.parseRepositoryUrl( module.repo );
-						if ( await clone( module.dir, options, repoUrl, options.link ) ) {
-							depStatusMap.markUpToDate( module.name );
-						}
-						depStatusMap.markChanged( module.name );
-					}
-					break;
-				default:
-					break;
+		for ( const [depName, depInfo] of snapshot.deps.entries() ) {
+			depStatusMap.markInspected( depInfo.snapshot.name );
+			if ( await depInfo.snapshot.getStatus() === 'missing' ) {
+				missingCount++;
+				if ( !options.json ) {
+					console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Repository missing, performing fresh clone...` );
+				}
+				// TODO: sort refs / deal with multiple ref conflicts
+				const repoUrl = util.parseRepositoryUrl( depInfo.refs[0] );
+				if ( await clone( depInfo.snapshot.dir, options, repoUrl, options.link ) ) {
+					depStatusMap.markUpToDate( depInfo.snapshot.name );
+				}
+				depStatusMap.markChanged( depInfo.snapshot.name );
+				
+				// update snapshot for new repo, and any dependencies it might have
+				depInfo.snapshot = await GitRepositorySnapshot.fromName( depInfo.snapshot.name );
+				await getSnapshot.walk( snapshot.deps, depInfo.snapshot );
+				break;
 			}
 		}
 	} while ( missingCount > 0 );
