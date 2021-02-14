@@ -26,6 +26,7 @@
     "fs-extra": "9.1.0",
     "inquirer": "7.3.3",
     "lodash": "4.17.20",
+    "lodash-decorators": "^6.0.1",
     "moment": "2.29.1",
     "semver": "7.3.4",
     "uuid": "8.3.2",
@@ -37,6 +38,7 @@
   "devDependencies": {
     "@babel/core": "^7.12.16",
     "@babel/eslint-parser": "^7.12.16",
+    "@babel/plugin-proposal-decorators": "^7.12.13",
     "@babel/preset-env": "^7.12.16",
     "@babel/register": "^7.12.13",
     "babel-loader": "^8.0.6",

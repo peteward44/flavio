@@ -4,6 +4,10 @@ import fs from 'fs-extra';
 import * as uuid from 'uuid';
 import { spawn } from 'child_process';
 
+function debug( str ) {
+	console.log( str );
+}
+
 function printError( err, args, cwd ) {
 	let argsString = args.join( " " );
 	console.error( `'git ${argsString}'` );
@@ -213,6 +217,7 @@ export async function addProject( tempDir, project, rootObj = null, repoMap = ne
 }
 
 export async function getCurrentTarget( dir ) {
+	debug( 'getCurrentTarget' );
 	// from http://stackoverflow.com/questions/18659425/get-git-current-branch-tag-name
 	// check for branch name
 	try {
@@ -252,6 +257,7 @@ export async function getCurrentTarget( dir ) {
  * @returns {string} Repo url
  */
 export async function getWorkingCopyUrl( dir, bare = false ) {
+	debug( 'getWorkingCopyUrl' );
 	// git is a bit more complicated than svn as a repo can have multiple remotes.
 	// always assume 'origin' - TODO: allow an option to change this behaviour
 	const result = await executeGit( ['config', '--get', 'remote.origin.url'], { cwd: dir, captureStdout: true } );
@@ -261,11 +267,13 @@ export async function getWorkingCopyUrl( dir, bare = false ) {
 }
 
 export async function isShallow( dir ) {
+	debug( 'isShallow' );
 	const result = await executeGit( ['rev-parse', '--is-shallow-repository'], { cwd: dir, ignoreError: true, captureStdout: true } );
 	return result.out.trim() === 'true';
 }
 
 export async function clone( url, dir, options = {} ) {
+	debug( 'clone' );
 	dir = path.resolve( dir );
 	fs.ensureDirSync( dir );
 	const args = ['clone', url, dir];
@@ -281,6 +289,7 @@ export async function clone( url, dir, options = {} ) {
  * @param {string} url URL
  */
 export async function listTags( localClonePath ) {
+	debug( 'listTags' );
 	let result = [];
 	let out = ( await executeGit( ['tag'], { cwd: localClonePath, captureStdout: true } ) ).out.trim();
 	let array = out.split( '\n' );
@@ -314,6 +323,7 @@ export async function listTags( localClonePath ) {
  * @param {string|Array} [filename] Optional specific filename to check
  */
 export async function isWorkingCopyClean( dir, filename ) {
+	debug( 'isWorkingCopyClean' );
 	let args = ['diff', 'HEAD'];
 	if ( filename ) {
 		args.push( '--' );
@@ -329,6 +339,7 @@ export async function isWorkingCopyClean( dir, filename ) {
 }
 
 export async function stash( dir ) {
+	debug( 'stash' );
 	let clean = await isWorkingCopyClean( dir );
 	const stashName = uuid.v4();
 	if ( !clean ) {
@@ -343,6 +354,7 @@ export async function stash( dir ) {
 }
 
 export async function stashPop( dir, stashName ) {
+	debug( 'stashPop' );
 	if ( stashName ) {
 		try {
 			await executeGit( ['stash', 'pop'], { cwd: dir, quiet: true } );
@@ -352,6 +364,7 @@ export async function stashPop( dir, stashName ) {
 }
 
 export async function pull( dir, options = {} ) {
+	debug( 'pull' );
 	let result = null;
 	const target = await getCurrentTarget( dir );
 	if ( target.branch ) {
@@ -362,6 +375,7 @@ export async function pull( dir, options = {} ) {
 }
 
 export async function checkout( dir, target, ...files ) {
+	debug( 'checkout' );
 	if ( target.branch || target.commit ) {
 		await executeGit( ['checkout', target.branch || target.commit, ...files], { cwd: dir, quiet: true } );
 	} else if ( target.tag ) {
@@ -370,24 +384,29 @@ export async function checkout( dir, target, ...files ) {
 }
 
 export async function getLastCommit( dir ) {
+	debug( 'getLastCommit' );
 	const { out } = await executeGit( ['log', '-n', '1', '--pretty=format:%H'], { cwd: dir, captureStdout: true } );
 	return out.trim();
 }
 
 export async function tagExists( dir, tag ) {
+	debug( 'tagExists' );
 	const list = await listTags( dir );
 	return _.indexOf( list, tag ) >= 0;
 }
 
 export async function createAndCheckoutBranch( dir, branch ) {
+	debug( 'createAndCheckoutBranch' );
 	await executeGit( ['checkout', '-b', branch], { cwd: dir } );
 }
 
 export async function createBranch( dir, branch ) {
+	debug( 'createBranch' );
 	await executeGit( ['branch', branch], { cwd: dir } );
 }
 
 export async function addAndCommit( dir, filename, commitMessage ) {
+	debug( 'addAndCommit' );
 	if ( !Array.isArray( filename ) ) {
 		filename = [filename];
 	}
@@ -396,18 +415,22 @@ export async function addAndCommit( dir, filename, commitMessage ) {
 }
 
 export async function createTag( dir, tagName, message ) {
+	debug( 'createTag' );
 	await executeGit( ['tag', '-a', tagName, '-m', message], { cwd: dir } );
 }
 
 export async function push( dir, args = [] ) {
+	debug( 'push' );
 	await executeGit( ['push', ...args], { cwd: dir, outputStderr: true } );
 }
 
 export async function fetch( dir, args = [], options = {} ) {
+	debug( 'fetch' );
 	await executeGit( ['fetch', ...args], { cwd: dir, outputStderr: true } );
 }
 
 export async function isUpToDate( dir ) {
+	debug( 'isUpToDate' );
 	try {
 		await fetch( dir, [], { quiet: true, outputStderr: true } );
 		const local = ( await executeGit( ['rev-parse', 'HEAD'], { cwd: dir, quiet: true, captureStdout: true } ) ).out;
@@ -418,41 +441,49 @@ export async function isUpToDate( dir ) {
 }
 
 export async function listFiles( dir ) {
+	debug( 'listFiles' );
 	const raw = ( await executeGit( ['ls-files'], { cwd: dir, captureStdout: true } ) ).out;
 	return raw.trim().split( '\n' ).map( (file) => file.trim() );
 }
 
 export async function doesLocalBranchExist( dir, branchName ) {
+	debug( 'doesLocalBranchExist' );
 	const { code } = await executeGit( ['rev-parse', '--verify', branchName], { cwd: dir, ignoreError: true } );
 	return code === 0;
 }
 
 export async function doesRemoteBranchExist( url, branchName ) {
+	debug( 'doesRemoteBranchExist' );
 	const { code } = await executeGit( ['ls-remote', '--exit-code', url, branchName], { ignoreError: true, quiet: true } );
 	return code === 0;
 }
 
 export async function deleteRemoteBranch( dir, branchName ) {
+	debug( 'deleteRemoteBranch' );
 	await fetch( dir );
 	await executeGit( ['push', 'origin', '--delete', branchName], { cwd: dir } );
 }
 
 export async function show( dir, branch, file ) {
+	debug( 'show' );
 	const output = ( await executeGit( ['show', `${branch}:${file}`], { cwd: dir, quiet: true, captureStdout: true } ) ).out;
 	return output;
 }
 
 export async function isValidCommit( dir, sha ) {
+	debug( 'isValidCommit' );
 	const result = await executeGit( ['branch', '-r', '--contains', sha], { cwd: dir, ignoreError: true } );
 	return result.code === 0;
 }
 
 export async function isConflicted( dir ) {
+	debug( 'isConflicted' );
 	const output = ( await executeGit( ['ls-files', '--unmerged'], { cwd: dir, captureStdout: true } ) ).out;
 	return output.trim().length > 0;
 }
 
 export async function initLFS( dir ) {
+	debug( 'initLFS' );
 	try {
 		await executeGit( ['lfs', 'install'], { cwd: dir } );
 		await executeGit( ['config', 'lfs.contenttype', 'false'], { cwd: dir } );

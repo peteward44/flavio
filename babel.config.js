@@ -5,5 +5,8 @@ const presets = [
     }
   }]
 ];
+const plugins = [
+	[ "@babel/plugin-proposal-decorators", { legacy: true } ]
+];
 
-module.exports = { presets };
+module.exports = { presets, plugins };

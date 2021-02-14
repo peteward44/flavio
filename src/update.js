@@ -5,11 +5,25 @@ import path from 'path';
 import * as depTree from './depTree.js';
 import * as util from './util.js';
 import * as git from './git.js';
-import checkForConflicts from './checkForConflicts.js';
 import handleConflict from './handleConflict.js';
 import { clone, checkAndSwitch, checkRemoteResetRequired } from './dependencies.js';
 import { getTargetFromRepoUrl } from './resolve.js';
 import DependencyStatusMap from './DependencyStatusMap.js';
+import globalConfig from './globalConfig.js';
+import getSnapshot from './getSnapshot.js';
+
+async function checkForConflicts( snapshot ) {
+	let conflicts = [];
+	if ( await snapshot.main.isConflicted() ) {
+		conflicts.push( snapshot.main );
+	}
+	for ( const depInfo of snapshot.deps.values() ) {
+		if ( await depInfo.snapshot.isConflicted() ) {
+			conflicts.push( depInfo.snapshot );
+		}
+	}
+	return conflicts;
+}
 
 async function stashAndPull( pkgdir, options, propagateErrors = false ) {
 	const changed = !await git.isUpToDate( pkgdir );
@@ -28,34 +42,35 @@ async function stashAndPull( pkgdir, options, propagateErrors = false ) {
 	return changed;
 }
 
-async function updateMainProject( options ) {
-	util.defaultOptions( options );
-	let changed = false;
-	// update main project first
-	// get name of main project if flavio.json exists
-	const mainProjectName = await util.getMainProjectName( options.cwd );
-	
-	if ( !options.json ) {
-		console.log( util.formatConsoleDependencyName( mainProjectName ), `Updating...` );
+async function updateMainProject( options, snapshot ) {
+	const target = await snapshot.getTarget();
+	if ( !target.branch ) {
+		if ( !options.json ) {
+			console.log( util.formatConsoleDependencyName( snapshot.name ), `Skipping update as not on a branch` );
+		}
+		return false;
 	}
-	const stashName = await git.stash( options.cwd );
-	if ( !await git.isUpToDate( options.cwd ) ) {
+	let changed = false;
+	if ( !options.json ) {
+		console.log( util.formatConsoleDependencyName( snapshot.name ), `Updating...` );
+	}
+	const stashName = await snapshot.stash();
+	if ( !await snapshot.isUpToDate() ) {
 		changed = true;
 	}
 	try {
-		await git.pull( options.cwd, { depth: options.depth } );
+		await snapshot.pull();
 	} catch ( err ) {
-		console.error( util.formatConsoleDependencyName( mainProjectName, true ), `Main project pull failed, does your branch exist on the remote?` );
+		console.error( util.formatConsoleDependencyName( snapshot.name, true ), `Main project pull failed, does your branch exist on the remote?` );
 	}
-	await git.stashPop( options.cwd, stashName );
+	await snapshot.stashPop( stashName );
 	if ( !options.json ) {
 		let targetName;
 		try {
-			const target = await git.getCurrentTarget( options.cwd );
 			targetName = target.tag || target.commit || target.branch;
 		} catch ( err ) {
 		}
-		console.log( util.formatConsoleDependencyName( mainProjectName ), `Complete`, targetName ? `[${chalk.magenta(targetName)}]` : ``, changed ? `[${chalk.yellow( 'changes detected' )}]` : `` );
+		console.log( util.formatConsoleDependencyName( snapshot.name ), `Complete`, targetName ? `[${chalk.magenta(targetName)}]` : ``, changed ? `[${chalk.yellow( 'changes detected' )}]` : `` );
 	}
 	return changed;
 }
@@ -71,20 +86,26 @@ async function update( options ) {
 	if ( !_.isString( options.cwd ) ) {
 		throw new Error( `Invalid cwd argument ${options.cwd}` );
 	}
+	await globalConfig.init( options.cwd );
 	util.defaultOptions( options );
 	await util.readConfigFile( options.cwd );
+	
+	const snapshot = await getSnapshot( options.cwd );
 
 	const depStatusMap = new DependencyStatusMap();
 
 	// make sure there are no conflicts in any dependencies before doing update
-	const isConflicted = await checkForConflicts( options );
-	if ( isConflicted ) {
-		console.error( chalk.red( `Conflicts detected` ), `aborting update` );
+	const conflicts = await checkForConflicts( snapshot );
+	if ( conflicts.length > 0 ) {
+		for ( const ss of conflicts ) {
+			console.error( util.formatConsoleDependencyName( ss.name ), `Git conflict detected` );
+		}
+		console.error( chalk.red( `${conflicts.length} conflict${conflicts.length === 1 ? '' : 's'} detected` ), `aborting update` );
 		return;
 	}
 	
 	if ( !options.fromCloneCommand ) {
-		if ( await updateMainProject( options ) ) {
+		if ( await updateMainProject( options, snapshot.main ) ) {
 			depStatusMap.markChanged( 'main' );
 		}
 	} else {
