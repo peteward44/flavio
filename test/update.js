@@ -19,7 +19,7 @@ async function addFileToRepo( tempDir, repoDir, file, contents ) {
 	fs.removeSync( tmpCheckoutDir );
 }
 
-describe.only(`update tests`, function() {
+describe(`update tests`, function() {
 	this.timeout(30 * 60 * 1000); // 30 minutes
 
 	helpers.test('no dependencies', async (tempDir) => {

@@ -207,7 +207,7 @@ class GitRepositorySnapshot {
 	
 	@memoize()
 	async getRemoteTrackingBranch() {
-		const branch = ( await this._executeGit( ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}' ], { captureStdout: true } ) ).out;
+		const branch = ( await this._executeGit( ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'], { captureStdout: true } ) ).out;
 		return branch.trim();
 	}
 	
@@ -285,7 +285,7 @@ class GitRepositorySnapshot {
 				connected = false;
 				if ( code !== 0 && !options.ignoreError ) {
 					if ( !options.quiet ) {
-						printError( '', args, that._dir );
+						printError( '', args, that._dir ); // eslint-disable-line no-underscore-dangle
 					}
 					reject( new Error( "Error running git" ) );
 				} else {

@@ -4,17 +4,18 @@ import * as util from './util.js';
 import * as git from './git.js';
 import * as depTree from './depTree.js';
 import { checkAndSwitch } from './dependencies.js';
+import * as getSnapshot from './getSnapshot.js';
+import globalConfig from './globalConfig.js';
 
-async function exe( options, name, dir, branch ) {
-	let snapshot = null; // TODO:
+async function exe( snapshot, options, name, dir, branch ) {
 	if ( fs.existsSync( dir ) ) {
 		try {
 			const local = await git.doesLocalBranchExist( dir, branch );
-			const url = await git.getWorkingCopyUrl( dir, true );
+			const url = await snapshot.getUrl( true );
 			const remote = await git.doesRemoteBranchExist( url, branch );
 			if ( local || remote ) {
 				console.log( `${name}: Checking out branch ${branch}` );
-				const repo = await git.getWorkingCopyUrl( dir );
+				const repo = await snapshot.getUrl();
 				const repoUrl = util.parseRepositoryUrl( repo );
 				await checkAndSwitch( snapshot, options, dir, `${repoUrl.url}#${branch}` );
 			}
@@ -34,15 +35,18 @@ async function checkout( branch, options = {} ) {
 		throw new Error( `Invalid cwd argument ${options.cwd}` );
 	}
 	util.defaultOptions( options );
+	await globalConfig.init( options.cwd );
 	await util.readConfigFile( options.cwd );
 	
-	await exe( options, 'root', options.cwd, branch );
+	const snapshot = await getSnapshot.getSnapshot( options.cwd );
+	
+	await exe( snapshot.main, options, 'root', options.cwd, branch );
 	
 	const modules = await depTree.listChildren( options );
 	console.log( `${modules.size} dependencies found` );
 	
-	for ( const [name, moduleArray] of modules ) {
-		await exe( options, name, moduleArray[0].dir, branch );
+	for ( const depInfo of snapshot.deps.values() ) {
+		await exe( depInfo.snapshot, options, depInfo.snapshot.name, depInfo.snapshot.dir, branch );
 	}
 }
 
