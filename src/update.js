@@ -25,12 +25,15 @@ async function checkForConflicts( snapshot ) {
 	return conflicts;
 }
 
-async function stashAndPull( pkgdir, options, propagateErrors = false ) {
-	const changed = !await git.isUpToDate( pkgdir );
+async function stashAndPull( snapshot, pkgdir, options, propagateErrors = false ) {
+	const changed = !await snapshot.isUpToDate();
+	if ( !changed ) {
+		return false;
+	}
 	// repo is the same - do an update
-	const stashName = await git.stash( pkgdir );
+	const stashName = await snapshot.stash();
 	try {
-		await git.pull( pkgdir, { depth: options.depth } );
+		await snapshot.pull( pkgdir );
 	} catch ( err ) {
 		console.error( `Error executing pull on repository` );
 		console.error( err.message || err );
@@ -38,7 +41,7 @@ async function stashAndPull( pkgdir, options, propagateErrors = false ) {
 			throw err;
 		}
 	}
-	await git.stashPop( pkgdir, stashName );
+	await snapshot.stashPop( stashName );
 	return changed;
 }
 
@@ -229,7 +232,7 @@ async function update( options ) {
 						}
 					}
 					try {
-						if ( await stashAndPull( depInfo.snapshot.dir, options, true ) ) {
+						if ( await stashAndPull( depInfo.snapshot, depInfo.snapshot.dir, options, true ) ) {
 							depStatusMap.markChanged( depInfo.snapshot.name );
 						}
 					} catch ( err ) {

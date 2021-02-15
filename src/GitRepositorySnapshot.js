@@ -206,6 +206,12 @@ class GitRepositorySnapshot {
 	}
 	
 	@memoize()
+	async getRemoteTrackingBranch() {
+		const branch = ( await this._executeGit( ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}' ], { captureStdout: true } ) ).out;
+		return branch.trim();
+	}
+	
+	@memoize()
 	async fetch() {
 		debug( 'fetch' );
 		if ( await this.getStatus() === 'missing' ) {
@@ -224,7 +230,8 @@ class GitRepositorySnapshot {
 		const target = await this.getTarget();
 		if ( target.branch ) {
 			await this.fetch();
-			result = await this._executeGit( [`merge`, `${target.branch}`], { outputStderr: true } );
+			const remoteBranch = await this.getRemoteTrackingBranch();
+			result = await this._executeGit( [`merge`, remoteBranch], { outputStderr: true } );
 		}
 		return result;
 	}
@@ -256,6 +263,7 @@ class GitRepositorySnapshot {
 	}
 
 	_executeGit( args, options = {} ) {
+		const that = this;
 		options = options || {};
 		return new Promise( ( resolve, reject ) => {
 			let connected = true;
@@ -277,7 +285,7 @@ class GitRepositorySnapshot {
 				connected = false;
 				if ( code !== 0 && !options.ignoreError ) {
 					if ( !options.quiet ) {
-						printError( '', args, this._dir );
+						printError( '', args, that._dir );
 					}
 					reject( new Error( "Error running git" ) );
 				} else {
