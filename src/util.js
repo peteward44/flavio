@@ -3,7 +3,6 @@ import fs from 'fs';
 import path from 'path';
 import chalk from 'chalk';
 import os from 'os';
-import * as git from './git.js';
 
 let gConfig = null;
 
@@ -90,35 +89,6 @@ export function getGitProjectNameFromUrl( repo ) {
 	const match = repo.match( /\/([^/]*?)\.git/i );
 	if ( match ) {
 		return match[1];
-	}
-	return '';
-}
-
-// Removes any credentials and protocol from a URL so they can be compared correctly
-function stripRepoUrl( repo ) {
-	return repo.replace( /^http[s]*:\/\/(.*@)*/, '' );
-}
-
-/**
- * @returns {Promise.<string>} - Either 'url', 'target' or empty string, depending what has changed on the repo
- */
-export async function hasRepoChanged( repo, dir ) {
-	const repoUrl = parseRepositoryUrl( repo );
-	// make sure it's the same repo URL
-	const localUrl = await git.getWorkingCopyUrl( dir, true );
-	if ( stripRepoUrl( localUrl ) !== stripRepoUrl( repoUrl.url ) ) {
-		// Repository URL is different to pre-existing module "name"
-		return 'url';
-	}
-	const targetCur = await git.getCurrentTarget( dir );
-	if ( targetCur.tag && targetCur.tag !== repoUrl.target ) {
-		return 'target';
-	}
-	if ( targetCur.commit && targetCur.commit !== repoUrl.target ) {
-		return 'target';
-	}
-	if ( targetCur.branch && targetCur.branch !== repoUrl.target ) {
-		return 'target';
 	}
 	return '';
 }

@@ -9,10 +9,10 @@ import * as git from './git.js';
  * @param {string} localClonePath - Path to directory where a local clone has already been made to prevent temporary checkout
  * @returns {Promise.<TargetDescription>}
  */
-export async function getTargetFromRepoUrl( repo, localClonePath ) {
+export async function getTargetFromRepoUrl( snapshot, repo, localClonePath ) {
 	const repoUrl = util.parseRepositoryUrl( repo );
-	await git.fetch( localClonePath );
-	const tags = await git.listTags( localClonePath );
+	await snapshot.fetch();
+	const tags = await snapshot.listTags();
 	const semverTags = tags.filter( semver.valid );
 	const { target } = repoUrl;
 	if ( !target ) {

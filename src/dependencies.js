@@ -68,19 +68,48 @@ export async function clone( pkgdir, options, repoUrl, isLinked ) {
 	return freshClone;
 }
 
+// Removes any credentials and protocol from a URL so they can be compared correctly
+function stripRepoUrl( repo ) {
+	return repo.replace( /^http[s]*:\/\/(.*@)*/, '' );
+}
+
+/**
+ * @returns {Promise.<string>} - Either 'url', 'target' or empty string, depending what has changed on the repo
+ */
+async function hasRepoChanged( snapshot, repo, dir ) {
+	const repoUrl = util.parseRepositoryUrl( repo );
+	// make sure it's the same repo URL
+	const localUrl = await snapshot.getUrl( true );
+	if ( stripRepoUrl( localUrl ) !== stripRepoUrl( repoUrl.url ) ) {
+		// Repository URL is different to pre-existing module "name"
+		return 'url';
+	}
+	const targetCur = await snapshot.getTarget();
+	if ( targetCur.tag && targetCur.tag !== repoUrl.target ) {
+		return 'target';
+	}
+	if ( targetCur.commit && targetCur.commit !== repoUrl.target ) {
+		return 'target';
+	}
+	if ( targetCur.branch && targetCur.branch !== repoUrl.target ) {
+		return 'target';
+	}
+	return '';
+}
+
 /**
  * @returns {string} - Either "none", "clone", "switch"
  * - None for no changes made or required
  * - clone for a new repo was cloned
  * - switch for repo was there but checkout operation done to switch to correct branch
  */
-export async function checkAndSwitch( options, pkgdir, repo ) {
+export async function checkAndSwitch( snapshot, options, pkgdir, repo ) {
 	const repoUrl = util.parseRepositoryUrl( repo );
 	let repoState = '';
 	let isLinked = options.link !== false;
 	if ( fs.existsSync( path.join( pkgdir, '.git' ) ) ) {
 		// check if pkgdir is already pointing to right place. If it is, leave it alone
-		repoState = await util.hasRepoChanged( repo, pkgdir );
+		repoState = await hasRepoChanged( snapshot, repo, pkgdir );
 		if ( !repoState || repoState === '' ) {
 			return "none";
 		}
@@ -147,7 +176,7 @@ export async function checkAndSwitch( options, pkgdir, repo ) {
 				}
 			}
 		} else if ( repoState === 'target' ) {
-			const targetObj = await resolve.getTargetFromRepoUrl( repo, cloneDir );
+			const targetObj = await resolve.getTargetFromRepoUrl( snapshot, repo, cloneDir );
 			const stashName = await git.stash( cloneDir );
 			await git.checkout( cloneDir, targetObj );
 			await git.stashPop( cloneDir, stashName );
@@ -162,9 +191,9 @@ export async function checkAndSwitch( options, pkgdir, repo ) {
  *
  * @returns {boolean} - True if the branch was changed if it needs to, false otherwise
  */
-export async function checkRemoteResetRequired( targetObj, name, pkgdir, options, repoUrl ) {
+export async function checkRemoteResetRequired( snapshot, targetObj, name, pkgdir, options, repoUrl ) {
 	// either reset to name of branch specified in flavio.json, or to master if that doesn't exist
-	const target = await git.getCurrentTarget( pkgdir );
+	const target = await snapshot.getTarget();
 	if ( target.branch && targetObj.branch ) {
 		if ( !await git.doesRemoteBranchExist( repoUrl.url, target.branch ) ) {
 			let targetBranchName = 'master';
@@ -178,7 +207,7 @@ export async function checkRemoteResetRequired( targetObj, name, pkgdir, options
 				console.log( util.formatConsoleDependencyName( name ), `Switching branch to "${targetBranchName}" from "${target.branch}" as remote branch no longer exists` );
 			}
 			
-			return checkAndSwitch( options, pkgdir, `${repoUrl.url}#${targetBranchName}` );
+			return checkAndSwitch( snapshot, options, pkgdir, `${repoUrl.url}#${targetBranchName}` );
 		}
 	}
 	return 'none';

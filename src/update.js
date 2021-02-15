@@ -165,7 +165,7 @@ async function update( options ) {
 				depStatusMap.markChanged( depInfo.snapshot.name );
 			} else {
 				if ( !depStatusMap.isUpToDate( depInfo.snapshot.name ) ) {
-					const status = await checkAndSwitch( options, depInfo.snapshot.dir, module );
+					const status = await checkAndSwitch( depInfo.snapshot, options, depInfo.snapshot.dir, module );
 					switch ( status ) {
 						default:
 						case 'none':
@@ -195,11 +195,11 @@ async function update( options ) {
 					if ( !options.json ) {
 						console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Updating...` );
 					}
-					const targetObj = await getTargetFromRepoUrl( module, depInfo.snapshot.dir );
+					const targetObj = await getTargetFromRepoUrl( depInfo.snapshot, module, depInfo.snapshot.dir );
 					// check to see if the local branch still exists on the remote, reset if not
 					if ( options['remote-reset'] !== false ) {
 						const repoUrl = util.parseRepositoryUrl( module );
-						const status = await checkRemoteResetRequired( targetObj, depInfo.snapshot.name, depInfo.snapshot.dir, options, repoUrl );
+						const status = await checkRemoteResetRequired( depInfo.snapshot, targetObj, depInfo.snapshot.name, depInfo.snapshot.dir, options, repoUrl );
 						switch ( status ) {
 							default:
 							case 'none':
@@ -214,7 +214,7 @@ async function update( options ) {
 						}
 					}
 					if ( options.switch ) {
-						const status = await checkAndSwitch( options, depInfo.snapshot.dir, module );
+						const status = await checkAndSwitch( depInfo.snapshot, options, depInfo.snapshot.dir, module );
 						switch ( status ) {
 							default:
 							case 'none':

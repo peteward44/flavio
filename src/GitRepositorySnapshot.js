@@ -237,6 +237,24 @@ class GitRepositorySnapshot {
 		await this._executeGit( ['push'], { outputStderr: true } );
 	}
 
+	/** Lists all the tags that are part of the repository
+	 * @param {string} url URL
+	 */
+	@memoize()
+	async listTags() {
+		debug( 'listTags' );
+		let result = [];
+		let out = ( await this._executeGit( ['tag'], { captureStdout: true } ) ).out.trim();
+		let array = out.split( '\n' );
+		for ( let i=0; i<array.length; ++i ) {
+			let t = array[i].trim();
+			if ( t.length > 0 ) {
+				result.push( t );
+			}
+		}
+		return result;
+	}
+
 	_executeGit( args, options = {} ) {
 		options = options || {};
 		return new Promise( ( resolve, reject ) => {

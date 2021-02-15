@@ -6,6 +6,7 @@ import * as depTree from './depTree.js';
 import { checkAndSwitch } from './dependencies.js';
 
 async function exe( options, name, dir, branch ) {
+	let snapshot = null; // TODO:
 	if ( fs.existsSync( dir ) ) {
 		try {
 			const local = await git.doesLocalBranchExist( dir, branch );
@@ -15,7 +16,7 @@ async function exe( options, name, dir, branch ) {
 				console.log( `${name}: Checking out branch ${branch}` );
 				const repo = await git.getWorkingCopyUrl( dir );
 				const repoUrl = util.parseRepositoryUrl( repo );
-				await checkAndSwitch( options, dir, `${repoUrl.url}#${branch}` );
+				await checkAndSwitch( snapshot, options, dir, `${repoUrl.url}#${branch}` );
 			}
 		} catch ( err ) {
 			console.error( `Error executing checkout` );
