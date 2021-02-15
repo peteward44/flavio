@@ -2,7 +2,6 @@ import _ from 'lodash';
 import chalk from 'chalk';
 import fs from 'fs-extra';
 import path from 'path';
-import * as depTree from './depTree.js';
 import * as util from './util.js';
 import * as git from './git.js';
 import handleConflict from './handleConflict.js';
@@ -129,7 +128,7 @@ async function update( options ) {
 	let missingCount = 0;
 	do {
 		missingCount = 0;
-		for ( const [depName, depInfo] of snapshot.deps.entries() ) {
+		for ( const depInfo of snapshot.deps.values() ) {
 			depStatusMap.markInspected( depInfo.snapshot.name );
 			if ( await depInfo.snapshot.getStatus() === 'missing' ) {
 				missingCount++;
@@ -154,9 +153,9 @@ async function update( options ) {
 	// this module list may contain multiple versions of the same repo.
 	// resolve all conflicts
 	const rootFlavioJson = await snapshot.main.getFlavioJson();
-	for ( const [depName, depInfo] of snapshot.deps.entries() ) {
+	for ( const depInfo of snapshot.deps.values() ) {
 		if ( depInfo.refs.length > 1 ) {
-			const module = await handleConflict( options, depName, depInfo.refs, rootFlavioJson );
+			const module = await handleConflict( options, depInfo.snapshot.name, depInfo.refs, rootFlavioJson );
 			
 			if ( !fs.existsSync( path.join( depInfo.snapshot.dir, '.git' ) ) ) {
 				const repoUrl = util.parseRepositoryUrl( module );
@@ -184,7 +183,7 @@ async function update( options ) {
 		}
 	}
 	// now make sure all modules point to the right bits
-	for ( const [depName, depInfo] of snapshot.deps.entries() ) {
+	for ( const depInfo of snapshot.deps.values() ) {
 		const module = depInfo.refs[0];
 		switch ( await depInfo.snapshot.getStatus() ) {
 			default:

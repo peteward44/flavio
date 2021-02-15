@@ -362,6 +362,4 @@ describe.only(`update tests`, function() {
 		
 		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file3.txt' ) ), 'Repo recreated and updated successfully' );
 	});
-	
-	
 });
