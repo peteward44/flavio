@@ -22,6 +22,21 @@ function repoUrlToLinkDirString( repoUrl ) {
 	return result;
 }
 
+
+function deleteDir( dir ) {
+	try {
+		const stat = fs.statSync( dir );
+		if ( stat.isSymbolicLink() ) {
+			fs.unlinkSync( dir );
+		} else if ( stat.isDirectory() ) {
+			fs.emptyDirSync( dir );
+			fs.rmdirSync( dir );
+		}
+	} catch ( err ) {
+	}
+}
+
+
 /**
  *
  *
@@ -32,19 +47,14 @@ export async function clone( pkgdir, options, repoUrl, isLinked ) {
 	if ( isLinked ) {
 		cloneDir = path.join( options.linkdir, repoUrlToLinkDirString( repoUrl ) );
 	} else {
-		if ( fs.existsSync( pkgdir ) ) {
-			fs.emptyDirSync( pkgdir );
-			fs.unlinkSync( pkgdir );
-		}
+		fs.ensureDirSync( path.dirname( pkgdir ) );
+		deleteDir( pkgdir );
 		cloneDir = pkgdir;
 	}
 	if ( !fs.existsSync( path.join( cloneDir, '.git' ) ) ) {
 		fs.ensureDirSync( path.dirname( cloneDir ) );
 		if ( fs.existsSync( cloneDir ) ) {
-			try {
-				fs.unlinkSync( cloneDir );
-			} catch ( err ) {
-			}
+			deleteDir( cloneDir );
 		}
 		await git.clone( repoUrl.url, cloneDir, { branch: repoUrl.target || 'master', depth: options.depth } );
 		const flavioJson = await util.loadFlavioJson( cloneDir );
@@ -57,10 +67,7 @@ export async function clone( pkgdir, options, repoUrl, isLinked ) {
 	if ( isLinked ) {
 		fs.ensureDirSync( path.dirname( pkgdir ) );
 		if ( fs.existsSync( pkgdir ) ) {
-			try {
-				fs.unlinkSync( pkgdir );
-			} catch ( err ) {
-			}
+			deleteDir( pkgdir );
 		}
 		fs.symlinkSync( cloneDir, pkgdir, os.platform() === "win32" ? 'junction' : 'dir' );
 		console.log( `Linked ${pkgdir} -> ${cloneDir}` );

@@ -51,7 +51,7 @@ class GitRepositorySnapshot {
 	
 	@memoize()
 	async getStatus() {
-		if ( !fs.existsSync( this._dir, '.git' ) ) {
+		if ( !fs.existsSync( path.join( this._dir, '.git' ) ) ) {
 			return 'missing';
 		} else {
 			return 'installed';
