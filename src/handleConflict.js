@@ -13,18 +13,7 @@ async function handleConflict( options, name, moduleArray, rootFlavioJson ) {
 	if ( _.isObject( rootFlavioJson.resolutions ) ) {
 		if ( rootFlavioJson.resolutions.hasOwnProperty( name ) ) {
 			// resolution has been defined, return that
-			// prefer to return our own object, if we dont have it return a new one
-			const found = _.find( moduleArray, (module) => module.name.toLowerCase() === name.toLowerCase() );
-			if ( !found ) {
-				return {
-					name,
-					dir: moduleArray[0].dir,
-					repo: rootFlavioJson.resolutions[name],
-					children: new Map()
-				};
-			} else {
-				return found;
-			}
+			return rootFlavioJson.resolutions[name];
 		}
 	}
 	
@@ -37,7 +26,7 @@ async function handleConflict( options, name, moduleArray, rootFlavioJson ) {
 	let latestSem = null;
 	let master = null;
 	for ( const module of moduleArray ) {
-		const repoUrl = util.parseRepositoryUrl( module.repo );
+		const repoUrl = util.parseRepositoryUrl( module );
 		if ( repoUrl.target === 'master' ) {
 			master = module;
 		}
@@ -58,11 +47,11 @@ async function handleConflict( options, name, moduleArray, rootFlavioJson ) {
 			type: 'list',
 			name: 'q',
 			message: `Conflict detected for package ${name}`,
-			choices: moduleArray.map( (module) => module.repo ),
+			choices: moduleArray,
 			default: _.findIndex( (module) => module === latest ) || 0
 		};
 		const answer = await inquirer.prompt( [question] );
-		return _.find( moduleArray, (module) => answer.q === module.repo );
+		return _.find( moduleArray, (module) => answer.q === module );
 	}
 	return latest || master || moduleArray[0];
 }

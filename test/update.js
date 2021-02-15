@@ -317,6 +317,10 @@ describe.only(`update tests`, function() {
 
 	});
 
+	helpers.test.skip('update shouldn\'t break if an empty folder with a dependency name is left in the flavio_modules folder', async (tempDir) => {
+
+	});
+
 	helpers.test('if a dependency has been recreated (ie assets wipe), old repo should be deleted and recreated', async (tempDir) => {
 		const result = await git.addProject( tempDir, {
 			name: 'main',
@@ -358,4 +362,6 @@ describe.only(`update tests`, function() {
 		
 		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file3.txt' ) ), 'Repo recreated and updated successfully' );
 	});
+	
+	
 });

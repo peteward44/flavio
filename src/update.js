@@ -151,34 +151,32 @@ async function update( options ) {
 		}
 	} while ( missingCount > 0 );
 
-	const modules = await depTree.listChildren( options );
 	// this module list may contain multiple versions of the same repo.
 	// resolve all conflicts
-	const rootFlavioJson = await util.loadFlavioJson( options.cwd );
-	for ( const [name, modulesArray] of modules.entries() ) {
-		const filtered = _.uniqBy( modulesArray, ( module ) => module.repo.toLowerCase() );
-		if ( filtered.length > 1 ) {
-			const module = await handleConflict( options, name, filtered, rootFlavioJson );
-			modules.set( module.name, [module] );
-			if ( !fs.existsSync( path.join( module.dir, '.git' ) ) ) {
-				const repoUrl = util.parseRepositoryUrl( module.repo );
-				if ( await clone( module.dir, options, repoUrl, options.link ) ) {
-					depStatusMap.markUpToDate( module.name );
+	const rootFlavioJson = await snapshot.main.getFlavioJson();
+	for ( const [depName, depInfo] of snapshot.deps.entries() ) {
+		if ( depInfo.refs.length > 1 ) {
+			const module = await handleConflict( options, depName, depInfo.refs, rootFlavioJson );
+			
+			if ( !fs.existsSync( path.join( depInfo.snapshot.dir, '.git' ) ) ) {
+				const repoUrl = util.parseRepositoryUrl( module );
+				if ( await clone( depInfo.snapshot.dir, options, repoUrl, options.link ) ) {
+					depStatusMap.markUpToDate( depInfo.snapshot.name );
 				}
-				depStatusMap.markChanged( module.name );
+				depStatusMap.markChanged( depInfo.snapshot.name );
 			} else {
-				if ( !depStatusMap.isUpToDate( module.name ) ) {
-					const status = await checkAndSwitch( options, module.dir, module.repo );
+				if ( !depStatusMap.isUpToDate( depInfo.snapshot.name ) ) {
+					const status = await checkAndSwitch( options, depInfo.snapshot.dir, module );
 					switch ( status ) {
 						default:
 						case 'none':
 							break;
 						case 'clone':
-							depStatusMap.markChanged( module.name );
-							depStatusMap.markUpToDate( module.name );
+							depStatusMap.markChanged( depInfo.snapshot.name );
+							depStatusMap.markUpToDate( depInfo.snapshot.name );
 							break;
 						case 'switch':
-							depStatusMap.markChanged( module.name );
+							depStatusMap.markChanged( depInfo.snapshot.name );
 							break;
 					}
 				}
@@ -186,65 +184,65 @@ async function update( options ) {
 		}
 	}
 	// now make sure all modules point to the right bits
-	for ( const modulesArray of modules.values() ) {
-		const module = modulesArray[0];
-		switch ( module.status ) {
+	for ( const [depName, depInfo] of snapshot.deps.entries() ) {
+		const module = depInfo.refs[0];
+		switch ( await depInfo.snapshot.getStatus() ) {
 			default:
 				break;
 			case 'installed':
 			{
-				depStatusMap.markInspected( module.name );
-				if ( !depStatusMap.isUpToDate( module.name ) ) {
+				depStatusMap.markInspected( depInfo.snapshot.name );
+				if ( !depStatusMap.isUpToDate( depInfo.snapshot.name ) ) {
 					if ( !options.json ) {
-						console.log( util.formatConsoleDependencyName( module.name ), `Updating...` );
+						console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Updating...` );
 					}
-					const targetObj = await getTargetFromRepoUrl( module.repo, module.dir );
+					const targetObj = await getTargetFromRepoUrl( module, depInfo.snapshot.dir );
 					// check to see if the local branch still exists on the remote, reset if not
 					if ( options['remote-reset'] !== false ) {
-						const repoUrl = util.parseRepositoryUrl( module.repo );
-						const status = await checkRemoteResetRequired( targetObj, module.name, module, options, repoUrl );
+						const repoUrl = util.parseRepositoryUrl( module );
+						const status = await checkRemoteResetRequired( targetObj, depInfo.snapshot.name, depInfo.snapshot.dir, options, repoUrl );
 						switch ( status ) {
 							default:
 							case 'none':
 								break;
 							case 'clone':
-								depStatusMap.markChanged( module.name );
-								depStatusMap.markUpToDate( module.name );
+								depStatusMap.markChanged( depInfo.snapshot.name );
+								depStatusMap.markUpToDate( depInfo.snapshot.name );
 								break;
 							case 'switch':
-								depStatusMap.markChanged( module.name );
+								depStatusMap.markChanged( depInfo.snapshot.name );
 								break;
 						}
 					}
 					if ( options.switch ) {
-						const status = await checkAndSwitch( options, module.dir, module.repo );
+						const status = await checkAndSwitch( options, depInfo.snapshot.dir, module );
 						switch ( status ) {
 							default:
 							case 'none':
 								break;
 							case 'clone':
-								depStatusMap.markChanged( module.name );
-								depStatusMap.markUpToDate( module.name );
+								depStatusMap.markChanged( depInfo.snapshot.name );
+								depStatusMap.markUpToDate( depInfo.snapshot.name );
 								break;
 							case 'switch':
-								depStatusMap.markChanged( module.name );
+								depStatusMap.markChanged( depInfo.snapshot.name );
 								break;
 						}
 					}
 					try {
-						if ( await stashAndPull( module.dir, options, true ) ) {
-							depStatusMap.markChanged( module.name );
+						if ( await stashAndPull( depInfo.snapshot.dir, options, true ) ) {
+							depStatusMap.markChanged( depInfo.snapshot.name );
 						}
 					} catch ( err ) {
 						// On a repo that looks like everything should work fine but doesn't, the repo has probably been recreated.
 						// if the repo is clean, hard reset and pull.
-						const pkgdir = module.dir;
+						const pkgdir = depInfo.snapshot.dir;
 						const errout = ( await git.pull( pkgdir, {
 							captureStderr: true, captureStdout: true, ignoreError: true, depth: options.depth 
 						} ) ).err.trim();
 						if ( errout === 'fatal: refusing to merge unrelated histories' ) {
 							if ( await git.isWorkingCopyClean( pkgdir ) ) {
-								console.log( util.formatConsoleDependencyName( module.name ), `Unrelated histories detected, performing hard reset...` );
+								console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Unrelated histories detected, performing hard reset...` );
 								try {
 									await git.fetch( pkgdir, ['--all'] );
 								} catch ( err2 ) {
@@ -258,10 +256,10 @@ async function update( options ) {
 									console.error( `Error executing pull on repository` );
 									console.error( err2.message || err2 );
 								}
-								depStatusMap.markChanged( module.name );
-								depStatusMap.markUpToDate( module.name );
+								depStatusMap.markChanged( depInfo.snapshot.name );
+								depStatusMap.markUpToDate( depInfo.snapshot.name );
 							} else {
-								console.log( util.formatConsoleDependencyName( module.name ), `Unrelated histories detected, but cannot reset due to local changes!` );
+								console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Unrelated histories detected, but cannot reset due to local changes!` );
 							}
 						} else {
 							throw err;

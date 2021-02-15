@@ -162,8 +162,7 @@ export async function checkAndSwitch( options, pkgdir, repo ) {
  *
  * @returns {boolean} - True if the branch was changed if it needs to, false otherwise
  */
-export async function checkRemoteResetRequired( targetObj, name, module, options, repoUrl ) {
-	const pkgdir = module.dir;
+export async function checkRemoteResetRequired( targetObj, name, pkgdir, options, repoUrl ) {
 	// either reset to name of branch specified in flavio.json, or to master if that doesn't exist
 	const target = await git.getCurrentTarget( pkgdir );
 	if ( target.branch && targetObj.branch ) {

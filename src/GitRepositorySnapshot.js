@@ -54,7 +54,7 @@ class GitRepositorySnapshot {
 		if ( !fs.existsSync( this._dir, '.git' ) ) {
 			return 'missing';
 		} else {
-			return 'present';
+			return 'installed';
 		}
 	}
 	
