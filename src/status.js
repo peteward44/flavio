@@ -39,7 +39,7 @@ async function status( options ) {
 	await addTableRow( table, 'main', snapshot.main, options );
 
 	for ( const [depName, depInfo] of snapshot.deps.entries() ) {
-		await addTableRow( table, depName, depInfo, options );
+		await addTableRow( table, depName, depInfo.snapshot, options );
 	}
 
 	console.log( table.toString() );
