@@ -1,7 +1,8 @@
 import * as fs from 'fs';
-import * as depTree from './depTree.js';
 import * as util from './util.js';
 import * as git from './git.js';
+import * as getSnapshot from './getSnapshot.js';
+import globalConfig from './globalConfig.js';
 
 async function exe( name, dir, args ) {
 	if ( fs.existsSync( dir ) ) {
@@ -16,19 +17,22 @@ async function exe( name, dir, args ) {
 
 async function execute( options ) {
 	util.defaultOptions( options );
+	await globalConfig.init( options.cwd );
 	await util.readConfigFile( options.cwd );
 	const args = options._.slice( 1 ); // "execute" will appear as first element in array
 	if ( args.length === 0 ) {
 		console.error( `No command specified for execute command. Usage: flavio execute -- status` );
 		return;
 	}
-	await exe( 'root', options.cwd, args );
 	
-	const modules = await depTree.listChildren( options );
-	console.log( `${modules.size} dependencies found` );
+	const snapshot = await getSnapshot.getSnapshot( options.cwd );
 	
-	for ( const [name, moduleArray] of modules ) {
-		await exe( name, moduleArray[0].dir, args );
+	await exe( 'root', snapshot.main.dir, args );
+	
+	console.log( `${snapshot.deps.size} dependencies found` );
+	
+	for ( const [name, depInfo] of snapshot.deps.entries() ) {
+		await exe( name, depInfo.snapshot.dir, args );
 	}
 }
 

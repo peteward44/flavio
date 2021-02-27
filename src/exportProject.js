@@ -2,7 +2,8 @@ import path from 'path';
 import fs from 'fs-extra';
 import * as util from './util.js';
 import * as git from './git.js';
-import * as depTree from './depTree.js';
+import * as getSnapshot from './getSnapshot.js';
+import globalConfig from './globalConfig.js';
 
 async function copyFiles( rootSrc, destDir ) {
 	fs.ensureDirSync( destDir );
@@ -19,16 +20,18 @@ async function copyFiles( rootSrc, destDir ) {
  */
 async function exportProject( destDir, options = {} ) {
 	// copy over main project
+	await globalConfig.init( options.cwd );
 	await util.readConfigFile( options.cwd );
+	
+	const snapshot = await getSnapshot.getSnapshot( options.cwd );
+
 	console.log( `Exporting main project to ${destDir}` );
-	await copyFiles( options.cwd, destDir );
+	await copyFiles( snapshot.main.dir, destDir );
 	// copy over dependencies
-	const modules = await depTree.listChildren( options );
-	for ( const [name, moduleArray] of modules ) {
-		const mod = moduleArray[0];
-		console.log( `Exporting ${name} dependency` );
-		const destMod = path.relative( options.cwd, mod.dir );
-		await copyFiles( mod.dir, path.join( destDir, destMod ) );
+	for ( const depInfo of snapshot.deps.values() ) {
+		console.log( `Exporting ${depInfo.snapshot.name} dependency` );
+		const destMod = path.relative( options.cwd, depInfo.snapshot.dir );
+		await copyFiles( depInfo.snapshot.dir, path.join( destDir, destMod ) );
 	}
 	console.log( `Export complete` );
 }
