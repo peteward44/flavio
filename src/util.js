@@ -152,7 +152,11 @@ export function getDefaultLinkDir() {
 	return path.join( os.homedir(), '.flavio', 'link' );
 }
 
+let gDefaultOptions = {};
+
 export function defaultOptions( options ) {
+	_.defaults( options, gDefaultOptions );
+	console.log( `options=${JSON.stringify( options )}` );
 	if ( !options.linkdir ) {
 		options.linkdir = getDefaultLinkDir();
 	}
@@ -160,3 +164,10 @@ export function defaultOptions( options ) {
 		options.link = true;
 	}
 }
+
+// used by tests to alter the options used
+export function overrideDefaultOptions( defaultOptionsObject ) {
+	gDefaultOptions = _.cloneDeep( defaultOptionsObject );
+}
+
+
