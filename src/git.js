@@ -369,6 +369,7 @@ export async function pull( dir, options = {} ) {
 	const target = await getCurrentTarget( dir );
 	if ( target.branch ) {
 		const merged = { cwd: dir, outputStderr: true, ...options };
+		merged.outputStderr = !merged.captureStderr;
 		result = await executeGit( ['pull'], merged );
 	}
 	return result;

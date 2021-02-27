@@ -27,11 +27,13 @@ async function exportProject( destDir, options = {} ) {
 
 	console.log( `Exporting main project to ${destDir}` );
 	await copyFiles( snapshot.main.dir, destDir );
-	// copy over dependencies
-	for ( const depInfo of snapshot.deps.values() ) {
-		console.log( `Exporting ${depInfo.snapshot.name} dependency` );
-		const destMod = path.relative( options.cwd, depInfo.snapshot.dir );
-		await copyFiles( depInfo.snapshot.dir, path.join( destDir, destMod ) );
+	if ( !options['ignore-dependencies'] ) {
+		// copy over dependencies
+		for ( const depInfo of snapshot.deps.values() ) {
+			console.log( `Exporting ${depInfo.snapshot.name} dependency` );
+			const destMod = path.relative( options.cwd, depInfo.snapshot.dir );
+			await copyFiles( depInfo.snapshot.dir, path.join( destDir, destMod ) );
+		}
 	}
 	console.log( `Export complete` );
 }

@@ -4,7 +4,7 @@ import * as helpers from '../testutil/helpers.js';
 import TestRepo from '../testutil/TestRepo.js';
 import clone from '../src/clone.js';
 
-describe.only(`clone tests`, function() {
+describe(`clone tests`, function() {
 	this.timeout(30 * 60 * 1000); // 30 minutes
 
 	helpers.test('clone basic', async (tempDir) => {

@@ -5,7 +5,8 @@ import path from 'path';
 import os from 'os';
 import * as uuid from 'uuid';
 
-const tempRoot = path.join( os.tmpdir(), 'flavio' );
+// windows paths are too long
+const tempRoot = os.platform() === 'win32' ? path.join( path.parse( os.tmpdir() ).root, '.flaviotemp' ) : path.join( os.tmpdir(), 'flavio' );
 
 export function createTempFolder( name ) {
 	let p = tempRoot;
