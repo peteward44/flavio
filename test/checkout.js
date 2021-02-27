@@ -5,7 +5,7 @@ import checkout from '../src/checkout.js';
 import update from '../src/update.js';
 import * as git from '../src/git.js';
 
-describe.only(`checkout tests`, function() {
+describe(`checkout tests`, function() {
 	this.timeout(30 * 60 * 1000); // 30 minutes
 	
 	helpers.test('1 dependency', async (tempDir) => {

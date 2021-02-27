@@ -39,7 +39,7 @@ function deleteDir( dir ) {
  *
  *
  */
-export async function clone( pkgdir, options, repoUrl, isLinked ) {
+export async function clone( pkgdir, options, repoUrl, isLinked, snapshot ) {
 	let freshClone = false;
 	let cloneDir;
 	if ( isLinked ) {
@@ -54,7 +54,11 @@ export async function clone( pkgdir, options, repoUrl, isLinked ) {
 		if ( fs.existsSync( cloneDir ) ) {
 			deleteDir( cloneDir );
 		}
-		await git.clone( repoUrl.url, cloneDir, { branch: repoUrl.target || 'master', depth: options.depth } );
+		if ( snapshot ) {
+			await snapshot.clone( repoUrl.url, cloneDir, { branch: repoUrl.target || 'master' } );
+		} else {
+			await git.clone( repoUrl.url, cloneDir, { branch: repoUrl.target || 'master' } );
+		}
 		const flavioJson = await util.loadFlavioJson( cloneDir );
 		if ( flavioJson && flavioJson.lfs ) {
 			await git.initLFS( cloneDir );
@@ -67,7 +71,7 @@ export async function clone( pkgdir, options, repoUrl, isLinked ) {
 		if ( fs.existsSync( pkgdir ) ) {
 			try {
 				fs.unlinkSync( pkgdir );
-			} catch (err){}
+			} catch (err) {}
 		}
 		fs.symlinkSync( cloneDir, pkgdir, os.platform() === "win32" ? 'junction' : 'dir' );
 		console.log( `Linked ${pkgdir} -> ${cloneDir}` );
@@ -86,7 +90,7 @@ function stripRepoUrl( repo ) {
 async function hasRepoChanged( snapshot, repo, dir ) {
 	const repoUrl = util.parseRepositoryUrl( repo );
 	// make sure it's the same repo URL
-	const localUrl = await snapshot.getUrl( true );
+	const localUrl = await snapshot.getBareUrl();
 	if ( stripRepoUrl( localUrl ) !== stripRepoUrl( repoUrl.url ) ) {
 		// Repository URL is different to pre-existing module "name"
 		return 'url';

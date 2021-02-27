@@ -1,7 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
 import { spawn } from 'child_process';
-import { memoize } from 'lodash-decorators';
 import * as uuid from 'uuid';
 import globalConfig from './globalConfig.js';
 
@@ -21,6 +20,23 @@ function debug( str ) {
 	console.error( str );
 }
 
+function cached() {
+	return function( target, name, descriptor ) {
+		const original = descriptor.value;
+		if ( typeof original === 'function' ) {
+			descriptor.value = function(...args) {
+				if ( !this._cache.has( name ) ) {
+					debug( `GitRepositorySnapshot.${name}` );
+					const result = original.apply( this, args );
+					this._cache.set( name, result );
+				}
+				return this._cache.get( name );
+			};
+		}
+		return descriptor;
+	};
+}
+
 // Takes a status snapshot of a git cloned repository. Note this may cache data even if it
 // has changed underneath. If you change a git repository, you should discard any GitRepositorySnapshot instances
 // you may have and recreate them
@@ -28,6 +44,7 @@ class GitRepositorySnapshot {
 	constructor( name, dir ) {
 		this._name = name;
 		this._dir = dir;
+		this._cache = new Map();
 	}
 	
 	get name() {
@@ -48,8 +65,8 @@ class GitRepositorySnapshot {
 		const dir = await getDirForDependency( name );
 		return new GitRepositorySnapshot( name, dir );
 	}
-	
-	@memoize()
+
+	@cached()
 	async getStatus() {
 		if ( !fs.existsSync( path.join( this._dir, '.git' ) ) ) {
 			return 'missing';
@@ -57,8 +74,8 @@ class GitRepositorySnapshot {
 			return 'installed';
 		}
 	}
-	
-	@memoize()
+
+	@cached()
 	async getFlavioJson() {
 		const p = path.join( this._dir, 'flavio.json' );
 		if ( fs.existsSync( p ) ) {
@@ -67,7 +84,7 @@ class GitRepositorySnapshot {
 		return null;
 	}
 	
-	@memoize()
+	@cached()
 	async getDependencies() {
 		const flavioJson = await this.getFlavioJson();
 		if ( flavioJson ) {
@@ -76,9 +93,8 @@ class GitRepositorySnapshot {
 		return {};
 	}
 
-	@memoize()
+	@cached()
 	async getTarget() {
-		debug( 'getCurrentTarget' );
 		if ( await this.getStatus() === 'missing' ) {
 			return null;
 		}
@@ -113,9 +129,8 @@ class GitRepositorySnapshot {
 		throw new Error( `getTarget() - Could not determine target for repo ${this._name}` );
 	}
 	
-	@memoize()
-	async getUrl( bare = false ) {
-		debug( 'getWorkingCopyUrl' );
+	@cached()
+	async getBareUrl() {
 		if ( await this.getStatus() === 'missing' ) {
 			return '';
 		}
@@ -123,13 +138,21 @@ class GitRepositorySnapshot {
 		// always assume 'origin' - TODO: allow an option to change this behaviour
 		const result = await this._executeGit( ['config', '--get', 'remote.origin.url'], { captureStdout: true } );
 		const url = result.out.trim();
-		const target = await this.getTarget();
-		return bare ? url : `${url}#${target.branch || target.tag || target.commit}`;
+		return url;
 	}
 	
-	@memoize()
+	@cached()
+	async getUrl() {
+		if ( await this.getStatus() === 'missing' ) {
+			return '';
+		}
+		const url = await this.getBareUrl();
+		const target = await this.getTarget();
+		return `${url}#${target.branch || target.tag || target.commit}`;
+	}
+
+	@cached()
 	async isConflicted() {
-		debug( 'isConflicted' );
 		if ( await this.getStatus() === 'missing' ) {
 			return false;
 		}
@@ -137,29 +160,19 @@ class GitRepositorySnapshot {
 		return output.trim().length > 0;
 	}
 	
-	@memoize()
-	async isWorkingCopyClean( filename ) {
-		debug( 'isWorkingCopyClean' );
+	@cached()
+	async isWorkingCopyClean() {
 		if ( await this.getStatus() === 'missing' ) {
 			return false;
 		}
 		let args = ['diff', 'HEAD'];
-		if ( filename ) {
-			args.push( '--' );
-			if ( Array.isArray( filename ) ) {
-				args = args.concat( filename );
-			} else {
-				args.push( filename );
-			}
-		}
 		let { out } = await this._executeGit( args, { captureStdout: true } );
 		out.trim();
 		return out.length === 0;
 	}
 	
-	@memoize()
+	@cached()
 	async isUpToDate() {
-		debug( 'isUpToDate' );
 		if ( await this.getStatus() === 'missing' ) {
 			return false;
 		}
@@ -172,6 +185,29 @@ class GitRepositorySnapshot {
 			}
 		} catch ( err ) {}
 		return true;
+	}
+
+	@cached()
+	async getRemoteTrackingBranch() {
+		const branch = ( await this._executeGit( ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'], { captureStdout: true } ) ).out;
+		return branch.trim();
+	}
+
+	/** Lists all the tags that are part of the repository
+	 * @param {string} url URL
+	 */
+	@cached()
+	async listTags() {
+		let result = [];
+		let out = ( await this._executeGit( ['tag'], { captureStdout: true } ) ).out.trim();
+		let array = out.split( '\n' );
+		for ( let i=0; i<array.length; ++i ) {
+			let t = array[i].trim();
+			if ( t.length > 0 ) {
+				result.push( t );
+			}
+		}
+		return result;
 	}
 	
 	async stash() {
@@ -207,29 +243,47 @@ class GitRepositorySnapshot {
 	
 	async checkout( branchName ) {
 		debug( 'checkout' );
+		const currentTarget = await this.getTarget();
+		if ( currentTarget.branch && branchName === currentTarget.branch ) {
+			return;
+		}
 		const stash = await this.stash();
 		await this._executeGit( ['checkout', branchName] );
 		await this.stashPop( stash );
+		this._clearCacheExcept( ['fetch', 'getBareUrl', 'listTags'] );
 	}
 	
-	@memoize()
-	async getRemoteTrackingBranch() {
-		const branch = ( await this._executeGit( ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'], { captureStdout: true } ) ).out;
-		return branch.trim();
-	}
-	
-	@memoize()
-	async fetch() {
-		debug( 'fetch' );
-		if ( await this.getStatus() === 'missing' ) {
-			return;
+	async clone( url, dir = this._dir, target ) {
+		dir = path.resolve( dir );
+		fs.ensureDirSync( dir );
+		const args = ['clone', url, dir];
+		if ( target ) {
+			if ( target.branch ) {
+				args.push( `--branch=${target.branch}` );
+			} else if ( target.tag ) {
+				args.push( `--branch=tags/${target.tag}` );
+			}
 		}
-		await this._executeGit( ['fetch'], { outputStderr: true } );
+		await this._executeGit( args, { outputStderr: true } );
+		this._cache.clear();
+		this._cache.set( 'fetch', undefined );
+		this._cache.set( 'pull', undefined );
+		this._cache.set( 'push', undefined );
 	}
 	
-	@memoize()
+	@cached()
+	async fetch() {
+		if ( !this._fetched ) {
+			if ( await this.getStatus() === 'missing' ) {
+				return;
+			}
+			await this._executeGit( ['fetch'], { outputStderr: true } );
+			this._fetched = true;
+		}
+	}
+	
+	@cached()
 	async pull() {
-		debug( 'pull' );
 		if ( await this.getStatus() === 'missing' ) {
 			return null;
 		}
@@ -243,47 +297,42 @@ class GitRepositorySnapshot {
 		return result;
 	}
 
+	@cached()
 	async push() {
-		debug( 'push' );
 		if ( await this.getStatus() === 'missing' ) {
 			return;
 		}
 		await this._executeGit( ['push'], { outputStderr: true } );
 	}
-
-	/** Lists all the tags that are part of the repository
-	 * @param {string} url URL
-	 */
-	@memoize()
-	async listTags() {
-		debug( 'listTags' );
-		let result = [];
-		let out = ( await this._executeGit( ['tag'], { captureStdout: true } ) ).out.trim();
-		let array = out.split( '\n' );
-		for ( let i=0; i<array.length; ++i ) {
-			let t = array[i].trim();
-			if ( t.length > 0 ) {
-				result.push( t );
+	
+	_clearCacheExcept( except ) {
+		const exceptMap = new Map();
+		for ( const item of except ) {
+			if ( this._cache.has( item ) ) {
+				exceptMap.set( item, this._cache.get( item ) );
 			}
 		}
-		return result;
+		this._cache.clear();
+		for ( const [item, value] of exceptMap.entries() ) {
+			this._cache.set( item, value );
+		}
 	}
 
 	_executeGit( args, options = {} ) {
-		const that = this;
+		const dir = fs.existsSync( this._dir ) ? this._dir : process.cwd();
 		options = options || {};
 		return new Promise( ( resolve, reject ) => {
 			let connected = true;
 			let stdo = '';
 			let stde = '';
-			console.log( `Executing git ${args.join(" ")} [dir=${this._dir}]` );
+			console.log( `Executing git ${args.join(" ")} [dir=${dir}]` );
 			let stderr = 'inherit';
 			if ( options.captureStderr ) {
 				stderr = 'pipe';
 			} else if ( options.outputStderr ) {
 				stderr = 'inherit';
 			}
-			let proc = spawn( 'git', args, { cwd: this._dir, stdio: ['ignore', options.captureStdout ? 'pipe' : 'inherit', stderr] } );
+			let proc = spawn( 'git', args, { cwd: dir, stdio: ['ignore', options.captureStdout ? 'pipe' : 'inherit', stderr] } );
 
 			function unpipe( code ) {
 				if ( !connected ) {
@@ -292,7 +341,7 @@ class GitRepositorySnapshot {
 				connected = false;
 				if ( code !== 0 && !options.ignoreError ) {
 					if ( !options.quiet ) {
-						printError( '', args, that._dir ); // eslint-disable-line no-underscore-dangle
+						printError( '', args, dir ); // eslint-disable-line no-underscore-dangle
 					}
 					reject( new Error( "Error running git" ) );
 				} else {
@@ -316,7 +365,7 @@ class GitRepositorySnapshot {
 				} else {
 					console.log( stde );
 					if ( !options.quiet ) {
-						printError( err, args, this._dir );
+						printError( err, args, dir );
 					}
 					reject( new Error( err ) );
 				}

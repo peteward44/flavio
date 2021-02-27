@@ -87,12 +87,15 @@ async function cloneMissingDependencies( snapshot, options ) {
 				if ( !options.json ) {
 					console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Repository missing, performing fresh clone...` );
 				}
-				// TODO: sort refs / deal with multiple ref conflicts
-				const repoUrl = util.parseRepositoryUrl( depInfo.refs[0] );
-				await clone( depInfo.snapshot.dir, options, repoUrl, options.link );
-				
+
 				// update snapshot for new repo, and any dependencies it might have
 				depInfo.snapshot = await GitRepositorySnapshot.fromName( depInfo.snapshot.name );
+
+				// TODO: sort refs / deal with multiple ref conflicts
+				const repoUrl = util.parseRepositoryUrl( depInfo.refs[0] );
+				
+				await clone( depInfo.snapshot.dir, options, repoUrl, options.link, depInfo.snapshot );
+				
 				await getSnapshot.walk( snapshot.deps, depInfo.snapshot );
 				keepGoing = true;
 				break;

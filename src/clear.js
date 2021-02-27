@@ -2,7 +2,6 @@ import path from 'path';
 import fs from 'fs-extra';
 import inquirer from 'inquirer';
 import * as util from './util.js';
-import * as depTree from './depTree.js';
 import { getLinkedRepoDir } from './dependencies.js';
 import globalConfig from './globalConfig.js';
 import * as getSnapshot from './getSnapshot.js';
@@ -27,7 +26,6 @@ async function safeDelete( filename ) {
 		return;
 	}
 }
-
 
 async function check( snapshot ) {
 	if ( !await snapshot.isWorkingCopyClean() ) {

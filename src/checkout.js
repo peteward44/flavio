@@ -10,7 +10,7 @@ async function exe( snapshot, options, name, dir, branch ) {
 	if ( fs.existsSync( dir ) ) {
 		try {
 			const local = await git.doesLocalBranchExist( dir, branch );
-			const url = await snapshot.getUrl( true );
+			const url = await snapshot.getBareUrl();
 			const remote = await git.doesRemoteBranchExist( url, branch );
 			if ( local || remote ) {
 				console.log( `${name}: Checking out branch ${branch}` );
