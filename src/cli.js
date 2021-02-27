@@ -187,7 +187,7 @@ export default function start() {
 							.then(resolve)
 							.catch(reject);
 					} else {
-						console.error( `"${dateString}" not a valid date` );
+						console.error( `"${dateString}" not a valid date: Use format YYYY-MM-DD HH:SS` );
 					}
 				}
 			})

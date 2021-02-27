@@ -22,7 +22,6 @@ function repoUrlToLinkDirString( repoUrl ) {
 	return result;
 }
 
-
 function deleteDir( dir ) {
 	try {
 		const stat = fs.statSync( dir );
@@ -35,7 +34,6 @@ function deleteDir( dir ) {
 	} catch ( err ) {
 	}
 }
-
 
 /**
  *
@@ -67,7 +65,9 @@ export async function clone( pkgdir, options, repoUrl, isLinked ) {
 	if ( isLinked ) {
 		fs.ensureDirSync( path.dirname( pkgdir ) );
 		if ( fs.existsSync( pkgdir ) ) {
-			deleteDir( pkgdir );
+			try {
+				fs.unlinkSync( pkgdir );
+			} catch (err){}
 		}
 		fs.symlinkSync( cloneDir, pkgdir, os.platform() === "win32" ? 'junction' : 'dir' );
 		console.log( `Linked ${pkgdir} -> ${cloneDir}` );

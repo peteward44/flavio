@@ -1,8 +1,11 @@
 import path from 'path';
 import fs from 'fs-extra';
+import inquirer from 'inquirer';
 import * as util from './util.js';
 import * as depTree from './depTree.js';
 import { getLinkedRepoDir } from './dependencies.js';
+import globalConfig from './globalConfig.js';
+import * as getSnapshot from './getSnapshot.js';
 
 /**
  * Safely deletes a file / directory without throwing any errors
@@ -25,12 +28,27 @@ async function safeDelete( filename ) {
 	}
 }
 
+
+async function check( snapshot ) {
+	if ( !await snapshot.isWorkingCopyClean() ) {
+		const question = {
+			type: 'confirm',
+			name: 'q',
+			message: `Package ${snapshot.name} has local uncommited changes, are you sure you wish to delete?`
+		};
+		const answer = await inquirer.prompt( [question] );
+		return answer.q;
+	}
+	return true;
+}
+
 /**
  *
  *
  */
 async function clear( options = {}, all = false ) {
 	util.defaultOptions( options );
+	await globalConfig.init( options.cwd );
 	if ( options.cwd ) {
 		await util.readConfigFile( options.cwd );
 	}
@@ -54,22 +72,23 @@ async function clear( options = {}, all = false ) {
 			}
 		}
 	} else {
-		const modules = await depTree.listChildren( options );
-		const count = modules.size;
+		const snapshot = await getSnapshot.getSnapshot( options.cwd );
+		const count = snapshot.deps.size;
 		if ( count === 0 ) {
 			console.log( `No dependencies found, nothing to do` );
 		} else {
 			console.log( `Processing ${count} module${count > 1 ? 's' : ''}...` );
 		}
-		for ( const moduleArray of modules.values() ) {
-			const module = moduleArray[0];
-			const repoUrl = util.parseRepositoryUrl( module.repo );
-			const dir = getLinkedRepoDir( options, repoUrl );
-			console.log( util.formatConsoleDependencyName( module.name ), `Deleting...` );
-			if ( fs.existsSync( dir ) && fs.statSync( dir ).isDirectory() ) {
-				await safeDelete( dir );
+		for ( const depInfo of snapshot.deps.values() ) {
+			if ( await check( depInfo.snapshot ) ) {
+				const repoUrl = util.parseRepositoryUrl( depInfo.refs[0] );
+				const dir = getLinkedRepoDir( options, repoUrl );
+				console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Deleting...` );
+				if ( fs.existsSync( dir ) && fs.statSync( dir ).isDirectory() ) {
+					await safeDelete( dir );
+				}
+				console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `done` );
 			}
-			console.log( util.formatConsoleDependencyName( module.name ), `done` );
 		}
 	}
 }

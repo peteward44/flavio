@@ -205,6 +205,13 @@ class GitRepositorySnapshot {
 		}
 	}
 	
+	async checkout( branchName ) {
+		debug( 'checkout' );
+		const stash = await this.stash();
+		await this._executeGit( ['checkout', branchName] );
+		await this.stashPop( stash );
+	}
+	
 	@memoize()
 	async getRemoteTrackingBranch() {
 		const branch = ( await this._executeGit( ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'], { captureStdout: true } ) ).out;

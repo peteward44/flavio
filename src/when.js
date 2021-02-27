@@ -3,7 +3,8 @@ import * as _ from 'lodash';
 import * as moment from 'moment';
 import * as util from './util.js';
 import * as git from './git.js';
-import * as depTree from './depTree.js';
+import globalConfig from './globalConfig.js';
+import * as getSnapshot from './getSnapshot.js';
 
 async function executeRevList( dir, args ) {
 	try {
@@ -47,12 +48,12 @@ async function getClosestRevision( dir, date ) {
 	return '';
 }
 
-async function exe( name, dir, date ) {
-	if ( fs.existsSync( dir ) ) {
+async function exe( name, snapshot, date ) {
+	if ( fs.existsSync( snapshot.dir ) ) {
 		try {
-			const rev = await getClosestRevision( dir, date );
+			const rev = await getClosestRevision( snapshot.dir, date );
 			if ( rev ) {
-				await git.executeGit( ['checkout', rev], { cwd: dir } );
+				await snapshot.checkout( rev );
 				console.log( `${name} set successfully to rev ${rev}` );
 			} else {
 				console.log( `${name} could not find appropriate revision for given date, leaving as is...` );
@@ -73,16 +74,17 @@ async function when( date, options = {} ) {
 		throw new Error( `Invalid cwd argument ${options.cwd}` );
 	}
 	util.defaultOptions( options );
+	await globalConfig.init( options.cwd );
 	await util.readConfigFile( options.cwd );
 	
+	const snapshot = await getSnapshot.getSnapshot( options.cwd );
+	
 	console.log( `Setting date as ${date.toString()}...` );
-	await exe( 'root', options.cwd, date );
+	await exe( 'root', snapshot.main, date );
 	
-	const modules = await depTree.listChildren( options );
-	console.log( `${modules.size} dependencies found` );
-	
-	for ( const [name, moduleArray] of modules ) {
-		await exe( name, moduleArray[0].dir, date );
+	//console.log( `${modules.size} dependencies found` );
+	for ( const [name, depInfo] of snapshot.deps.entries() ) {
+		await exe( name, depInfo.snapshot, date );
 	}
 }
 

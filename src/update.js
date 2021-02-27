@@ -81,6 +81,7 @@ async function cloneMissingDependencies( snapshot, options ) {
 	let keepGoing = true;
 	while ( keepGoing ) {
 		keepGoing = false;
+		console.log( `snapshot.deps.keys() = ${JSON.stringify( Array.from( snapshot.deps.keys() ) )}` );
 		for ( const depInfo of snapshot.deps.values() ) {
 			if ( await depInfo.snapshot.getStatus() === 'missing' ) {
 				if ( !options.json ) {

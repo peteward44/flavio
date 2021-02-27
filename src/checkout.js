@@ -2,7 +2,6 @@ import fs from 'fs-extra';
 import _ from 'lodash';
 import * as util from './util.js';
 import * as git from './git.js';
-import * as depTree from './depTree.js';
 import { checkAndSwitch } from './dependencies.js';
 import * as getSnapshot from './getSnapshot.js';
 import globalConfig from './globalConfig.js';
@@ -41,9 +40,6 @@ async function checkout( branch, options = {} ) {
 	const snapshot = await getSnapshot.getSnapshot( options.cwd );
 	
 	await exe( snapshot.main, options, 'root', options.cwd, branch );
-	
-	const modules = await depTree.listChildren( options );
-	console.log( `${modules.size} dependencies found` );
 	
 	for ( const depInfo of snapshot.deps.values() ) {
 		await exe( depInfo.snapshot, options, depInfo.snapshot.name, depInfo.snapshot.dir, branch );
