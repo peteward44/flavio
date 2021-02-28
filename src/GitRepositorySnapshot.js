@@ -65,6 +65,16 @@ class GitRepositorySnapshot {
 		const dir = await getDirForDependency( name );
 		return new GitRepositorySnapshot( name, dir );
 	}
+	
+	@cached()
+	async getChildren( allDeps ) {
+		const map = new Map();
+		const deps = await this.getDependencies();
+		for ( const name of Object.keys( deps ) ) {
+			map.set( name, allDeps.get( name ) );
+		}
+		return map;
+	}
 
 	@cached()
 	async getStatus() {

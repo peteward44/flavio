@@ -7,8 +7,9 @@ import Table from 'easy-table';
 import chalk from 'chalk';
 import * as util from './util.js';
 import * as git from './git.js';
-import * as depTree from './depTree.js';
+import globalConfig from './globalConfig.js';
 import checkForConflicts from './checkForConflicts.js';
+import * as getSnapshot from './getSnapshot.js';
 
 function areTargetsEqual( lhs, rhs ) {
 	if ( lhs.branch && rhs.branch ) {
@@ -71,71 +72,73 @@ async function getTagPointingAtCurrentHEAD( repoDir ) {
 	return tagFound;
 }
 
-async function determineRecycledTagForElement( node, recycleTagMap ) {
+async function determineRecycledTagForElement( snapshotRoot, snapshot, recycleTagMap ) {
 	// if a node can recycle it's tag, and all of it's dependencies can also recycle their tag, then we can do a recycle.
-	if ( !recycleTagMap.has( node.name ) ) {
-		const tagName = await getTagPointingAtCurrentHEAD( node.dir );
-		recycleTagMap.set( node.name, tagName );
+	if ( !recycleTagMap.has( snapshot.name ) ) {
+		const tagName = await getTagPointingAtCurrentHEAD( snapshot.dir );
+		recycleTagMap.set( snapshot.name, tagName );
 	}
 	
-	if ( !recycleTagMap.get( node.name ) ) {
+	if ( !recycleTagMap.get( snapshot.name ) ) {
 		// has no valid tag to recycle - don't bother checking children
 		return '';
 	}
 	
 	// check all children to see if they have valid tags
-	for ( const [name, module] of node.children ) { // eslint-disable-line no-unused-vars
-		const childTag = await determineRecycledTagForElement( module, recycleTagMap );
+	const children = await snapshot.getChildren( snapshotRoot.deps );
+	for ( const depInfo of children.values() ) {
+		const childTag = await determineRecycledTagForElement( snapshotRoot, depInfo.snapshot, recycleTagMap );
 		if ( !childTag ) {
 			// invalid child tag - just report invalid back
 			return '';
 		}
 	}
 	
-	return recycleTagMap.get( node.name );
+	return recycleTagMap.get( snapshot.name );
 }
 
 // makes sure any modules with dependencies have matching versions for those deps in the recycle map
-async function validateRecycledTagDependencies( node, recycledTag, recycleTagMap ) {
+async function validateRecycledTagDependencies( snapshotRoot, snapshot, recycledTag, recycleTagMap ) {
 	if ( !recycledTag ) {
 		return false;
 	}
 	// switch to tag, then load the flavio.json for that tag, then switch back so we know the dependencies
-	const currentTarget = await git.getCurrentTarget( node.dir );
-	await git.checkout( node.dir, { tag: recycledTag } );
-	const flavioJson = await util.loadFlavioJson( node.dir );
+	const currentTarget = await git.getCurrentTarget( snapshot.dir );
+	await git.checkout( snapshot.dir, { tag: recycledTag } );
+	const flavioJson = await util.loadFlavioJson( snapshot.dir );
 	flavioJson.dependencies = flavioJson.dependencies || {};
-	await git.checkout( node.dir, currentTarget );
+	await git.checkout( snapshot.dir, currentTarget );
 	
 	for ( const depName of Object.keys( flavioJson.dependencies ) ) {
 		const url = flavioJson.dependencies[depName];
 		if ( !recycleTagMap.has( depName ) ) {
 			// tag contains depedency we don't have
-//			console.log( `Failing ${depName} because not in tag for ${node.name} - ${recycledTag}` );
+//			console.log( `Failing ${depName} because not in tag for ${snapshot.name} - ${recycledTag}` );
 			return false;
 		}
 		const repo = util.parseRepositoryUrl( url );
 		const childRecycledTag = recycleTagMap.get( depName );
 		if ( childRecycledTag !== repo.target ) {
 			// Child dependency tag doesn't match the one we have on disk - fail
-//			console.log( `Failing ${depName} - ${repo.target} because wrong tag for ${node.name} - ${childRecycledTag}` );
+//			console.log( `Failing ${depName} - ${repo.target} because wrong tag for ${snapshot.name} - ${childRecycledTag}` );
 			return false;
 		}
 	}
+	const children = await snapshot.getChildren( snapshotRoot.deps );
 	// make sure children match
-	if ( node.children.size !== Object.keys( flavioJson.dependencies ).length ) {
-//		console.log( `Failing because dependency count doesn't match: ${node.name} - ${recycledTag}` );
+	if ( children.size !== Object.keys( flavioJson.dependencies ).length ) {
+//		console.log( `Failing because dependency count doesn't match: ${snapshot.name} - ${recycledTag}` );
 		return false;
 	}
-	for ( const [depName, module] of node.children ) { // eslint-disable-line no-unused-vars
+	for ( const [depName, depInfo] of children.entries() ) {
 		if ( !flavioJson.dependencies.hasOwnProperty( depName ) ) {
 			// we have a depedency that the tag doesn't have
-//			console.log( `Failing because dependency "${depName}" has been added to: ${node.name} - ${recycledTag}` );
+//			console.log( `Failing because dependency "${depName}" has been added to: ${snapshot.name} - ${recycledTag}` );
 			return false;
 		}
 		
 		// validate the dependencies' dependencies too
-		if ( !await validateRecycledTagDependencies( module, recycleTagMap.get( depName ), recycleTagMap ) ) {
+		if ( !await validateRecycledTagDependencies( snapshotRoot, depInfo.snapshot, recycleTagMap.get( depName ), recycleTagMap ) ) {
 //			console.log( `Failing because dependency "${depName}" children have failed` );
 			return false;
 		}
@@ -151,16 +154,16 @@ function getNextAvailableVersion( tagList, version, versionType ) {
 	return test;
 }
 
-async function determineTagName( options, node ) {
+async function determineTagName( options, snapshot ) {
 	const isInteractive = options.interactive !== false;
-	const flavioJson = await util.loadFlavioJson( node.dir );
+	const flavioJson = await util.loadFlavioJson( snapshot.dir );
 	if ( _.isEmpty( flavioJson ) ) {
 		return null;
 	}
 	// strip prerelease tag off name
 	const tagName = semver.inc( flavioJson.version, options.increment );
 	// see if tag of the same name already exists
-	const tagList = await git.listTags( node.dir );
+	const tagList = await git.listTags( snapshot.dir );
 	if ( tagList.indexOf( tagName ) >= 0 ) {
 		// if it already exists, suggest either the next available major, minor or prerelease version for the user to pick
 		const nextMajor = getNextAvailableVersion( tagList, tagName, 'major' );
@@ -183,7 +186,7 @@ async function determineTagName( options, node ) {
 			const question = {
 				type: 'list',
 				name: 'q',
-				message: util.formatConsoleDependencyName( node.name ) + ` Tag ${tagName} already exists. Use available alternative?`,
+				message: util.formatConsoleDependencyName( snapshot.name ) + ` Tag ${tagName} already exists. Use available alternative?`,
 				choices: [nextMajor, nextMinor, nextPatch, 'Custom?'],
 				default: defaultVal
 			};
@@ -209,39 +212,42 @@ async function determineTagName( options, node ) {
 	return tagName;
 }
 
-async function determineTagsRecursive( options, node, recycleTagMap, tagMap ) {
-	if ( !tagMap.has( node.name ) ) {
-		await git.fetch( node.dir );
-		const target = await git.getCurrentTarget( node.dir );
-		const recycledTag = await determineRecycledTagForElement( node, recycleTagMap );
-		const recycledTagsAreValid = await validateRecycledTagDependencies( node, recycledTag, recycleTagMap );
+async function determineTagsRecursive( options, snapshotRoot, snapshot, recycleTagMap, tagMap ) {
+	if ( !tagMap.has( snapshot.name ) ) {
+		await git.fetch( snapshot.dir );
+		const target = await git.getCurrentTarget( snapshot.dir );
+		const recycledTag = await determineRecycledTagForElement( snapshotRoot, snapshot, recycleTagMap );
+		const recycledTagsAreValid = await validateRecycledTagDependencies( snapshotRoot, snapshot, recycledTag, recycleTagMap );
 		if ( recycledTag && recycledTagsAreValid ) {
-			tagMap.set( node.name, {
-				tag: recycledTag, originalTarget: target, create: false, dir: node.dir 
+			tagMap.set( snapshot.name, {
+				tag: recycledTag, originalTarget: target, create: false, dir: snapshot.dir 
 			} );
 		} else {
-			const tagName = await determineTagName( options, node );
+			const tagName = await determineTagName( options, snapshot );
 			if ( tagName ) {
 				const branchName = `release/${tagName}`;
-				const incrementVersion = await git.isUpToDate( node.dir ); // only increment version in flavio.json if our local HEAD is up to date with the remote branch
-				tagMap.set( node.name, {
-					tag: tagName, originalTarget: target, branch: branchName, create: true, dir: node.dir, incrementMasterVersion: incrementVersion 
+				const incrementVersion = await git.isUpToDate( snapshot.dir ); // only increment version in flavio.json if our local HEAD is up to date with the remote branch
+				tagMap.set( snapshot.name, {
+					tag: tagName, originalTarget: target, branch: branchName, create: true, dir: snapshot.dir, incrementMasterVersion: incrementVersion 
 				} );
 			} else {
-				console.log( util.formatConsoleDependencyName( node.name ), `Dependency has no valid flavio.json, so will not be tagged` );
+				console.log( util.formatConsoleDependencyName( snapshot.name ), `Dependency has no valid flavio.json, so will not be tagged` );
 			}
 		}
 	}
-	for ( const [name, module] of node.children ) { // eslint-disable-line no-unused-vars
-		await determineTagsRecursive( options, module, recycleTagMap, tagMap );
+	if ( !options['ignore-dependencies'] ) {
+		const children = await snapshot.getChildren( snapshotRoot.deps );
+		for ( const depInfo of children.values() ) {
+			await determineTagsRecursive( options, snapshotRoot, depInfo.snapshot, recycleTagMap, tagMap );
+		}
 	}
 }
 
-async function determineTags( options, tree ) {
+async function determineTags( options, snapshot ) {
 	// for every node in the tree, check to see if any of the dependencies are on a branch with change without a tag pointing at the current HEAD
 	let recycleTagMap = new Map(); // map of module dir names and a tag they can recycle to, so we don't calculate it multiple times
 	let tagMap = new Map(); // map of module dir names and tags which take into account if the children have valid tags too
-	await determineTagsRecursive( options, tree, recycleTagMap, tagMap );
+	await determineTagsRecursive( options, snapshot, snapshot.main, recycleTagMap, tagMap );
 	return tagMap;
 }
 
@@ -382,10 +388,11 @@ async function confirmUser( options, reposToTag ) {
 async function tagOperation( options = {} ) {
 	util.defaultOptions( options );
 	options.increment = options.increment || 'minor';
+	await globalConfig.init( options.cwd );
 	await util.readConfigFile( options.cwd );
 	console.log( `Inspecting dependencies for tagging operation...` );
 	
-	const tree = await depTree.traverse( options );
+	const snapshot = await getSnapshot.getSnapshot( options.cwd );
 	// make sure there are no conflicts in any dependencies before doing tag
 	const isConflicted = await checkForConflicts( options, true );
 	if ( isConflicted ) {
@@ -394,7 +401,7 @@ async function tagOperation( options = {} ) {
 	}
 	
 	// work out which repos need to be tagged, and what those tags are going to called
-	const reposToTag = await determineTags( options, tree );
+	const reposToTag = await determineTags( options, snapshot );
 	let count = 0;
 	for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
 		if ( tagObject.create ) {
