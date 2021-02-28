@@ -8,20 +8,8 @@ import { clone, checkAndSwitch, checkRemoteResetRequired } from './dependencies.
 import { getTargetFromRepoUrl } from './resolve.js';
 import globalConfig from './globalConfig.js';
 import * as getSnapshot from './getSnapshot.js';
+import checkForConflicts from './checkForConflicts.js';
 import GitRepositorySnapshot from './GitRepositorySnapshot.js';
-
-async function checkForConflicts( snapshot ) {
-	let conflicts = [];
-	if ( await snapshot.main.isConflicted() ) {
-		conflicts.push( snapshot.main );
-	}
-	for ( const depInfo of snapshot.deps.values() ) {
-		if ( await depInfo.snapshot.isConflicted() ) {
-			conflicts.push( depInfo.snapshot );
-		}
-	}
-	return conflicts;
-}
 
 async function stashAndPull( snapshot, pkgdir, options, propagateErrors = false ) {
 	const changed = !await snapshot.isUpToDate();

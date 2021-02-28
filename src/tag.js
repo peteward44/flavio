@@ -394,8 +394,8 @@ async function tagOperation( options = {} ) {
 	
 	const snapshot = await getSnapshot.getSnapshot( options.cwd );
 	// make sure there are no conflicts in any dependencies before doing tag
-	const isConflicted = await checkForConflicts( options, true );
-	if ( isConflicted ) {
+	const conflicts = await checkForConflicts( snapshot, true );
+	if ( conflicts.length > 0 ) {
 		console.error( `Tag can only be done on projects with no conflicts and no local changes` );
 		return;
 	}
