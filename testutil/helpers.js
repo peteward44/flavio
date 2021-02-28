@@ -1,9 +1,9 @@
 // Creates a local SVN repositiory using svnadmin to run tests against
 import fs from 'fs-extra';
-import * as util from '../src/util.js';
 import path from 'path';
 import os from 'os';
 import * as uuid from 'uuid';
+import * as util from '../src/util.js';
 
 // windows paths are too long
 const tempRoot = os.platform() === 'win32' ? path.join( path.parse( os.tmpdir() ).root, '.flaviotemp' ) : path.join( os.tmpdir(), 'flavio' );

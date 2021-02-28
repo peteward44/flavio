@@ -3,7 +3,6 @@ import chalk from 'chalk';
 import fs from 'fs-extra';
 import path from 'path';
 import * as util from './util.js';
-import * as git from './git.js';
 import handleConflict from './handleConflict.js';
 import { clone, checkAndSwitch, checkRemoteResetRequired } from './dependencies.js';
 import { getTargetFromRepoUrl } from './resolve.js';
@@ -163,56 +162,35 @@ async function update( options ) {
 	// now make sure all modules point to the right bits
 	for ( const depInfo of snapshot.deps.values() ) {
 		const module = depInfo.refs[0];
-		switch ( await depInfo.snapshot.getStatus() ) {
-			default:
-				break;
-			case 'installed':
-			{
-				if ( !options.json ) {
-					console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Updating...` );
-				}
-				const targetObj = await getTargetFromRepoUrl( depInfo.snapshot, module, depInfo.snapshot.dir );
-				// check to see if the local branch still exists on the remote, reset if not
-				if ( options['remote-reset'] !== false ) {
-					const repoUrl = util.parseRepositoryUrl( module );
-					await checkRemoteResetRequired( depInfo.snapshot, targetObj, depInfo.snapshot.name, depInfo.snapshot.dir, options, repoUrl );
-				}
-				if ( options.switch ) {
-					await checkAndSwitch( depInfo.snapshot, options, depInfo.snapshot.dir, module );
-				}
-				try {
-					await stashAndPull( depInfo.snapshot, depInfo.snapshot.dir, options, true );
-				} catch ( err ) {
-					// On a repo that looks like everything should work fine but doesn't, the repo has probably been recreated.
-					// if the repo is clean, hard reset and pull.
-					const pkgdir = depInfo.snapshot.dir;
-					const errout = ( await git.pull( pkgdir, {
-						captureStderr: true, captureStdout: true, ignoreError: true, depth: options.depth 
-					} ) ).err.trim();
-					if ( errout === 'fatal: refusing to merge unrelated histories' ) {
-						if ( await git.isWorkingCopyClean( pkgdir ) ) {
-							console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Unrelated histories detected, performing hard reset...` );
-							try {
-								await git.fetch( pkgdir, ['--all'] );
-							} catch ( err2 ) {
-								console.error( `Error executing fetch on repository` );
-								console.error( err2.message || err2 );
-							}
-							await git.executeGit( ['reset', '--hard', `origin/${targetObj.tag || targetObj.commit || targetObj.branch}`], { cwd: pkgdir } );
-							try {
-								await git.pull( pkgdir, { depth: options.depth } );
-							} catch ( err2 ) {
-								console.error( `Error executing pull on repository` );
-								console.error( err2.message || err2 );
-							}
-						} else {
-							console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Unrelated histories detected, but cannot reset due to local changes!` );
-						}
+		if ( await depInfo.snapshot.getStatus() === 'installed' ) {
+			if ( !options.json ) {
+				console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Updating...` );
+			}
+			const targetObj = await getTargetFromRepoUrl( depInfo.snapshot, module, depInfo.snapshot.dir );
+			// check to see if the local branch still exists on the remote, reset if not
+			if ( options['remote-reset'] !== false ) {
+				const repoUrl = util.parseRepositoryUrl( module );
+				await checkRemoteResetRequired( depInfo.snapshot, targetObj, depInfo.snapshot.name, depInfo.snapshot.dir, options, repoUrl );
+			}
+			if ( options.switch ) {
+				await checkAndSwitch( depInfo.snapshot, options, depInfo.snapshot.dir, module );
+			}
+			try {
+				await stashAndPull( depInfo.snapshot, depInfo.snapshot.dir, options, true );
+			} catch ( err ) {
+				// On a repo that looks like everything should work fine but doesn't, the repo has probably been recreated.
+				// if the repo is clean, hard reset and pull.
+				const errout = await depInfo.snapshot.pullCaptureError();
+				if ( errout === 'fatal: refusing to merge unrelated histories' ) {
+					if ( await depInfo.snapshot.isWorkingCopyClean() ) {
+						console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Unrelated histories detected, performing hard reset...` );
+						await depInfo.snapshot.fixUnrelatedHistory( targetObj );
 					} else {
-						throw err;
+						console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Unrelated histories detected, but cannot reset due to local changes!` );
 					}
+				} else {
+					throw err;
 				}
-				break;
 			}
 		}
 	}

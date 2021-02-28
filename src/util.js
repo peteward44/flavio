@@ -169,5 +169,3 @@ export function defaultOptions( options ) {
 export function overrideDefaultOptions( defaultOptionsObject ) {
 	gDefaultOptions = _.cloneDeep( defaultOptionsObject );
 }
-
-

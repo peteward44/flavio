@@ -277,11 +277,11 @@ class GitRepositorySnapshot {
 			if ( await this.getStatus() === 'missing' ) {
 				return;
 			}
-			await this._executeGit( ['fetch'], { outputStderr: true } );
+			await this._executeGit( ['fetch', '--all'], { outputStderr: true } );
 			this._fetched = true;
 		}
 	}
-	
+
 	@cached()
 	async pull() {
 		if ( await this.getStatus() === 'missing' ) {
@@ -294,7 +294,27 @@ class GitRepositorySnapshot {
 			const remoteBranch = await this.getRemoteTrackingBranch();
 			result = await this._executeGit( [`merge`, remoteBranch], { outputStderr: true } );
 		}
+		this._clearCacheExcept( ['getBareUrl'] );
+		this._cache.set( 'fetch', undefined );
+		this._cache.set( 'pull', undefined );
+		this._cache.set( 'push', undefined );
 		return result;
+	}
+
+	@cached()
+	async pullCaptureError() {
+		if ( await this.getStatus() === 'missing' ) {
+			return null;
+		}
+		await this.fetch();
+		const remoteBranch = await this.getRemoteTrackingBranch();
+		const result = await this._executeGit( [`merge`, remoteBranch], { captureStderr: true, ignoreError: true } );
+		this._clearCacheExcept( ['getBareUrl'] );
+		this._cache.set( 'fetch', undefined );
+		this._cache.set( 'pull', undefined );
+		this._cache.set( 'pullCaptureError', undefined );
+		this._cache.set( 'push', undefined );
+		return result.err.trim();
 	}
 
 	@cached()
@@ -303,6 +323,28 @@ class GitRepositorySnapshot {
 			return;
 		}
 		await this._executeGit( ['push'], { outputStderr: true } );
+	}
+	
+	async reset( targetObj ) {
+		// TODO: origin reference
+		await this._executeGit( ['reset', '--hard', `origin/${targetObj.tag || targetObj.commit || targetObj.branch}`] );
+	}
+
+	async fixUnrelatedHistory( targetObj ) {
+		try {
+			await this.fetch();
+		} catch ( err2 ) {
+			console.error( `Error executing fetch on repository` );
+			console.error( err2.message || err2 );
+		}
+		await this.reset( targetObj );
+		this._cache.delete( 'pull' );
+		try {
+			await this.pull();
+		} catch ( err2 ) {
+			console.error( `Error executing pull on repository` );
+			console.error( err2.message || err2 );
+		}
 	}
 	
 	_clearCacheExcept( except ) {
