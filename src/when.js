@@ -1,47 +1,31 @@
-import fs from 'fs-extra';
 import * as _ from 'lodash';
 import * as moment from 'moment';
 import * as util from './util.js';
-import * as git from './git.js';
 import globalConfig from './globalConfig.js';
 import * as getSnapshot from './getSnapshot.js';
 
-async function executeRevList( dir, args ) {
-	try {
-		const out = ( await git.executeGit( ['rev-list', ...args], { cwd: dir, captureStdout: true } ) ).out.trim();
-		if ( out ) {
-			const fin = out.split( '\n' )[0].trim();
-			if ( fin ) {
-				return fin;
-			}
-		}
-	} catch ( err ) {
-	}
-	return '';
-}
-
-async function getClosestRevision( dir, date ) {
+async function getClosestRevision( snapshot, date ) {
 	const dateString = moment( date ).format( 'YYYY-MM-DD HH:mm' );
-	const target = await git.getCurrentTarget( dir );
+	const target = await snapshot.getTarget();
 	const hash = target.branch || target.tag || target.commit;
 	
 	// first, try getting commit before the given date on the current target
-	const a = await executeRevList( dir, ['-n', '1', `--before="${dateString}"`, hash] );
+	const a = await snapshot.executeRevList( ['-n', '1', `--before="${dateString}"`, hash] );
 	if ( a ) {
 		return a;
 	}
 	// second, try getting commit before the given date on master
-	const b = await executeRevList( dir, ['-n', '1', `--before="${dateString}"`, 'master'] );
+	const b = await snapshot.executeRevList( ['-n', '1', `--before="${dateString}"`, 'master'] );
 	if ( b ) {
 		return b;
 	}
 	// third, try getting commit after the given date on the current target
-	const c = await executeRevList( dir, [`--after="${dateString}"`, '--reverse', hash] );
+	const c = await snapshot.executeRevList( [`--after="${dateString}"`, '--reverse', hash] );
 	if ( c ) {
 		return c;
 	}
 	// third, try getting commit after the given date on master
-	const d = await executeRevList( dir, [`--after="${dateString}"`, '--reverse', 'master'] );
+	const d = await snapshot.executeRevList( [`--after="${dateString}"`, '--reverse', 'master'] );
 	if ( d ) {
 		return d;
 	}
@@ -49,9 +33,9 @@ async function getClosestRevision( dir, date ) {
 }
 
 async function exe( name, snapshot, date ) {
-	if ( fs.existsSync( snapshot.dir ) ) {
+	if ( await snapshot.getStatus() === 'installed' ) {
 		try {
-			const rev = await getClosestRevision( snapshot.dir, date );
+			const rev = await getClosestRevision( snapshot, date );
 			if ( rev ) {
 				await snapshot.checkout( rev );
 				console.log( `${name} set successfully to rev ${rev}` );

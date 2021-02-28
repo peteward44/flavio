@@ -1,7 +1,6 @@
 import fs from 'fs-extra';
 import _ from 'lodash';
 import * as util from './util.js';
-import * as git from './git.js';
 import { checkAndSwitch } from './dependencies.js';
 import * as getSnapshot from './getSnapshot.js';
 import globalConfig from './globalConfig.js';
@@ -9,9 +8,8 @@ import globalConfig from './globalConfig.js';
 async function exe( snapshot, options, name, dir, branch ) {
 	if ( fs.existsSync( dir ) ) {
 		try {
-			const local = await git.doesLocalBranchExist( dir, branch );
-			const url = await snapshot.getBareUrl();
-			const remote = await git.doesRemoteBranchExist( url, branch );
+			const local = await snapshot.doesLocalBranchExist( branch );
+			const remote = await snapshot.doesRemoteBranchExist( branch );
 			if ( local || remote ) {
 				console.log( `${name}: Checking out branch ${branch}` );
 				const repo = await snapshot.getUrl();

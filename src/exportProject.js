@@ -1,14 +1,14 @@
 import path from 'path';
 import fs from 'fs-extra';
 import * as util from './util.js';
-import * as git from './git.js';
 import * as getSnapshot from './getSnapshot.js';
 import globalConfig from './globalConfig.js';
 
-async function copyFiles( rootSrc, destDir ) {
+async function copyFiles( snapshot, destDir ) {
+	const rootSrc = snapshot.dir;
 	fs.ensureDirSync( destDir );
 	fs.copySync( path.join( rootSrc, '.git' ), path.join( destDir, '.git' ) );
-	const srcFiles = await git.listFiles( rootSrc );
+	const srcFiles = await snapshot.listFiles();
 	for ( const file of srcFiles ) {
 		fs.copySync( path.join( rootSrc, file ), path.join( destDir, file ) );
 	}
@@ -32,7 +32,7 @@ async function exportProject( destDir, options = {} ) {
 		for ( const depInfo of snapshot.deps.values() ) {
 			console.log( `Exporting ${depInfo.snapshot.name} dependency` );
 			const destMod = path.relative( options.cwd, depInfo.snapshot.dir );
-			await copyFiles( depInfo.snapshot.dir, path.join( destDir, destMod ) );
+			await copyFiles( depInfo.snapshot, path.join( destDir, destMod ) );
 		}
 	}
 	console.log( `Export complete` );

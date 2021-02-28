@@ -209,6 +209,26 @@ class GitRepositorySnapshot {
 		}
 		return result;
 	}
+
+	@cached()
+	async listFiles() {
+		const raw = ( await this._executeGit( ['ls-files'], { captureStdout: true } ) ).out;
+		return raw.trim().split( '\n' ).map( (file) => file.trim() );
+	}
+	
+	async executeRevList( args ) {
+		try {
+			const out = ( await this._executeGit( ['rev-list', ...args], { captureStdout: true } ) ).out.trim();
+			if ( out ) {
+				const fin = out.split( '\n' )[0].trim();
+				if ( fin ) {
+					return fin;
+				}
+			}
+		} catch ( err ) {
+		}
+		return '';
+	}
 	
 	async stash() {
 		debug( 'stash' );
@@ -345,6 +365,19 @@ class GitRepositorySnapshot {
 			console.error( `Error executing pull on repository` );
 			console.error( err2.message || err2 );
 		}
+	}
+	
+	async doesLocalBranchExist( branchName ) {
+		debug( 'doesLocalBranchExist' );
+		const { code } = await this._executeGit( ['rev-parse', '--verify', branchName], { ignoreError: true } );
+		return code === 0;
+	}
+
+	async doesRemoteBranchExist( branchName ) {
+		debug( 'doesRemoteBranchExist' );
+		const url = await this.getBareUrl();
+		const { code } = await this._executeGit( ['ls-remote', '--exit-code', url, branchName], { ignoreError: true, quiet: true } );
+		return code === 0;
 	}
 	
 	_clearCacheExcept( except ) {
