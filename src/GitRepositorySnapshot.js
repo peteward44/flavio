@@ -270,19 +270,35 @@ class GitRepositorySnapshot {
 			}
 		}
 	}
+
+	async addAndCommit( filename, commitMessage ) {
+		debug( 'addAndCommit' );
+		if ( !Array.isArray( filename ) ) {
+			filename = [filename];
+		}
+		await this._executeGit( ['add', ...filename] );
+		await this._executeGit( ['commit', '-m', commitMessage, ...filename] );
+		this._cache.delete( 'listFiles' );
+		this._cache.delete( 'getLastCommit' );
+		this._cache.delete( 'push' );
+	}
 	
-	async checkout( branchName ) {
+	async checkout( branchName, create = false ) {
 		debug( 'checkout' );
 		const currentTarget = await this.getTarget();
 		if ( currentTarget.branch && branchName === currentTarget.branch ) {
 			return;
 		}
 		const stash = await this.stash();
-		await this._executeGit( ['checkout', branchName] );
+		const args = ['checkout', branchName];
+		if ( create ) {
+			args.splice( 1, 0, '-b' );
+		}
+		await this._executeGit( args );
 		await this.stashPop( stash );
 		this._clearCacheExcept( ['fetch', 'getBareUrl', 'listTags'] );
 	}
-	
+
 	async clone( url, dir = this._dir, target ) {
 		dir = path.resolve( dir );
 		fs.ensureDirSync( dir );
@@ -300,7 +316,14 @@ class GitRepositorySnapshot {
 		this._cache.set( 'pull', undefined );
 		this._cache.set( 'push', undefined );
 	}
-	
+
+	async createTag( tagName, message ) {
+		debug( 'createTag' );
+		await this._executeGit( ['tag', '-a', tagName, '-m', message] );
+		this._cache.delete( 'push' );
+		this._cache.delete( 'listTags' );
+	}
+
 	@cached()
 	async fetch() {
 		if ( !this._fetched ) {
@@ -347,12 +370,23 @@ class GitRepositorySnapshot {
 		return result.err.trim();
 	}
 
-	@cached()
-	async push() {
+	async push( args ) {
 		if ( await this.getStatus() === 'missing' ) {
 			return;
 		}
-		await this._executeGit( ['push'], { outputStderr: true } );
+		await this._executeGit( ['push', ...args], { outputStderr: true } );
+	}
+
+	@cached()
+	async getLastCommit() {
+		const { out } = await this._executeGit( ['log', '-n', '1', '--pretty=format:%H'], { captureStdout: true } );
+		return out.trim();
+	}
+
+	async show( branch, file ) {
+		debug( 'show' );
+		const output = ( await this._executeGit( ['show', `${branch}:${file}`], { quiet: true, captureStdout: true } ) ).out;
+		return output;
 	}
 	
 	async reset( targetObj ) {

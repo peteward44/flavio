@@ -6,7 +6,6 @@ import inquirer from 'inquirer';
 import Table from 'easy-table';
 import chalk from 'chalk';
 import * as util from './util.js';
-import * as git from './git.js';
 import globalConfig from './globalConfig.js';
 import checkForConflicts from './checkForConflicts.js';
 import * as getSnapshot from './getSnapshot.js';
@@ -25,15 +24,15 @@ function areTargetsEqual( lhs, rhs ) {
 }
 
 // Returns tag name of tag that can be recycled for this repo, or empty string if nothing can be found
-async function getTagPointingAtCurrentHEAD( repoDir ) {
-	const target = await git.getCurrentTarget( repoDir );
+async function getTagPointingAtCurrentHEAD( snapshot ) {
+	const target = await snapshot.getTarget();
 	if ( target.tag ) {
 		// already in detached HEAD state, pointing at a tag
 		return target.tag;
 	}
 	// list all the tags in this repo, and look in each one to see if one of the tags was made on the commit we are currently sat on.
-	const lastCommit = await git.getLastCommit( repoDir );
-	let tags = await git.listTags( repoDir );
+	const lastCommit = await snapshot.getLastCommit();
+	let tags = await snapshot.listTags();
 	// sort tags by descending version, as we are more likely to be tagging the latest version so it'll be marginally quicker.
 	// this sort method puts the invalid semver tags at the end of the array
 	tags = tags.sort( ( lhs, rhs ) => {
@@ -52,7 +51,7 @@ async function getTagPointingAtCurrentHEAD( repoDir ) {
 	let tagFound = '';
 	for ( const tag of tags ) {
 		try {
-			const tagFlavioJson = JSON.parse( await git.show( repoDir, tag, 'flavio.json' ) );
+			const tagFlavioJson = JSON.parse( await snapshot.show( tag, 'flavio.json' ) );
 			if ( _.isObject( tagFlavioJson.tag ) ) {
 				// if this object exists in the flavio.json, it means the tag was created by flavio's tagging process previously
 				let isEqual = false;
@@ -75,7 +74,7 @@ async function getTagPointingAtCurrentHEAD( repoDir ) {
 async function determineRecycledTagForElement( snapshotRoot, snapshot, recycleTagMap ) {
 	// if a node can recycle it's tag, and all of it's dependencies can also recycle their tag, then we can do a recycle.
 	if ( !recycleTagMap.has( snapshot.name ) ) {
-		const tagName = await getTagPointingAtCurrentHEAD( snapshot.dir );
+		const tagName = await getTagPointingAtCurrentHEAD( snapshot );
 		recycleTagMap.set( snapshot.name, tagName );
 	}
 	
@@ -102,12 +101,8 @@ async function validateRecycledTagDependencies( snapshotRoot, snapshot, recycled
 	if ( !recycledTag ) {
 		return false;
 	}
-	// switch to tag, then load the flavio.json for that tag, then switch back so we know the dependencies
-	const currentTarget = await git.getCurrentTarget( snapshot.dir );
-	await git.checkout( snapshot.dir, { tag: recycledTag } );
-	const flavioJson = await util.loadFlavioJson( snapshot.dir );
-	flavioJson.dependencies = flavioJson.dependencies || {};
-	await git.checkout( snapshot.dir, currentTarget );
+	// load the flavio.json so we know the dependencies
+	const flavioJson = JSON.parse( await snapshot.show( recycledTag, 'flavio.json' ) );
 	
 	for ( const depName of Object.keys( flavioJson.dependencies ) ) {
 		const url = flavioJson.dependencies[depName];
@@ -156,14 +151,14 @@ function getNextAvailableVersion( tagList, version, versionType ) {
 
 async function determineTagName( options, snapshot ) {
 	const isInteractive = options.interactive !== false;
-	const flavioJson = await util.loadFlavioJson( snapshot.dir );
+	const flavioJson = await snapshot.getFlavioJson();
 	if ( _.isEmpty( flavioJson ) ) {
 		return null;
 	}
 	// strip prerelease tag off name
 	const tagName = semver.inc( flavioJson.version, options.increment );
 	// see if tag of the same name already exists
-	const tagList = await git.listTags( snapshot.dir );
+	const tagList = await snapshot.listTags();
 	if ( tagList.indexOf( tagName ) >= 0 ) {
 		// if it already exists, suggest either the next available major, minor or prerelease version for the user to pick
 		const nextMajor = getNextAvailableVersion( tagList, tagName, 'major' );
@@ -214,21 +209,21 @@ async function determineTagName( options, snapshot ) {
 
 async function determineTagsRecursive( options, snapshotRoot, snapshot, recycleTagMap, tagMap ) {
 	if ( !tagMap.has( snapshot.name ) ) {
-		await git.fetch( snapshot.dir );
-		const target = await git.getCurrentTarget( snapshot.dir );
+		await snapshot.fetch();
+		const target = await snapshot.getTarget();
 		const recycledTag = await determineRecycledTagForElement( snapshotRoot, snapshot, recycleTagMap );
 		const recycledTagsAreValid = await validateRecycledTagDependencies( snapshotRoot, snapshot, recycledTag, recycleTagMap );
 		if ( recycledTag && recycledTagsAreValid ) {
 			tagMap.set( snapshot.name, {
-				tag: recycledTag, originalTarget: target, create: false, dir: snapshot.dir 
+				tag: recycledTag, originalTarget: target, create: false, dir: snapshot.dir, snapshot
 			} );
 		} else {
 			const tagName = await determineTagName( options, snapshot );
 			if ( tagName ) {
 				const branchName = `release/${tagName}`;
-				const incrementVersion = await git.isUpToDate( snapshot.dir ); // only increment version in flavio.json if our local HEAD is up to date with the remote branch
+				const incrementVersion = await snapshot.isUpToDate(); // only increment version in flavio.json if our local HEAD is up to date with the remote branch
 				tagMap.set( snapshot.name, {
-					tag: tagName, originalTarget: target, branch: branchName, create: true, dir: snapshot.dir, incrementMasterVersion: incrementVersion 
+					tag: tagName, originalTarget: target, branch: branchName, create: true, dir: snapshot.dir, snapshot, incrementMasterVersion: incrementVersion 
 				} );
 			} else {
 				console.log( util.formatConsoleDependencyName( snapshot.name ), `Dependency has no valid flavio.json, so will not be tagged` );
@@ -285,12 +280,12 @@ async function writeVersionToJsonFile( pkgJsonPath, version ) {
 
 async function prepareTags( reposToTag ) {
 	for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
-		const { dir } = tagObject;
+		const { dir, snapshot } = tagObject;
 		if ( tagObject.create ) {
-			const lastCommit = await git.getLastCommit( dir );
-			await git.createAndCheckoutBranch( dir, tagObject.branch );
+			const lastCommit = await snapshot.getLastCommit();
+			await snapshot.checkout( tagObject.branch, true );
 			// then modify flavio.json
-			let flavioJson = await util.loadFlavioJson( dir );
+			let flavioJson = await snapshot.getFlavioJson();
 			flavioJson = lockFlavioJson( flavioJson, reposToTag, tagObject.tag, lastCommit, tagObject.originalTarget );
 			await util.saveFlavioJson( dir, flavioJson );
 			let filesArray = ['flavio.json'];
@@ -302,11 +297,11 @@ async function prepareTags( reposToTag ) {
 				filesArray.push( 'bower.json' );
 			}
 			// commit new flavio.json
-			await git.addAndCommit( dir, filesArray, `Commiting new flavio.json for tag ${tagObject.tag}` );
+			await snapshot.addAndCommit( filesArray, `Commiting new flavio.json for tag ${tagObject.tag}` );
 			// then create tag
-			await git.createTag( dir, tagObject.tag, `Tag for v${tagObject.tag}` );
+			await snapshot.createTag( tagObject.tag, `Tag for v${tagObject.tag}` );
 			// switch back to original target
-			await git.checkout( dir, tagObject.originalTarget );
+			await snapshot.checkout( tagObject.originalTarget.branch || tagObject.originalTarget.tag || tagObject.originalTarget.commit );
 		}
 	}
 }
@@ -318,10 +313,10 @@ function incrementMasterVersion( options, version ) {
 
 async function incrementOriginalVersions( options, reposToTag ) {
 	for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
-		const { dir } = tagObject;
+		const { snapshot, dir } = tagObject;
 		if ( tagObject.incrementMasterVersion ) {
 			// modify flavio.json
-			let flavioJson = await util.loadFlavioJson( dir );
+			let flavioJson = await snapshot.getFlavioJson();
 			flavioJson.version = incrementMasterVersion( options, flavioJson.version );
 			await util.saveFlavioJson( dir, flavioJson );
 			let filesArray = ['flavio.json'];
@@ -333,20 +328,20 @@ async function incrementOriginalVersions( options, reposToTag ) {
 				filesArray.push( 'bower.json' );
 			}
 			// commit new flavio.json
-			await git.addAndCommit( dir, filesArray, `Commiting new flavio.json for tag ${tagObject.tag}` );
-			await git.push( dir, ['origin', 'HEAD'] );
+			await snapshot.addAndCommit( filesArray, `Commiting new flavio.json for tag ${tagObject.tag}` );
+			await snapshot.push( ['origin', 'HEAD'] );
 		}
 	}
 }
 
 async function pushTags( options, reposToTag ) {
 	for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
-		const { dir } = tagObject;
+		const { snapshot } = tagObject;
 		if ( tagObject.create ) {
 			// push release branch
-			await git.push( dir, ['origin', `${tagObject.branch}`] );
+			await snapshot.push( ['origin', `${tagObject.branch}`] );
 			// push tag
-			await git.push( dir, ['origin', `refs/tags/${tagObject.tag}`] );
+			await snapshot.push( ['origin', `refs/tags/${tagObject.tag}`] );
 		}
 	}
 }
@@ -354,12 +349,12 @@ async function pushTags( options, reposToTag ) {
 async function confirmUser( options, reposToTag ) {
 	const table = new Table();
 	for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
-		const target = await git.getCurrentTarget( tagObject.dir );
+		const target = await tagObject.snapshot.getTarget();
 		table.cell( 'Name', name );
 		table.cell( 'Target', chalk.magenta( target.commit || target.tag || target.branch ) );
 		table.cell( 'Tag', chalk.blue( tagObject.tag ) );
 		table.cell( 'New tag?', tagObject.create ? chalk.green( 'YES' ) : chalk.yellow( 'NO' ) );
-		table.cell( 'Up to date?', await git.isUpToDate( tagObject.dir ) ? chalk.green( 'YES' ) : chalk.red( 'NO' ) );
+		table.cell( 'Up to date?', await tagObject.snapshot.isUpToDate() ? chalk.green( 'YES' ) : chalk.red( 'NO' ) );
 		table.newRow();
 	}
 	console.log( table.toString() );
@@ -392,16 +387,16 @@ async function tagOperation( options = {} ) {
 	await util.readConfigFile( options.cwd );
 	console.log( `Inspecting dependencies for tagging operation...` );
 	
-	const snapshot = await getSnapshot.getSnapshot( options.cwd );
+	const snapshotRoot = await getSnapshot.getSnapshot( options.cwd );
 	// make sure there are no conflicts in any dependencies before doing tag
-	const conflicts = await checkForConflicts( snapshot, true );
+	const conflicts = await checkForConflicts( snapshotRoot, true );
 	if ( conflicts.length > 0 ) {
 		console.error( `Tag can only be done on projects with no conflicts and no local changes` );
 		return;
 	}
 	
 	// work out which repos need to be tagged, and what those tags are going to called
-	const reposToTag = await determineTags( options, snapshot );
+	const reposToTag = await determineTags( options, snapshotRoot );
 	let count = 0;
 	for ( const [name, tagObject] of reposToTag ) { // eslint-disable-line no-unused-vars
 		if ( tagObject.create ) {
@@ -414,14 +409,14 @@ async function tagOperation( options = {} ) {
 	if ( reposToTag.has( mainProjectName ) ) {
 		const mainRepo = reposToTag.get( mainProjectName );
 		try {
-			const url = await git.getWorkingCopyUrl( mainRepo.dir, true );
+			const url = await mainRepo.snapshot.getBareUrl();
 			mainRepoUrl = `${url}#${mainRepo.tag}`;
 		} catch ( err ) {}
 	} else {
 		// main project already tagged?
-		const target = await git.getCurrentTarget( options.cwd );
+		const target = await snapshotRoot.main.getTarget();
 		if ( target.tag ) {
-			const url = await git.getWorkingCopyUrl( options.cwd, true );
+			const url = await snapshotRoot.main.getBareUrl();
 			mainRepoUrl = `${url}#${target.tag}`;
 		}
 	}
