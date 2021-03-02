@@ -220,6 +220,25 @@ export default function start() {
 				}
 			} )
 			.command( {
+				command: 'taginfo',
+				desc: 'Outputs information about what version each dependency is and the predicted next tag version',
+				builder: (subyargs) => {
+					subyargs
+						.usage('Usage: flavio taginfo [options]')
+						.example('flavio taginfo', 'Outputs tag information for main project and all linked dependencies')
+						.help('help')
+						.option('cwd', {
+							describe: 'Working directory to use',
+							default: process.cwd()
+						});
+				},
+				handler: (argv) => {
+					flavio.commands.taginfo(_.cloneDeep( argv ))
+						.then(resolve)
+						.catch(reject);
+				}
+			} )
+			.command( {
 				command: 'export <directory>',
 				desc: 'Export main project and all modules to a provided output directory',
 				builder: (subyargs) => {

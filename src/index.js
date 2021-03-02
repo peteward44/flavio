@@ -1,6 +1,7 @@
 import update from './update.js';
 import add from './add.js';
 import tag from './tag.js';
+import taginfo from './taginfo.js';
 import clone from './clone.js';
 import status from './status.js';
 import execute from './execute.js';
@@ -17,6 +18,7 @@ const commands = {
 	add,
 	clear,
 	tag,
+	taginfo,
 	clone,
 	status,
 	execute,
