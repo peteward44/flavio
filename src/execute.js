@@ -1,14 +1,12 @@
-import * as fs from 'fs';
 import * as util from './util.js';
-import * as git from './git.js';
 import * as getSnapshot from './getSnapshot.js';
 import globalConfig from './globalConfig.js';
 
-async function exe( name, dir, args ) {
-	if ( fs.existsSync( dir ) ) {
-		console.log( `${name}: "git ${args.join( " " )}"` );
+async function exe( snapshot, args ) {
+	if ( await snapshot.getStatus() === 'installed' ) {
+		console.log( `${snapshot.name}: "git ${args.join( " " )}"` );
 		try {
-			await git.executeGit( args, { cwd: dir, outputStderr: true } );
+			await snapshot.execute( args );
 		} catch ( err ) {
 			console.error( `Error executing command` );
 		}
@@ -27,12 +25,12 @@ async function execute( options ) {
 	
 	const snapshot = await getSnapshot.getSnapshot( options.cwd );
 	
-	await exe( 'root', snapshot.main.dir, args );
+	await exe( snapshot.main, args );
 	
 	console.log( `${snapshot.deps.size} dependencies found` );
 	
-	for ( const [name, depInfo] of snapshot.deps.entries() ) {
-		await exe( name, depInfo.snapshot.dir, args );
+	for ( const depInfo of snapshot.deps.values() ) {
+		await exe( depInfo.snapshot, args );
 	}
 }
 

@@ -2,9 +2,9 @@ import path from 'path';
 import fs from 'fs-extra';
 import chalk from 'chalk';
 import * as util from './util.js';
-import * as git from './git.js';
 import update from './update.js';
 import globalConfig from './globalConfig.js';
+import executeGit from './executeGit.js';
 
 /**
  *
@@ -27,7 +27,11 @@ async function clone( repo, options = {} ) {
 		throw new Error( `Target directory ${cwd} already exists!` );
 	}
 	console.log( util.formatConsoleDependencyName( gitname || 'main' ), `Cloning main respository to ${chalk.yellow(cwd)}` );
-	await git.clone( repoUrl.url, cwd, { branch: repoUrl.target || 'master' } );
+	const args = ['clone', repoUrl.url, cwd];
+	if ( repoUrl.target && repoUrl.target !== 'master' ) {
+		args.push( `--branch=${repoUrl.target}` );
+	}
+	await executeGit( cwd, args );
 
 	console.log( util.formatConsoleDependencyName( gitname || 'main' ), `Clone complete, executing update...` );
 	options.cwd = cwd;

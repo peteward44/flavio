@@ -227,6 +227,10 @@ export default function start() {
 						.usage('Usage: flavio taginfo [options]')
 						.example('flavio taginfo', 'Outputs tag information for main project and all linked dependencies')
 						.help('help')
+						.option('output', {
+							describe: 'File to output JSON tag information to',
+							default: ''
+						})
 						.option('cwd', {
 							describe: 'Working directory to use',
 							default: process.cwd()

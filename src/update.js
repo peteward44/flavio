@@ -141,7 +141,7 @@ async function update( options ) {
 			
 			if ( !fs.existsSync( path.join( depInfo.snapshot.dir, '.git' ) ) ) {
 				const repoUrl = util.parseRepositoryUrl( module );
-				await clone( depInfo.snapshot.dir, options, repoUrl, options.link );
+				await clone( depInfo.snapshot.dir, options, repoUrl, options.link, depInfo.snapshot );
 			} else {
 				await checkAndSwitch( depInfo.snapshot, options, depInfo.snapshot.dir, module );
 			}

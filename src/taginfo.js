@@ -1,4 +1,7 @@
+import fs from 'fs-extra';
 import path from 'path';
+import Table from 'easy-table';
+import chalk from 'chalk';
 import * as util from './util.js';
 import globalConfig from './globalConfig.js';
 import * as getSnapshot from './getSnapshot.js';
@@ -7,12 +10,14 @@ import getTagSuggestions from './getTagSuggestions.js';
 import getNextMasterVersion from './getNextMasterVersion.js';
 
 async function getInfoObjectForDependency( snapshotRoot, snapshot, recycleTagMap ) {
+	const target = await snapshot.getTarget();
 	const recycledTag = await getRecycledTag( snapshotRoot, snapshot, recycleTagMap );
 	const { version } = await snapshot.getFlavioJson();
 	const suggestions = recycledTag ? [] : await getTagSuggestions( snapshotRoot, snapshot );
 	const nextMasterVersion = recycledTag ? null : await getNextMasterVersion( snapshotRoot, snapshot, version );
 	return {
 		name: snapshot.name,
+		target,
 		version,
 		dir: path.relative( snapshotRoot.main.dir, snapshot.dir ).replace( /\\/g, '/' ),
 		recycledTag,
@@ -40,8 +45,28 @@ async function taginfo( options ) {
 	
 	const snapshotRoot = await getSnapshot.getSnapshot( options.cwd );
 	const info = await getInfoObject( snapshotRoot );
-	
-	console.log( JSON.stringify( info ) );
+
+	if ( options.output ) {
+		const dir = path.dirname( options.output );
+		if ( dir && dir !== '.' ) {
+			fs.ensureDirSync( dir );
+		}
+		fs.writeFileSync( options.output, JSON.stringify( info, null, 2 ), 'utf8' );
+	}
+
+	const table = new Table();
+	for ( const depInfo of [info.main, ...info.deps] ) {
+		table.cell( 'Name', depInfo.name );
+		table.cell( 'Target', chalk.magenta( depInfo.target.commit || depInfo.target.tag || depInfo.target.branch ) );
+		table.cell( 'Version', depInfo.version );
+		if ( depInfo.recycledTag ) {
+			table.cell( 'Tag', chalk.yellow( depInfo.recycledTag ) );
+		} else if ( Array.isArray( depInfo.suggestions ) && depInfo.suggestions.length > 0 ) {
+			table.cell( 'Tag', chalk.green( depInfo.suggestions[0] ) );
+		}
+		table.newRow();
+	}
+	console.log( table.toString() );
 }
 
 export default taginfo;

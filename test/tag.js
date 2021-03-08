@@ -6,7 +6,7 @@ import * as git from '../src/git.js';
 import tag from '../src/tag.js';
 import update from '../src/update.js';
 
-describe.only(`tag tests`, function() {
+describe(`tag tests`, function() {
 	this.timeout(30 * 60 * 1000); // 30 minutes
 
 	helpers.test('tag basic', async (tempDir) => {

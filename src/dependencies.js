@@ -1,7 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
-import * as git from './git.js';
 import * as resolve from './resolve.js';
 import * as util from './util.js';
 
@@ -54,14 +53,10 @@ export async function clone( pkgdir, options, repoUrl, isLinked, snapshot ) {
 		if ( fs.existsSync( cloneDir ) ) {
 			deleteDir( cloneDir );
 		}
-		if ( snapshot ) {
-			await snapshot.clone( repoUrl.url, cloneDir, { branch: repoUrl.target || 'master' } );
-		} else {
-			await git.clone( repoUrl.url, cloneDir, { branch: repoUrl.target || 'master' } );
-		}
+		await snapshot.clone( repoUrl.url, cloneDir, { branch: repoUrl.target || 'master' } );
 		const flavioJson = await util.loadFlavioJson( cloneDir );
 		if ( flavioJson && flavioJson.lfs ) {
-			await git.initLFS( cloneDir );
+			await snapshot.initLFS( cloneDir );
 		}
 		freshClone = true;
 	}
@@ -164,10 +159,10 @@ export async function checkAndSwitch( snapshot, options, pkgdir, repo ) {
 			} catch ( err ) {
 			}
 		}
-		await git.clone( repoUrl.url, cloneDir, { branch: repoUrl.target || 'master', depth: options.depth } );
+		await snapshot.clone( repoUrl.url, cloneDir, { branch: repoUrl.target || 'master' } );
 		const flavioJson = await util.loadFlavioJson( cloneDir );
 		if ( flavioJson && flavioJson.lfs ) {
-			await git.initLFS( cloneDir );
+			await snapshot.initLFS();
 		}
 		status = "clone";
 		recreateLinkIfRequired();
@@ -180,7 +175,7 @@ export async function checkAndSwitch( snapshot, options, pkgdir, repo ) {
 				const newPkgDir = findNewRepoDir( cloneDir );
 				fs.renameSync( cloneDir, newPkgDir );
 				// then clone new one
-				if ( await clone( pkgdir, options, repoUrl, options.link ) ) {
+				if ( await clone( pkgdir, options, repoUrl, options.link, snapshot ) ) {
 					status = "clone";
 				} else {
 					status = "switch";
@@ -188,9 +183,7 @@ export async function checkAndSwitch( snapshot, options, pkgdir, repo ) {
 			}
 		} else if ( repoState === 'target' ) {
 			const targetObj = await resolve.getTargetFromRepoUrl( snapshot, repo, cloneDir );
-			const stashName = await git.stash( cloneDir );
-			await git.checkout( cloneDir, targetObj );
-			await git.stashPop( cloneDir, stashName );
+			await snapshot.checkout( targetObj.branch || targetObj.tag || targetObj.commit );
 			status = "switch";
 		}
 	}
@@ -206,11 +199,11 @@ export async function checkRemoteResetRequired( snapshot, targetObj, name, pkgdi
 	// either reset to name of branch specified in flavio.json, or to master if that doesn't exist
 	const target = await snapshot.getTarget();
 	if ( target.branch && targetObj.branch ) {
-		if ( !await git.doesRemoteBranchExist( repoUrl.url, target.branch ) ) {
+		if ( !await snapshot.doesRemoteBranchExist( target.branch ) ) {
 			let targetBranchName = 'master';
 			if ( targetObj.branch !== target.branch ) {
 				// the current branch doesn't exist on remote, and the branch specified in the module repo url does, so we reset to that
-				if ( await git.doesRemoteBranchExist( repoUrl.url, targetObj.branch ) ) {
+				if ( await snapshot.doesRemoteBranchExist( targetObj.branch ) ) {
 					targetBranchName = targetObj.branch;
 				}
 			}

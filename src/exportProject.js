@@ -21,12 +21,13 @@ async function copyFiles( snapshot, destDir ) {
 async function exportProject( destDir, options = {} ) {
 	// copy over main project
 	await globalConfig.init( options.cwd );
+	util.defaultOptions( options );
 	await util.readConfigFile( options.cwd );
 	
 	const snapshot = await getSnapshot.getSnapshot( options.cwd );
 
 	console.log( `Exporting main project to ${destDir}` );
-	await copyFiles( snapshot.main.dir, destDir );
+	await copyFiles( snapshot.main, destDir );
 	if ( !options['ignore-dependencies'] ) {
 		// copy over dependencies
 		for ( const depInfo of snapshot.deps.values() ) {

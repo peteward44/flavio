@@ -1,15 +1,8 @@
 import fs from 'fs-extra';
 import path from 'path';
-import { spawn } from 'child_process';
 import * as uuid from 'uuid';
 import globalConfig from './globalConfig.js';
-
-function printError( err, args, cwd ) {
-	let argsString = args.join( " " );
-	console.error( `'git ${argsString}'` );
-	console.error( `'dir ${cwd}'` );
-	console.error( err.stack || err );
-}
+import executeGit from './executeGit.js';
 
 async function getDirForDependency( name ) {
 	const root = globalConfig.getPackageRootPath();
@@ -283,6 +276,12 @@ class GitRepositorySnapshot {
 		this._cache.delete( 'push' );
 	}
 	
+	async isValidCommit( sha ) {
+		debug( 'isValidCommit' );
+		const result = await this._executeGit( ['branch', '-r', '--contains', sha], { ignoreError: true } );
+		return result.code === 0;
+	}
+	
 	async checkout( branchName, create = false ) {
 		debug( 'checkout' );
 		const currentTarget = await this.getTarget();
@@ -311,10 +310,21 @@ class GitRepositorySnapshot {
 			}
 		}
 		await this._executeGit( args, { outputStderr: true } );
+		this._dir = dir;
 		this._cache.clear();
 		this._cache.set( 'fetch', undefined );
 		this._cache.set( 'pull', undefined );
 		this._cache.set( 'push', undefined );
+	}
+
+	async initLFS() {
+		debug( 'initLFS' );
+		try {
+			await this._executeGit( ['lfs', 'install'] );
+			await this._executeGit( ['config', 'lfs.contenttype', 'false'] );
+		} catch ( err ) {
+			throw new Error( `LFS init failed - do you have the Git LFS client installed? [${err.message}]` );
+		}
 	}
 
 	async createTag( tagName, message ) {
@@ -436,66 +446,13 @@ class GitRepositorySnapshot {
 			this._cache.set( item, value );
 		}
 	}
+	
+	async execute( args ) {
+		await this._executeGit( args, { outputStderr: true } );
+	}
 
 	_executeGit( args, options = {} ) {
-		const dir = fs.existsSync( this._dir ) ? this._dir : process.cwd();
-		options = options || {};
-		return new Promise( ( resolve, reject ) => {
-			let connected = true;
-			let stdo = '';
-			let stde = '';
-			console.log( `Executing git ${args.join(" ")} [dir=${dir}]` );
-			let stderr = 'inherit';
-			if ( options.captureStderr ) {
-				stderr = 'pipe';
-			} else if ( options.outputStderr ) {
-				stderr = 'inherit';
-			}
-			let proc = spawn( 'git', args, { cwd: dir, stdio: ['ignore', options.captureStdout ? 'pipe' : 'inherit', stderr] } );
-
-			function unpipe( code ) {
-				if ( !connected ) {
-					return;
-				}
-				connected = false;
-				if ( code !== 0 && !options.ignoreError ) {
-					if ( !options.quiet ) {
-						printError( '', args, dir ); // eslint-disable-line no-underscore-dangle
-					}
-					reject( new Error( "Error running git" ) );
-				} else {
-					resolve( { out: stdo, err: stde, code: code } );
-				}
-			}
-
-			if ( options.captureStdout ) {
-				proc.stdout.on( 'data', ( data ) => {
-					stdo += data.toString();
-				} );
-			}
-			if ( options.captureStderr ) {
-				proc.stderr.on( 'data', ( data ) => {
-					stde += data.toString();
-				} );
-			}
-			proc.on( 'error', ( err ) => {
-				if ( options.ignoreError ) {
-					resolve( { out: stdo, err: stde, code: 0 } );
-				} else {
-					console.log( stde );
-					if ( !options.quiet ) {
-						printError( err, args, dir );
-					}
-					reject( new Error( err ) );
-				}
-			} );
-			proc.on( 'exit', ( code ) => {
-				unpipe( code );
-			} );
-			proc.on( 'close', ( code ) => {
-				unpipe( code );
-			} );
-		} );
+		return executeGit( this._dir, args, options );
 	}
 }
 

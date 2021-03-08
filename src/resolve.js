@@ -1,6 +1,5 @@
 import semver from 'semver';
 import * as util from './util.js';
-import * as git from './git.js';
 
 /**
  * Returns a target description object used by the git-svn-interface library from a repo url
@@ -50,13 +49,13 @@ export async function getTargetFromRepoUrl( snapshot, repo, localClonePath ) {
 			}
 		}
 		// otherwise check if it's the name of a branch
-		if ( await git.doesRemoteBranchExist( repoUrl.url, target ) || await git.doesLocalBranchExist( localClonePath, target ) ) {
+		if ( await snapshot.doesRemoteBranchExist( target ) || await snapshot.doesLocalBranchExist( target ) ) {
 			return {
 				branch: target
 			};
 		}
 		// then must be a commit hash
-		if ( await git.isValidCommit( target ) ) {
+		if ( await snapshot.isValidCommit( target ) ) {
 			return {
 				commit: target
 			};
