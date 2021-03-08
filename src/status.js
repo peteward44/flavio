@@ -32,7 +32,6 @@ async function addTableRow( table, name, snapshot, options ) {
 async function status( options ) {
 	util.defaultOptions( options );
 	await globalConfig.init( options.cwd );
-	await util.readConfigFile( options.cwd );
 	
 	const snapshot = await getSnapshot.getSnapshot( options.cwd );
 	const table = new Table();

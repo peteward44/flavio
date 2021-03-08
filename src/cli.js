@@ -203,10 +203,6 @@ export default function start() {
 							describe: 'Working directory to use',
 							default: process.cwd()
 						})
-						.option('increment', {
-							describe: 'semver release type to increment version on tag. Set to false for no increment',
-							type: 'string'
-						})
 						.option('interactive', {
 							describe: 'Set to false so the user is not prompted any questions',
 							boolean: true,

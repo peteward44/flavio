@@ -41,8 +41,7 @@ async function getInfoObject( snapshotRoot ) {
 async function taginfo( options ) {
 	util.defaultOptions( options );
 	await globalConfig.init( options.cwd );
-	await util.readConfigFile( options.cwd );
-	
+
 	const snapshotRoot = await getSnapshot.getSnapshot( options.cwd );
 	const info = await getInfoObject( snapshotRoot );
 

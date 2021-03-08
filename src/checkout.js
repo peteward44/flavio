@@ -33,8 +33,7 @@ async function checkout( branch, options = {} ) {
 	}
 	util.defaultOptions( options );
 	await globalConfig.init( options.cwd );
-	await util.readConfigFile( options.cwd );
-	
+
 	const snapshot = await getSnapshot.getSnapshot( options.cwd );
 	
 	await exe( snapshot.main, options, 'root', options.cwd, branch );

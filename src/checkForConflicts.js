@@ -2,7 +2,7 @@ import * as util from './util.js';
 
 async function checkForConflicts( snapshotRoot, checkForLocalChanges = false ) {
 	let conflicts = [];
-	const mainProjectName = await util.getMainProjectName( snapshotRoot.main.dir );
+	const mainProjectName = snapshotRoot.main.name;
 	if ( await snapshotRoot.main.isConflicted() ) {
 		console.log( util.formatConsoleDependencyName( mainProjectName, true ), `Main project has conflicts` );
 		conflicts.push( snapshotRoot.main );

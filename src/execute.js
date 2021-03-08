@@ -16,7 +16,6 @@ async function exe( snapshot, args ) {
 async function execute( options ) {
 	util.defaultOptions( options );
 	await globalConfig.init( options.cwd );
-	await util.readConfigFile( options.cwd );
 	const args = options._.slice( 1 ); // "execute" will appear as first element in array
 	if ( args.length === 0 ) {
 		console.error( `No command specified for execute command. Usage: flavio execute -- status` );

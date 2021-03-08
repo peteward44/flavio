@@ -54,7 +54,7 @@ export async function clone( pkgdir, options, repoUrl, isLinked, snapshot ) {
 			deleteDir( cloneDir );
 		}
 		await snapshot.clone( repoUrl.url, cloneDir, { branch: repoUrl.target || 'master' } );
-		const flavioJson = await util.loadFlavioJson( cloneDir );
+		const flavioJson = await snapshot.getFlavioJson();
 		if ( flavioJson && flavioJson.lfs ) {
 			await snapshot.initLFS( cloneDir );
 		}
@@ -160,7 +160,7 @@ export async function checkAndSwitch( snapshot, options, pkgdir, repo ) {
 			}
 		}
 		await snapshot.clone( repoUrl.url, cloneDir, { branch: repoUrl.target || 'master' } );
-		const flavioJson = await util.loadFlavioJson( cloneDir );
+		const flavioJson = await snapshot.getFlavioJson();
 		if ( flavioJson && flavioJson.lfs ) {
 			await snapshot.initLFS();
 		}

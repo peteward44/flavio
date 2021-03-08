@@ -47,9 +47,6 @@ async function check( snapshot ) {
 async function clear( options = {}, all = false ) {
 	util.defaultOptions( options );
 	await globalConfig.init( options.cwd );
-	if ( options.cwd ) {
-		await util.readConfigFile( options.cwd );
-	}
 	if ( !fs.existsSync( options.linkdir ) ) {
 		console.log( `Link directory "${options.linkdir}" not found, aborting..` );
 		return;

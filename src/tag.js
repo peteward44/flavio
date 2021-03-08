@@ -22,37 +22,23 @@ function getNextAvailableVersion( tagList, version, versionType ) {
 async function determineTagName( options, snapshot ) {
 	const isInteractive = options.interactive !== false;
 	const flavioJson = await snapshot.getFlavioJson();
+	console.log( `flavioJson=${JSON.stringify( flavioJson )}` );
 	if ( _.isEmpty( flavioJson ) ) {
 		return null;
 	}
 	// strip prerelease tag off name
-	const tagName = semver.inc( flavioJson.version, options.increment );
+	const tagName = semver.inc( flavioJson.version, 'patch' );
 	// see if tag of the same name already exists
 	const tagList = await snapshot.listTags();
 	if ( tagList.indexOf( tagName ) >= 0 ) {
 		// if it already exists, suggest either the next available major, minor or prerelease version for the user to pick
-		const nextMajor = getNextAvailableVersion( tagList, tagName, 'major' );
-		const nextMinor = getNextAvailableVersion( tagList, tagName, 'minor' );
-		const nextPatch = getNextAvailableVersion( tagList, tagName, 'patch' );
-		let defaultVal;
-		switch ( options.increment ) {
-			case 'major':
-				defaultVal = nextMajor;
-				break;
-			default:
-			case 'minor':
-				defaultVal = nextMinor;
-				break;
-			case 'patch':
-				defaultVal = nextPatch;
-				break;
-		}
+		const defaultVal = getNextAvailableVersion( tagList, tagName, 'patch' );
 		if ( isInteractive ) {
 			const question = {
 				type: 'list',
 				name: 'q',
 				message: util.formatConsoleDependencyName( snapshot.name ) + ` Tag ${tagName} already exists. Use available alternative?`,
-				choices: [nextMajor, nextMinor, nextPatch, 'Custom?'],
+				choices: [defaultVal, 'Custom?'],
 				default: defaultVal
 			};
 			const answer = await inquirer.prompt( [question] );
@@ -177,7 +163,7 @@ async function prepareTags( reposToTag ) {
 
 function incrementMasterVersion( options, version ) {
 	const prerelease = semver.prerelease( version );
-	return semver.inc( version, `pre${options.increment}`, prerelease ? prerelease[0] : 'snapshot' );
+	return semver.inc( version, `preminor`, prerelease ? prerelease[0] : 'snapshot' );
 }
 
 async function incrementOriginalVersions( options, reposToTag ) {
@@ -251,9 +237,7 @@ async function confirmUser( options, reposToTag ) {
  */
 async function tagOperation( options = {} ) {
 	util.defaultOptions( options );
-	options.increment = options.increment || 'minor';
 	await globalConfig.init( options.cwd );
-	await util.readConfigFile( options.cwd );
 	console.log( `Inspecting dependencies for tagging operation...` );
 	
 	const snapshotRoot = await getSnapshot.getSnapshot( options.cwd );
@@ -273,7 +257,7 @@ async function tagOperation( options = {} ) {
 		}
 	}
 	// get URL of main project tag so we can print it out once it's finished
-	const mainProjectName = await util.getMainProjectName( options.cwd );
+	const mainProjectName = snapshotRoot.main.name;
 	let mainRepoUrl;
 	if ( reposToTag.has( mainProjectName ) ) {
 		const mainRepo = reposToTag.get( mainProjectName );

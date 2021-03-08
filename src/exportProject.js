@@ -22,7 +22,6 @@ async function exportProject( destDir, options = {} ) {
 	// copy over main project
 	await globalConfig.init( options.cwd );
 	util.defaultOptions( options );
-	await util.readConfigFile( options.cwd );
 	
 	const snapshot = await getSnapshot.getSnapshot( options.cwd );
 

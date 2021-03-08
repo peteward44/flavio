@@ -1,6 +1,7 @@
 import * as _ from 'lodash';
 import * as util from './util.js';
 import update from './update.js';
+import globalConfig from './globalConfig.js';
 
 /**
  * Adds a repo to the flavio.json, then performs update afterwards
@@ -15,7 +16,7 @@ async function add( name, repo, options ) {
 	if ( !_.isString( options.cwd ) ) {
 		throw new Error( `Invalid cwd argument ${options.cwd}` );
 	}
-	await util.readConfigFile( options.cwd );
+	await globalConfig.init( options.cwd );
 	
 	const flavioJson = await util.loadFlavioJson( options.cwd );
 

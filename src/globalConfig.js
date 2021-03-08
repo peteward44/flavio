@@ -26,14 +26,6 @@ class GlobalConfig {
 		}
 		return path.join( this._cwd, 'flavio_modules' );
 	}
-
-	getFlavioJsonFileName() {
-		// read from .flaviorc
-		if ( _.isString( this._config?.filename ) ) {
-			return this._config.filename;
-		}
-		return 'flavio.json';
-	}
 }
 
 export default new GlobalConfig();
