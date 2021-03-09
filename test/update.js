@@ -135,7 +135,7 @@ describe(`update tests`, function() {
 		// chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.0.2.0.txt' ) ), 'main2 is 0.2.0' );
 		// chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main3', 'file3.txt' ) ), 'main3 dependency installed' );
 
-		const result = await git.addProject( tempDir, {
+		const result = await helpers.addProject( tempDir, {
 			name: 'main',
 			version: '0.1.0-snapshot.0',
 			files: [
@@ -202,7 +202,7 @@ describe(`update tests`, function() {
 	});
 
 	helpers.test('remote-reset flag resets the branch on a module which has a missing upstream branch', async (tempDir) => {
-		const result = await git.addProject( tempDir, {
+		const result = await helpers.addProject( tempDir, {
 			name: 'main',
 			version: '0.1.0-snapshot.0',
 			files: [
@@ -237,7 +237,7 @@ describe(`update tests`, function() {
 	});
 
 	helpers.test('remote-reset flag resets the branch on a module which has a missing upstream branch, with outstanding merge conflict', async (tempDir) => {
-		const result = await git.addProject( tempDir, {
+		const result = await helpers.addProject( tempDir, {
 			name: 'main',
 			version: '0.1.0-snapshot.0',
 			files: [
@@ -282,7 +282,7 @@ describe(`update tests`, function() {
 	});
 
 	helpers.test('one dependency on a branch', async (tempDir) => {
-		const result = await git.addProject( tempDir, {
+		const result = await helpers.addProject( tempDir, {
 			name: 'main',
 			version: '0.1.0-snapshot.0',
 			files: [
@@ -322,7 +322,7 @@ describe(`update tests`, function() {
 	});
 
 	helpers.test('if a dependency has been recreated (ie assets wipe), old repo should be deleted and recreated', async (tempDir) => {
-		const result = await git.addProject( tempDir, {
+		const result = await helpers.addProject( tempDir, {
 			name: 'main',
 			version: '0.1.0-snapshot.0',
 			files: [

@@ -3,13 +3,13 @@ import path from 'path';
 import * as helpers from '../testutil/helpers.js';
 import checkout from '../src/checkout.js';
 import update from '../src/update.js';
-import * as git from '../src/git.js';
+import GitRepositorySnapshot from '../src/GitRepositorySnapshot.js';
 
 describe(`checkout tests`, function() {
 	this.timeout(30 * 60 * 1000); // 30 minutes
 	
 	helpers.test('1 dependency', async (tempDir) => {
-		const result = await git.addProject( tempDir, {
+		const result = await helpers.addProject( tempDir, {
 			name: 'main',
 			version: '0.1.0-snapshot.0',
 			files: [
@@ -35,14 +35,20 @@ describe(`checkout tests`, function() {
 		// set up first
 		await update( { 'cwd': result.checkoutDir } );
 		
-		chai.assert.equal( ( await git.getCurrentTarget( path.join( result.checkoutDir, 'flavio_modules', 'main2' ) ) ).branch, 'my_branch', 'dependency on my_branch' );
+		const main2Dir = path.join( result.checkoutDir, 'flavio_modules', 'main2' );
+		let main2Snapshot = await GitRepositorySnapshot.fromDir( main2Dir );
+		chai.assert.equal( ( await main2Snapshot.getTarget() ).branch, 'my_branch', 'dependency on my_branch' );
 		await checkout( 'master', { 'cwd': result.checkoutDir } );
-		chai.assert.equal( ( await git.getCurrentTarget( path.join( result.checkoutDir, 'flavio_modules', 'main2' ) ) ).branch, 'master', 'dependency on master' );
+		main2Snapshot = await GitRepositorySnapshot.fromDir( main2Dir );
+		chai.assert.equal( ( await main2Snapshot.getTarget() ).branch, 'master', 'dependency on master' );
 		await checkout( 'my_branch_doesnt_exist', { 'cwd': result.checkoutDir } );
-		chai.assert.equal( ( await git.getCurrentTarget( path.join( result.checkoutDir, 'flavio_modules', 'main2' ) ) ).branch, 'master', 'dependency on my_branch' );
+		main2Snapshot = await GitRepositorySnapshot.fromDir( main2Dir );
+		chai.assert.equal( ( await main2Snapshot.getTarget() ).branch, 'master', 'dependency on my_branch' );
 		await checkout( 'my_branch', { 'cwd': result.checkoutDir } );
-		chai.assert.equal( ( await git.getCurrentTarget( path.join( result.checkoutDir, 'flavio_modules', 'main2' ) ) ).branch, 'my_branch', 'dependency on my_branch' );
+		main2Snapshot = await GitRepositorySnapshot.fromDir( main2Dir );
+		chai.assert.equal( ( await main2Snapshot.getTarget() ).branch, 'my_branch', 'dependency on my_branch' );
 		await checkout( 'my_branch_doesnt_exist', { 'cwd': result.checkoutDir } );
-		chai.assert.equal( ( await git.getCurrentTarget( path.join( result.checkoutDir, 'flavio_modules', 'main2' ) ) ).branch, 'my_branch', 'dependency on my_branch' );
+		main2Snapshot = await GitRepositorySnapshot.fromDir( main2Dir );
+		chai.assert.equal( ( await main2Snapshot.getTarget() ).branch, 'my_branch', 'dependency on my_branch' );
 	});
 });

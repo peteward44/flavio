@@ -4,6 +4,7 @@ import path from 'path';
 import _ from 'lodash';
 import chai from 'chai';
 import * as git from '../src/git.js';
+import * as helpers from './helpers.js';
 
 const templateNone = {
 	name: 'main',
@@ -247,7 +248,7 @@ class TestRepo {
 	 * @param {Object} descriptor - JSON object describing how the repo will look
 	 */
 	async _init( tempDir, descriptor ) {
-		this._project = await git.addProject( tempDir, descriptor );
+		this._project = await helpers.addProject( tempDir, descriptor );
 	}
 	
 	static async create( tempDir, name, merge = {} ) {

@@ -3,15 +3,14 @@ import path from 'path';
 import * as uuid from 'uuid';
 import chai from 'chai';
 import * as helpers from '../testutil/helpers.js';
-import * as git from '../src/git.js';
 
-describe(`git tests`, function() {
+describe(`test util tests`, function() {
 	this.timeout(30 * 60 * 1000); // 30 minutes
 
 	helpers.test('createRepo basic', async (tempDir) => {
 		const repoDir = path.join( tempDir, uuid.v4() );
 		const checkoutDir = path.join( tempDir, uuid.v4() );
-		await git.createRepo( repoDir, checkoutDir );
+		await helpers.createRepo( repoDir, checkoutDir );
 		chai.assert.ok( fs.existsSync( path.join( checkoutDir, '.git' ) ), 'Checkout directory contains .git folder' );
 		// TODO: verify we are on master
 	});
@@ -19,7 +18,7 @@ describe(`git tests`, function() {
 	helpers.test('createRepo branch', async (tempDir) => {
 		const repoDir = path.join( tempDir, uuid.v4() );
 		const checkoutDir = path.join( tempDir, uuid.v4() );
-		await git.createRepo( repoDir, checkoutDir, { branch: 'branchname' } );
+		await helpers.createRepo( repoDir, checkoutDir, { branch: 'branchname' } );
 		chai.assert.ok( fs.existsSync( path.join( checkoutDir, '.git' ) ), 'Checkout directory contains .git folder' );
 		// TODO: verify branch was created
 	});
@@ -27,13 +26,13 @@ describe(`git tests`, function() {
 	helpers.test('createRepo tag', async (tempDir) => {
 		const repoDir = path.join( tempDir, uuid.v4() );
 		const checkoutDir = path.join( tempDir, uuid.v4() );
-		await git.createRepo( repoDir, checkoutDir, { tag: 'tagname' } );
+		await helpers.createRepo( repoDir, checkoutDir, { tag: 'tagname' } );
 		chai.assert.ok( fs.existsSync( path.join( checkoutDir, '.git' ) ), 'Checkout directory contains .git folder' );
 		// TODO: verify tag was created
 	});
 	
 	helpers.test('addProject basic', async (tempDir) => {
-		const result = await git.addProject( tempDir, {
+		const result = await helpers.addProject( tempDir, {
 			name: 'main',
 			version: '0.1.0-snapshot.0',
 			files: [
@@ -51,7 +50,7 @@ describe(`git tests`, function() {
 	} );
 	
 	helpers.test('addProject basic with 1 dependency', async (tempDir) => {
-		const result = await git.addProject( tempDir, {
+		const result = await helpers.addProject( tempDir, {
 			name: 'main',
 			version: '0.1.0-snapshot.0',
 			files: [
