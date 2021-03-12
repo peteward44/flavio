@@ -90,7 +90,7 @@ export async function createRepo( dir, checkoutDir, options = {} ) {
 		await executeGit( checkoutDir, ['init', checkoutDir] );
 	
 		// create empty .gitignore file as we need one file to create the HEAD revision
-		await touchFile( path.join( checkoutDir, '.gitignore' ), '' );
+		await touchFile( path.join( checkoutDir, '.gitignore' ), '/flavio_modules' );
 		
 		// do add
 		await executeGit( checkoutDir, ['add', '.'] );

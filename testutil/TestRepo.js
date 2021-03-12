@@ -269,42 +269,42 @@ class TestRepo {
 			const dir = this._getDependencyDir( depName );
 			const actualTarget = await git.getCurrentTarget( dir );
 			if ( target.branch ) {
-				chai.assert.equal( actualTarget.branch, target.branch, `${depName} has expected branch checked out [$dir]` );
+				chai.assert.equal( actualTarget.branch, target.branch, `${depName} expected branch ${target.branch} but has ${JSON.stringify( actualTarget )}` );
 			}
 			if ( target.tag ) {
-				chai.assert.equal( actualTarget.tag, target.tag, `${depName} has expected tag checked out [$dir]` );
+				chai.assert.equal( actualTarget.tag, target.tag, `${depName} expected tag ${target.tag} but has ${JSON.stringify( actualTarget )}` );
 			}
 			if ( target.commit ) {
-				chai.assert.equal( actualTarget.commit, target.commit, `${depName} has expected commit checked out [$dir]` );
+				chai.assert.equal( actualTarget.commit, target.commit, `${depName} expected commit ${target.commit} but has ${JSON.stringify( actualTarget )}` );
 			}
 		}
 	}
 	
 	async assertDependencyExists( depName ) {
 		const dir = this._getDependencyDir( depName );
-		chai.assert.ok( fs.existsSync( dir ), `Dependency directory ${depName} exists [$dir]` );
-		chai.assert.ok( fs.existsSync( path.join( dir, '.git' ) ), `Dependency directory ${depName} '.git' folder exists [$dir]` );
+		chai.assert.ok( fs.existsSync( dir ), `Dependency directory ${depName} exists [${dir}]` );
+		chai.assert.ok( fs.existsSync( path.join( dir, '.git' ) ), `Dependency directory ${depName} '.git' folder exists [${dir}]` );
 	}
 	
 	async assertDependencyNotExists( depName ) {
 		const dir = this._getDependencyDir( depName );
-		chai.assert.ok( !fs.existsSync( dir ), `Dependency directory ${depName} does not exist [$dir]` );
-		chai.assert.ok( !fs.existsSync( path.join( dir, '.git' ) ), `Dependency directory ${depName} '.git' folder does not exist [$dir]` );
+		chai.assert.ok( !fs.existsSync( dir ), `Dependency directory ${depName} does not exist [${dir}]` );
+		chai.assert.ok( !fs.existsSync( path.join( dir, '.git' ) ), `Dependency directory ${depName} '.git' folder does not exist [${dir}]` );
 	}
 	
 	async assertTagExists( depName, tagName ) {
 		const dir = this._getDependencyDir( depName );
-		chai.assert.ok( await git.tagExists( dir, tagName ), `${depName} has tag ${tagName} [$dir]` );
+		chai.assert.ok( await git.tagExists( dir, tagName ), `${depName} has tag ${tagName} [${dir}]` );
 	}
 	
 	async assertTagNotExists( depName, tagName ) {
 		const dir = this._getDependencyDir( depName );
-		chai.assert.ok( !await git.tagExists( dir, tagName ), `${depName} has no tag ${tagName} [$dir]` );
+		chai.assert.ok( !await git.tagExists( dir, tagName ), `${depName} has no tag ${tagName} [${dir}]` );
 	}
 	
 	async assertDependencyUpToDate( depName ) {
 		const dir = this._getDependencyDir( depName );
-		chai.assert.ok( await git.isUpToDate( dir ), `${depName} is up to date with it's upstream branch [$dir]` );
+		chai.assert.ok( await git.isUpToDate( dir ), `${depName} is up to date with it's upstream branch [${dir}]` );
 	}
 }
 

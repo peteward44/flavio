@@ -19,7 +19,7 @@ async function stashAndPull( snapshot, pkgdir, options, propagateErrors = false 
 	// repo is the same - do an update
 	const stashName = await snapshot.stash();
 	try {
-		await snapshot.pull( pkgdir );
+		await snapshot.pull();
 	} catch ( err ) {
 		console.error( `Error executing pull on repository` );
 		console.error( err.message || err );
@@ -125,7 +125,7 @@ async function update( options ) {
 	// re-read config file in case the .flaviorc has changed
 	await globalConfig.init( options.cwd );
 
-	const snapshot = await getSnapshot.getSnapshot( options.cwd );
+	let snapshot = await getSnapshot.getSnapshot( options.cwd );
 
 	// keep listing children until we have no more missing modules	
 	await cloneMissingDependencies( snapshot, options );
@@ -146,40 +146,54 @@ async function update( options ) {
 		}
 	}
 	// now make sure all modules point to the right bits
-	for ( const depInfo of snapshot.deps.values() ) {
-		const module = depInfo.refs[0];
-		if ( await depInfo.snapshot.getStatus() === 'installed' ) {
-			if ( !options.json ) {
-				console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Updating...` );
-			}
-			const targetObj = await getTargetFromRepoUrl( depInfo.snapshot, module, depInfo.snapshot.dir );
-			// check to see if the local branch still exists on the remote, reset if not
-			if ( options['remote-reset'] !== false ) {
-				const repoUrl = util.parseRepositoryUrl( module );
-				await checkRemoteResetRequired( depInfo.snapshot, targetObj, depInfo.snapshot.name, depInfo.snapshot.dir, options, repoUrl );
-			}
-			if ( options.switch ) {
-				await checkAndSwitch( depInfo.snapshot, options, depInfo.snapshot.dir, module );
-			}
-			try {
-				await stashAndPull( depInfo.snapshot, depInfo.snapshot.dir, options, true );
-			} catch ( err ) {
-				// On a repo that looks like everything should work fine but doesn't, the repo has probably been recreated.
-				// if the repo is clean, hard reset and pull.
-				const errout = await depInfo.snapshot.pullCaptureError();
-				if ( errout === 'fatal: refusing to merge unrelated histories' ) {
-					if ( await depInfo.snapshot.isWorkingCopyClean() ) {
-						console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Unrelated histories detected, performing hard reset...` );
-						await depInfo.snapshot.fixUnrelatedHistory( targetObj );
+	let hadChanges = false;
+	do {
+		hadChanges = false;
+		for ( const depInfo of snapshot.deps.values() ) {
+			const module = depInfo.refs[0];
+			if ( await depInfo.snapshot.getStatus() === 'installed' ) {
+				const flavioDependencies = await depInfo.snapshot.getDependencies();
+				if ( !options.json ) {
+					console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Updating...` );
+				}
+				const targetObj = await getTargetFromRepoUrl( depInfo.snapshot, module, depInfo.snapshot.dir );
+				// check to see if the local branch still exists on the remote, reset if not
+				if ( options['remote-reset'] !== false ) {
+					const repoUrl = util.parseRepositoryUrl( module );
+					await checkRemoteResetRequired( depInfo.snapshot, targetObj, depInfo.snapshot.name, depInfo.snapshot.dir, options, repoUrl );
+				}
+				if ( options.switch ) {
+					await checkAndSwitch( depInfo.snapshot, options, depInfo.snapshot.dir, module );
+				}
+				try {
+					await stashAndPull( depInfo.snapshot, depInfo.snapshot.dir, options, true );
+				} catch ( err ) {
+					// On a repo that looks like everything should work fine but doesn't, the repo has probably been recreated.
+					// if the repo is clean, hard reset and pull.
+					const errout = await depInfo.snapshot.pullCaptureError();
+					if ( errout === 'fatal: refusing to merge unrelated histories' ) {
+						if ( await depInfo.snapshot.isWorkingCopyClean() ) {
+							console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Unrelated histories detected, performing hard reset...` );
+							await depInfo.snapshot.fixUnrelatedHistory( targetObj );
+						} else {
+							console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Unrelated histories detected, but cannot reset due to local changes!` );
+						}
 					} else {
-						console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Unrelated histories detected, but cannot reset due to local changes!` );
+						throw err;
 					}
-				} else {
-					throw err;
+				}
+				const newDependencies = await depInfo.snapshot.getDependencies();
+				if ( !hadChanges && JSON.stringify( flavioDependencies ) !== JSON.stringify( newDependencies ) ) {
+					hadChanges = true;
+					break;
 				}
 			}
 		}
-	}
+		if ( hadChanges ) {
+			// rebuild snapshot dependency map if it's changed
+			snapshot = await getSnapshot.getSnapshot( snapshot.main.dir, snapshot );
+		}
+	} while ( hadChanges );
 
 	if ( !options.json ) {
 		const updateCount = 1;

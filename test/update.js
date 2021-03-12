@@ -6,6 +6,7 @@ import * as helpers from '../testutil/helpers.js';
 import * as git from '../src/git.js';
 import * as util from '../src/util.js';
 import update from '../src/update.js';
+import status from '../src/status.js';
 import TestRepo from '../testutil/TestRepo.js';
 
 async function addFileToRepo( tempDir, repoDir, file, contents ) {
@@ -16,6 +17,30 @@ async function addFileToRepo( tempDir, repoDir, file, contents ) {
 	execSync( `git add --all`, { cwd: tmpCheckoutDir, stdio: 'inherit' } );
 	execSync( `git commit -am "Added new file"`, { cwd: tmpCheckoutDir, stdio: 'inherit' } );
 	execSync( `git push -f origin master`, { cwd: tmpCheckoutDir, stdio: 'inherit' } );
+	fs.removeSync( tmpCheckoutDir );
+}
+
+async function createTag( tempDir, repoDir, tagName, flavioDependencies ) {
+	const tmpCheckoutDir = path.join( tempDir, `${Math.floor( Math.random() * 1000000 )}` );
+	execSync( `git clone ${repoDir} ${path.basename( tmpCheckoutDir )}`, { stdio: 'inherit', cwd: path.dirname( tmpCheckoutDir ) } );
+	execSync( `git checkout -b test_tag_branch`, { cwd: tmpCheckoutDir, stdio: 'inherit' } );
+	fs.writeFileSync( path.join( tmpCheckoutDir, `${tagName}.txt` ), 'file contents', 'utf8' );
+	if ( flavioDependencies ) {
+		const json = JSON.parse( fs.readFileSync( path.join( tmpCheckoutDir, 'flavio.json' ), 'utf8' ) );
+		json.dependencies = json.dependencies || {};
+		for ( const [name, val] of Object.entries( flavioDependencies ) ) {
+			json.dependencies[name] = val;
+		}
+		fs.writeFileSync( path.join( tmpCheckoutDir, 'flavio.json' ), JSON.stringify( json, null, 2 ), 'utf8' );
+	}
+	execSync( `git add --all`, { cwd: tmpCheckoutDir, stdio: 'inherit' } );
+	execSync( `git commit -am "Added new file"`, { cwd: tmpCheckoutDir, stdio: 'inherit' } );
+	execSync( `git push -u origin test_tag_branch`, { cwd: tmpCheckoutDir, stdio: 'inherit' } );
+	execSync( `git tag -a ${tagName} -m "created ${tagName}"`, { cwd: tmpCheckoutDir, stdio: 'inherit' } );
+	execSync( `git checkout master`, { cwd: tmpCheckoutDir, stdio: 'inherit' } );
+	//execSync( `git branch -D test_tag_branch`, { cwd: tmpCheckoutDir, stdio: 'inherit' } );
+	execSync( `git push origin ${tagName}`, { cwd: tmpCheckoutDir, stdio: 'inherit' } );
+	//execSync( `git push --all`, { cwd: tmpCheckoutDir, stdio: 'inherit' } );
 	fs.removeSync( tmpCheckoutDir );
 }
 
@@ -361,5 +386,60 @@ describe(`update tests`, function() {
 		await update( { cwd: result.checkoutDir } );
 		
 		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file3.txt' ) ), 'Repo recreated and updated successfully' );
+	});
+	
+	helpers.test( 'Clone a plain repository with dependencies and nested dependencies. Move one of the dependencies to a tag and make sure it changes on update --switch', async (tempDir) => {
+		const result = await TestRepo.create( tempDir, 'none', {
+			name: 'main',
+			version: '0.1.0-snapshot.0',
+			files: [
+				{
+					path: 'file.txt',
+					contents: 'this is on the main project'
+				}
+			],
+			modules: [
+				{
+					name: 'main3',
+					version: '0.3.0',
+					files: [
+						{
+							path: 'file3.txt',
+							contents: 'this is on the main3 project v0.3.0'
+						}
+					],
+					modules: [
+						{
+							name: 'main2',
+							version: '0.2.0',
+							files: [
+								{
+									path: 'file2.txt',
+									contents: 'this is on the main2 project v0.2.0'
+								}
+							]
+						}
+					]
+				}
+			]
+		} );
+		
+		await update( { cwd: result.project.checkoutDir, interactive: false } );
+		
+		await createTag( tempDir, result.project.alldeps.main2.repoDir, '1.0.0' );
+		await createTag( tempDir, result.project.alldeps.main3.repoDir, '1.0.0', { "main2": `${result.project.alldeps.main2.repoDir}#1.0.0` } );
+		
+		const f = JSON.parse( fs.readFileSync( path.join( result.project.checkoutDir, 'flavio.json' ), 'utf8' ) );
+		f.dependencies.main3 = `${result.project.alldeps.main3.repoDir}#1.0.0`;
+		fs.writeFileSync( path.join( result.project.checkoutDir, 'flavio.json' ), JSON.stringify( f, null, 2 ), 'utf8' );
+		execSync( `git add --all`, { cwd: result.project.checkoutDir, stdio: 'inherit' } );
+		execSync( `git commit -am "Added new file"`, { cwd: result.project.checkoutDir, stdio: 'inherit' } );
+		execSync( `git push -f`, { cwd: result.project.checkoutDir, stdio: 'inherit' } );
+
+		await update( { cwd: result.project.checkoutDir, interactive: false, switch: true } );
+		await status( { cwd: result.project.checkoutDir, interactive: false } );
+		
+		await result.assertDependencyTarget( 'main2', { tag: '1.0.0' } );
+		await result.assertDependencyTarget( 'main3', { tag: '1.0.0' } );
 	});
 });

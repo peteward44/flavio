@@ -10,18 +10,24 @@ function getExistingKeyName( depMap, key ) {
 	return key;
 }
 
-export async function walk( depMap, repo ) {
+export async function walk( depMap, repo, oldSnapshot ) {
 	const dependencies = await repo.getDependencies();
 	for ( const depName of Object.keys( dependencies ) ) {
 		const depUrl = dependencies[depName];
 		const keyName = getExistingKeyName( depMap, depName );
 		if ( !depMap.has( keyName ) ) {
-			const snapshot = await GitRepositorySnapshot.fromName( keyName );
+			let snapshot = null;
+			if ( oldSnapshot && oldSnapshot.deps.has( keyName ) ) {
+				snapshot = oldSnapshot.deps.get( keyName ).snapshot;
+			}
+			if ( !snapshot ) {
+				snapshot = await GitRepositorySnapshot.fromName( keyName );
+			}
 			depMap.set( keyName, {
 				snapshot,
 				refs: [depUrl]
 			} );
-			await walk( depMap, snapshot );
+			await walk( depMap, snapshot, oldSnapshot );
 		} else {
 			const depInfo = depMap.get( keyName );
 			if ( !depInfo.refs.includes( depUrl ) ) {
@@ -31,13 +37,13 @@ export async function walk( depMap, repo ) {
 	}
 }
 
-export async function getSnapshot( dir ) {
-	const main = await GitRepositorySnapshot.fromDir( dir );
+export async function getSnapshot( dir, oldSnapshot ) {
+	const main = oldSnapshot ? oldSnapshot.main : await GitRepositorySnapshot.fromDir( dir );
 	const result = {
 		main,
 		deps: new Map()
 	};
 	// build map of all dependencies - excluding ones that haven't been cloned yet. They will have a status of "missing" and their dependencies will be missing too
-	await walk( result.deps, main );
+	await walk( result.deps, main, oldSnapshot );
 	return result;
 }
