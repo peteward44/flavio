@@ -392,30 +392,18 @@ describe(`update tests`, function() {
 		const result = await TestRepo.create( tempDir, 'none', {
 			name: 'main',
 			version: '0.1.0-snapshot.0',
-			files: [
-				{
-					path: 'file.txt',
-					contents: 'this is on the main project'
-				}
-			],
 			modules: [
 				{
-					name: 'main3',
-					version: '0.3.0',
-					files: [
-						{
-							path: 'file3.txt',
-							contents: 'this is on the main3 project v0.3.0'
-						}
-					],
+					name: 'main2',
+					version: '0.2.0',
 					modules: [
 						{
-							name: 'main2',
-							version: '0.2.0',
-							files: [
+							name: 'main3',
+							version: '0.3.0',
+							modules: [
 								{
-									path: 'file2.txt',
-									contents: 'this is on the main2 project v0.2.0'
+									name: 'main4',
+									version: '0.4.0',
 								}
 							]
 						}
@@ -426,20 +414,63 @@ describe(`update tests`, function() {
 		
 		await update( { cwd: result.project.checkoutDir, interactive: false } );
 		
-		await createTag( tempDir, result.project.alldeps.main2.repoDir, '1.0.0' );
-		await createTag( tempDir, result.project.alldeps.main3.repoDir, '1.0.0', { "main2": `${result.project.alldeps.main2.repoDir}#1.0.0` } );
+		await createTag( tempDir, result.project.alldeps.main4.repoDir, '1.0.0' );
+		await createTag( tempDir, result.project.alldeps.main3.repoDir, '1.0.0', { "main4": `${result.project.alldeps.main4.repoDir}#1.0.0` } );
+		await createTag( tempDir, result.project.alldeps.main2.repoDir, '1.0.0', { "main3": `${result.project.alldeps.main3.repoDir}#1.0.0` } );
 		
 		const f = JSON.parse( fs.readFileSync( path.join( result.project.checkoutDir, 'flavio.json' ), 'utf8' ) );
-		f.dependencies.main3 = `${result.project.alldeps.main3.repoDir}#1.0.0`;
+		f.dependencies.main2 = `${result.project.alldeps.main2.repoDir}#1.0.0`;
 		fs.writeFileSync( path.join( result.project.checkoutDir, 'flavio.json' ), JSON.stringify( f, null, 2 ), 'utf8' );
-		execSync( `git add --all`, { cwd: result.project.checkoutDir, stdio: 'inherit' } );
-		execSync( `git commit -am "Added new file"`, { cwd: result.project.checkoutDir, stdio: 'inherit' } );
-		execSync( `git push -f`, { cwd: result.project.checkoutDir, stdio: 'inherit' } );
 
 		await update( { cwd: result.project.checkoutDir, interactive: false, switch: true } );
 		await status( { cwd: result.project.checkoutDir, interactive: false } );
 		
 		await result.assertDependencyTarget( 'main2', { tag: '1.0.0' } );
 		await result.assertDependencyTarget( 'main3', { tag: '1.0.0' } );
+		await result.assertDependencyTarget( 'main4', { tag: '1.0.0' } );
+	});
+	
+	helpers.test( 'Clone a plain repository with dependencies and nested dependencies. Move one of the dependencies-of-a-dependency to a tag and make sure it changes on update --switch', async (tempDir) => {
+		const result = await TestRepo.create( tempDir, 'none', {
+			name: 'main',
+			version: '0.1.0-snapshot.0',
+			modules: [
+				{
+					name: 'main2',
+					version: '0.2.0',
+					modules: [
+						{
+							name: 'main3',
+							version: '0.3.0',
+							modules: [
+								{
+									name: 'main4',
+									version: '0.4.0',
+								}
+							]
+						}
+					]
+				}
+			]
+		} );
+		
+		await update( { cwd: result.project.checkoutDir, interactive: false } );
+		
+		await createTag( tempDir, result.project.alldeps.main4.repoDir, '1.0.0' );
+		await createTag( tempDir, result.project.alldeps.main3.repoDir, '1.0.0', { "main4": `${result.project.alldeps.main4.repoDir}#1.0.0` } );
+		
+		const f = JSON.parse( fs.readFileSync( path.join( result.project.alldeps.main2.checkoutDir, 'flavio.json' ), 'utf8' ) );
+		f.dependencies.main3 = `${result.project.alldeps.main3.repoDir}#1.0.0`;
+		fs.writeFileSync( path.join( result.project.alldeps.main2.checkoutDir, 'flavio.json' ), JSON.stringify( f, null, 2 ), 'utf8' );
+		execSync( `git add flavio.json`, { cwd: result.project.alldeps.main2.checkoutDir, stdio: 'inherit' } );
+		execSync( `git commit -m "added file"`, { cwd: result.project.alldeps.main2.checkoutDir, stdio: 'inherit' } );
+		execSync( `git push -f origin master`, { cwd: result.project.alldeps.main2.checkoutDir, stdio: 'inherit' } );
+
+		await update( { cwd: result.project.checkoutDir, interactive: false, switch: true } );
+		await status( { cwd: result.project.checkoutDir, interactive: false } );
+		
+		await result.assertDependencyTarget( 'main2', { branch: 'master' } );
+		await result.assertDependencyTarget( 'main3', { tag: '1.0.0' } );
+		await result.assertDependencyTarget( 'main4', { tag: '1.0.0' } );
 	});
 });
