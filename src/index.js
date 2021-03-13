@@ -1,23 +1,23 @@
-import update from './update.js';
-import add from './add.js';
-import tag from './tag.js';
-import taginfo from './taginfo.js';
-import clone from './clone.js';
-import status from './status.js';
-import execute from './execute.js';
-import exportProject from './exportProject.js';
-import checkout from './checkout.js';
-import when from './when.js';
-import init from './init.js';
-import clear from './clear.js';
-
-// import branch from './branch.js';
+import update from './commands/update.js';
+import add from './commands/add.js';
+import tag from './commands/tag.js';
+import taginfo from './commands/taginfo.js';
+import tagdep from './commands/tagdep.js';
+import clone from './commands/clone.js';
+import status from './commands/status.js';
+import execute from './commands/execute.js';
+import exportProject from './commands/exportProject.js';
+import checkout from './commands/checkout.js';
+import when from './commands/when.js';
+import init from './commands/init.js';
+import clear from './commands/clear.js';
 
 const commands = {
 	update,
 	add,
 	clear,
 	tag,
+	tagdep,
 	taginfo,
 	clone,
 	status,

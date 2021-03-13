@@ -3,8 +3,8 @@ import fs from 'fs-extra';
 import path from 'path';
 import os from 'os';
 import * as uuid from 'uuid';
-import * as util from '../src/util.js';
-import executeGit from '../src/executeGit.js';
+import * as util from '../src/core/util.js';
+import executeGit from '../src/core/executeGit.js';
 
 // windows paths are too long
 const tempRoot = os.platform() === 'win32' ? path.join( path.parse( os.tmpdir() ).root, '.flaviotemp' ) : path.join( os.tmpdir(), 'flavio' );

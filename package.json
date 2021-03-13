@@ -10,7 +10,7 @@
   },
   "scripts": {
     "start": "webpack --watch --progress --mode development",
-    "test": "mocha",
+    "test": "mocha --bail",
     "lint": "eslint src test testutil",
     "lintfix": "eslint src test testutil --fix",
     "repo": "node -r @babel/register testutil/createRepo_cli.js",

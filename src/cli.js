@@ -1,10 +1,11 @@
 import _ from 'lodash';
+import path from 'path';
 import { hideBin } from 'yargs/helpers';
 import yargs from 'yargs';
 import moment from 'moment';
 import pkgJson from '../package.json';
 import flavio from './index.js';
-import * as util from './util.js';
+import * as util from './core/util.js';
 
 moment.suppressDeprecationWarnings = true;
 
@@ -192,7 +193,7 @@ export default function start() {
 				}
 			})
 			.command( {
-				command: 'tag',
+				command: 'tag [version]',
 				desc: 'Tags main project as well as any dependencies',
 				builder: (subyargs) => {
 					subyargs
@@ -234,6 +235,30 @@ export default function start() {
 				},
 				handler: (argv) => {
 					flavio.commands.taginfo(_.cloneDeep( argv ))
+						.then(resolve)
+						.catch(reject);
+				}
+			} )
+			.command( {
+				command: 'tagdep <dependency> [version]',
+				desc: 'Tags a given dependency, and it\'s dependencies',
+				builder: (subyargs) => {
+					subyargs
+						.usage('Usage: flavio tagdep <dependency> [version]')
+						.example('flavio tagdep sausage 1.0.0', 'Tags the "sausage" dependency using version 1.0.0')
+						.help('help')
+						.option('cwd', {
+							describe: 'Working directory to use',
+							default: process.cwd()
+						})
+						.option('interactive', {
+							describe: 'Set to false so the user is not prompted any questions',
+							boolean: true,
+							default: true
+						});
+				},
+				handler: (argv) => {
+					flavio.commands.tagdep(_.cloneDeep( argv ))
 						.then(resolve)
 						.catch(reject);
 				}
@@ -292,7 +317,7 @@ export default function start() {
 				}
 			} )
 			.command( {
-				command: 'clone <url>',
+				command: 'clone <url> [folder]',
 				desc: 'Clones / Checks out fresh project and installs all dependencies',
 				builder: (subyargs) => {
 					subyargs
@@ -315,7 +340,7 @@ export default function start() {
 						});
 				},
 				handler: (argv) => {
-					flavio.commands.clone( argv.url, _.cloneDeep( argv ) )
+					flavio.commands.clone( argv.url, { ..._.cloneDeep( argv ), cwd: path.resolve( argv.folder ) } )
 						.then(resolve)
 						.catch(reject);
 				}

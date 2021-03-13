@@ -1,10 +1,10 @@
 import path from 'path';
 import fs from 'fs-extra';
 import inquirer from 'inquirer';
-import * as util from './util.js';
-import { getLinkedRepoDir } from './dependencies.js';
-import globalConfig from './globalConfig.js';
-import * as getSnapshot from './getSnapshot.js';
+import * as util from '../core/util.js';
+import { getLinkedRepoDir } from '../core/dependencies.js';
+import globalConfig from '../core/globalConfig.js';
+import * as getSnapshot from '../core/getSnapshot.js';
 
 /**
  * Safely deletes a file / directory without throwing any errors

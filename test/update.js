@@ -3,10 +3,10 @@ import path from 'path';
 import chai from 'chai';
 import { execSync } from 'child_process';
 import * as helpers from '../testutil/helpers.js';
-import * as git from '../src/git.js';
-import * as util from '../src/util.js';
-import update from '../src/update.js';
-import status from '../src/status.js';
+import * as git from '../src/core/git.js';
+import * as util from '../src/core/util.js';
+import update from '../src/commands/update.js';
+import status from '../src/commands/status.js';
 import TestRepo from '../testutil/TestRepo.js';
 
 async function addFileToRepo( tempDir, repoDir, file, contents ) {
@@ -403,7 +403,7 @@ describe(`update tests`, function() {
 							modules: [
 								{
 									name: 'main4',
-									version: '0.4.0',
+									version: '0.4.0'
 								}
 							]
 						}
@@ -445,7 +445,7 @@ describe(`update tests`, function() {
 							modules: [
 								{
 									name: 'main4',
-									version: '0.4.0',
+									version: '0.4.0'
 								}
 							]
 						}

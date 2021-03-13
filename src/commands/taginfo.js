@@ -2,12 +2,12 @@ import fs from 'fs-extra';
 import path from 'path';
 import Table from 'easy-table';
 import chalk from 'chalk';
-import * as util from './util.js';
-import globalConfig from './globalConfig.js';
-import * as getSnapshot from './getSnapshot.js';
-import getRecycledTag from './getRecycledTag.js';
-import getTagSuggestions from './getTagSuggestions.js';
-import getNextMasterVersion from './getNextMasterVersion.js';
+import * as util from '../core/util.js';
+import globalConfig from '../core/globalConfig.js';
+import * as getSnapshot from '../core/getSnapshot.js';
+import getRecycledTag from '../tag/getRecycledTag.js';
+import getTagSuggestions from '../tag/getTagSuggestions.js';
+import getNextMasterVersion from '../tag/getNextMasterVersion.js';
 
 async function getInfoObjectForDependency( snapshotRoot, snapshot, recycleTagMap ) {
 	const target = await snapshot.getTarget();

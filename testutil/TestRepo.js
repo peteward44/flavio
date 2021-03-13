@@ -3,7 +3,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import _ from 'lodash';
 import chai from 'chai';
-import * as git from '../src/git.js';
+import * as git from '../src/core/git.js';
 import * as helpers from './helpers.js';
 
 const templateNone = {

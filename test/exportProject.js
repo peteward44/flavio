@@ -4,8 +4,8 @@ import * as uuid from 'uuid';
 import chai from 'chai';
 import * as helpers from '../testutil/helpers.js';
 import TestRepo from '../testutil/TestRepo.js';
-import update from '../src/update.js';
-import exportProject from '../src/exportProject.js';
+import update from '../src/commands/update.js';
+import exportProject from '../src/commands/exportProject.js';
 
 describe(`export tests`, function() {
 	this.timeout(30 * 60 * 1000); // 30 minutes

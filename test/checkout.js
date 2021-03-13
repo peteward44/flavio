@@ -1,9 +1,9 @@
 import chai from 'chai';
 import path from 'path';
 import * as helpers from '../testutil/helpers.js';
-import checkout from '../src/checkout.js';
-import update from '../src/update.js';
-import GitRepositorySnapshot from '../src/GitRepositorySnapshot.js';
+import checkout from '../src/commands/checkout.js';
+import update from '../src/commands/update.js';
+import GitRepositorySnapshot from '../src/core/GitRepositorySnapshot.js';
 
 describe(`checkout tests`, function() {
 	this.timeout(30 * 60 * 1000); // 30 minutes

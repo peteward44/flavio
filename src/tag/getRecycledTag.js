@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import semver from 'semver';
-import * as util from './util.js';
+import * as util from '../core/util.js';
 
 function areTargetsEqual( lhs, rhs ) {
 	if ( lhs.branch && rhs.branch ) {
