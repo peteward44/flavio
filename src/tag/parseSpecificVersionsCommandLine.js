@@ -1,4 +1,5 @@
 import _ from 'lodash';
+import fs from 'fs';
 
 function getDependencyByName( deps, name ) {
 	const lcName = name.toLowerCase();
@@ -12,6 +13,12 @@ function getDependencyByName( deps, name ) {
 
 function parseSpecificVersionsCommandLine( options, snapshotRoot, mainSnapshot ) {
 	const versions = {};
+	if ( options.input && fs.existsSync( options.input ) ) {
+		const json = JSON.parse( fs.readFileSync( options.input, 'utf8' ) );
+		for ( const depName of Object.keys( json ) ) {
+			versions[depName] = json[depName];
+		}
+	}
 	if ( options.tag ) {
 		versions[mainSnapshot.name] = options.tag;
 	}

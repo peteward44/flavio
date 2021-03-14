@@ -216,6 +216,11 @@ export default function start() {
 							describe: 'Tag name to use for main project',
 							string: true
 						})
+						.option('input', {
+							describe: 'JSON file which contains dependency versions to use',
+							string: true,
+							default: ''
+						})
 						.option('cwd', {
 							describe: 'Working directory to use',
 							default: process.cwd()
@@ -275,6 +280,11 @@ export default function start() {
 						.positional('tag', {
 							describe: 'Tag name to use for main project',
 							string: true
+						})
+						.option('input', {
+							describe: 'JSON file which contains dependency versions to use',
+							string: true,
+							default: ''
 						})
 						.option('cwd', {
 							describe: 'Working directory to use',
