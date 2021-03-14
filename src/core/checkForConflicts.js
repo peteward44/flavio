@@ -1,16 +1,13 @@
 import * as util from './util.js';
+import * as getSnapshot from './getSnapshot.js';
 
-async function checkForConflicts( snapshotRoot, checkForLocalChanges = false ) {
+async function checkForConflicts( snapshotRoot, snapshot, checkForLocalChanges = false ) {
+	const depMap = new Map();
+	depMap.set( snapshot.name, { snapshot, refs: [] } );
+	await getSnapshot.walk( depMap, snapshot, snapshotRoot );
+	
 	let conflicts = [];
-	const mainProjectName = snapshotRoot.main.name;
-	if ( await snapshotRoot.main.isConflicted() ) {
-		console.log( util.formatConsoleDependencyName( mainProjectName, true ), `Main project has conflicts` );
-		conflicts.push( snapshotRoot.main );
-	} else if ( checkForLocalChanges && !await snapshotRoot.main.isWorkingCopyClean() ) {
-		console.log( util.formatConsoleDependencyName( mainProjectName, true ), `Main project has local changes` );
-		conflicts.push( snapshotRoot.main );
-	}
-	for ( const depInfo of snapshotRoot.deps.values() ) {
+	for ( const depInfo of depMap.values() ) {
 		if ( await depInfo.snapshot.isConflicted() ) {
 			console.log( util.formatConsoleDependencyName( depInfo.snapshot.name, true ), `Conflicts detected` );
 			conflicts.push( depInfo.snapshot );

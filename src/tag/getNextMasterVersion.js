@@ -1,6 +1,6 @@
 import semver from 'semver';
 
-async function getNextMasterVersion( snapshotRoot, snapshot, version ) {
+async function getNextMasterVersion( snapshot, version ) {
 	if ( !await snapshot.isUpToDate() ) {
 		// only increment version in flavio.json if our local HEAD is up to date with the remote branch
 		return null;

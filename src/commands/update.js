@@ -108,7 +108,7 @@ async function update( options ) {
 	const initialSnapshot = await getSnapshot.getSnapshot( options.cwd );
 
 	// make sure there are no conflicts in any dependencies before doing update
-	const conflicts = await checkForConflicts( initialSnapshot );
+	const conflicts = await checkForConflicts( initialSnapshot, initialSnapshot.main );
 	if ( conflicts.length > 0 ) {
 		for ( const ss of conflicts ) {
 			console.error( util.formatConsoleDependencyName( ss.name ), `Git conflict detected` );

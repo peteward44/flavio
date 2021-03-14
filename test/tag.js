@@ -4,6 +4,7 @@ import * as helpers from '../testutil/helpers.js';
 import TestRepo from '../testutil/TestRepo.js';
 import * as git from '../src/core/git.js';
 import tag from '../src/commands/tag.js';
+import tagdep from '../src/commands/tagdep.js';
 import update from '../src/commands/update.js';
 
 describe(`tag tests`, function() {
@@ -187,5 +188,63 @@ describe(`tag tests`, function() {
 
 	helpers.test.skip( 'tag when dependency has previous tags which do not have a flavio.json', async (tempDir) => {
 
+	});
+	
+	helpers.test( 'tagdep command only tags the given dependency', async (tempDir) => {
+		const result = await TestRepo.create( tempDir, 'one' );
+
+		await update( { cwd: result.project.checkoutDir, interactive: false } );
+
+		await result.assertTagNotExists( 'main', '0.1.0' );
+		await result.assertTagNotExists( 'dep1', '0.1.0' );
+
+		await tagdep( { cwd: result.project.checkoutDir, dependency: 'dep1', interactive: false } );
+
+		await result.assertTagNotExists( 'main', '0.1.0' );
+		await result.assertTagExists( 'dep1', '0.1.0' );
+	});
+	
+	helpers.test( 'tagdep command only tags the given dependency and it\'s dependencies', async (tempDir) => {
+		const result = await TestRepo.create( tempDir, 'complexNest' );
+
+		await update( { cwd: result.project.checkoutDir, interactive: false } );
+
+		await result.assertTagNotExists( 'main', '0.1.0' );
+		await result.assertTagNotExists( 'dep1', '0.1.0' );
+		await result.assertTagNotExists( 'dep1-1', '0.1.0' );
+		await result.assertTagNotExists( 'dep1-1-1', '0.1.0' );
+		await result.assertTagNotExists( 'dep2', '0.1.0' );
+		await result.assertTagNotExists( 'dep2-1', '0.1.0' );
+
+		await tagdep( { cwd: result.project.checkoutDir, dependency: 'dep1', interactive: false } );
+
+		await result.assertTagNotExists( 'main', '0.1.0' );
+		await result.assertTagExists( 'dep1', '0.1.0' );
+		await result.assertTagExists( 'dep1-1', '0.1.0' );
+		await result.assertTagExists( 'dep1-1-1', '0.1.0' );
+		await result.assertTagNotExists( 'dep2', '0.1.0' );
+		await result.assertTagNotExists( 'dep2-1', '0.1.0' );
+	});
+	
+	helpers.test( 'tagdep command only tags the given dependency and it\'s dependencies', async (tempDir) => {
+		const result = await TestRepo.create( tempDir, 'complexNest' );
+
+		await update( { cwd: result.project.checkoutDir, interactive: false } );
+
+		await result.assertTagNotExists( 'main', '0.1.0' );
+		await result.assertTagNotExists( 'dep1', '0.1.0' );
+		await result.assertTagNotExists( 'dep1-1', '0.1.0' );
+		await result.assertTagNotExists( 'dep1-1-1', '0.1.0' );
+		await result.assertTagNotExists( 'dep2', '0.1.0' );
+		await result.assertTagNotExists( 'dep2-1', '0.1.0' );
+
+		await tagdep( { cwd: result.project.checkoutDir, dependency: 'dep1-1', interactive: false } );
+
+		await result.assertTagNotExists( 'main', '0.1.0' );
+		await result.assertTagNotExists( 'dep1', '0.1.0' );
+		await result.assertTagExists( 'dep1-1', '0.1.0' );
+		await result.assertTagExists( 'dep1-1-1', '0.1.0' );
+		await result.assertTagNotExists( 'dep2', '0.1.0' );
+		await result.assertTagNotExists( 'dep2-1', '0.1.0' );
 	});
 });

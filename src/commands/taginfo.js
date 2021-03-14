@@ -14,7 +14,7 @@ async function getInfoObjectForDependency( snapshotRoot, snapshot, recycleTagMap
 	const recycledTag = await getRecycledTag( snapshotRoot, snapshot, recycleTagMap );
 	const { version } = await snapshot.getFlavioJson();
 	const suggestions = recycledTag ? [] : await getTagSuggestions( snapshotRoot, snapshot );
-	const nextMasterVersion = recycledTag ? null : await getNextMasterVersion( snapshotRoot, snapshot, version );
+	const nextMasterVersion = recycledTag ? null : await getNextMasterVersion( snapshot, version );
 	return {
 		name: snapshot.name,
 		target,
