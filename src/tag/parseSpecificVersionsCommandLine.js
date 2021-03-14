@@ -24,7 +24,7 @@ function parseSpecificVersionsCommandLine( options, snapshotRoot, mainSnapshot )
 	}
 	if ( _.isArray( options.versions ) ) {
 		for ( const versionString of options.versions ) {
-			const match = versionString.match( /^(.*)=(.*)$/ );
+			const match = versionString.toString().match( /^(.*)=(.*)$/ );
 			if ( !match ) {
 				throw new Error( `Version string provided does not have DEPENDENCY=TAGNAME format [version=${versionString}]` );
 			}
