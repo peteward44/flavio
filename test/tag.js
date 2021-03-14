@@ -190,6 +190,9 @@ describe(`tag tests`, function() {
 
 	});
 	
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Tagdep tests
+	
 	helpers.test( 'tagdep command only tags the given dependency', async (tempDir) => {
 		const result = await TestRepo.create( tempDir, 'one' );
 

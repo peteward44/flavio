@@ -69,7 +69,7 @@ async function determineTagsRecursive( options, snapshotRoot, snapshot, recycleT
 		const recycledTag = await getRecycledTag( snapshotRoot, snapshot, recycleTagMap );
 		if ( recycledTag ) {
 			tagMap.set( snapshot.name, {
-				tag: recycledTag, originalTarget: target, create: false, dir: snapshot.dir, snapshot
+				tag: recycledTag, originalTarget: target, create: false, snapshot
 			} );
 		} else {
 			const tagName = await determineTagName( options, snapshot );
@@ -77,7 +77,7 @@ async function determineTagsRecursive( options, snapshotRoot, snapshot, recycleT
 				const branchName = `release/${tagName}`;
 				const incrementVersion = await snapshot.isUpToDate(); // only increment version in flavio.json if our local HEAD is up to date with the remote branch
 				tagMap.set( snapshot.name, {
-					tag: tagName, originalTarget: target, branch: branchName, create: true, dir: snapshot.dir, snapshot, incrementMasterVersion: incrementVersion 
+					tag: tagName, originalTarget: target, branch: branchName, create: true, snapshot, incrementMasterVersion: incrementVersion 
 				} );
 			} else {
 				console.log( util.formatConsoleDependencyName( snapshot.name ), `Dependency has no valid flavio.json, so will not be tagged` );
@@ -134,20 +134,20 @@ async function writeVersionToJsonFile( pkgJsonPath, version ) {
 
 async function prepareTags( reposToTag ) {
 	for ( const tagObject of reposToTag.values() ) {
-		const { dir, snapshot } = tagObject;
+		const { snapshot } = tagObject;
 		if ( tagObject.create ) {
 			const lastCommit = await snapshot.getLastCommit();
 			await snapshot.checkout( tagObject.branch, true );
 			// then modify flavio.json
 			let flavioJson = await snapshot.getFlavioJson();
 			flavioJson = lockFlavioJson( flavioJson, reposToTag, tagObject.tag, lastCommit, tagObject.originalTarget );
-			await util.saveFlavioJson( dir, flavioJson );
+			await util.saveFlavioJson( snapshot.dir, flavioJson );
 			let filesArray = ['flavio.json'];
 			// if there is a package.json or a bower.json, change the version number in those too
-			if ( await writeVersionToJsonFile( path.join( dir, 'package.json' ), tagObject.tag ) ) {
+			if ( await writeVersionToJsonFile( path.join( snapshot.dir, 'package.json' ), tagObject.tag ) ) {
 				filesArray.push( 'package.json' );
 			}
-			if ( await writeVersionToJsonFile( path.join( dir, 'bower.json' ), tagObject.tag ) ) {
+			if ( await writeVersionToJsonFile( path.join( snapshot.dir, 'bower.json' ), tagObject.tag ) ) {
 				filesArray.push( 'bower.json' );
 			}
 			// commit new flavio.json
@@ -162,25 +162,27 @@ async function prepareTags( reposToTag ) {
 
 async function incrementOriginalVersions( options, reposToTag ) {
 	for ( const tagObject of reposToTag.values() ) {
-		const { snapshot, dir } = tagObject;
+		const { snapshot } = tagObject;
 		if ( tagObject.incrementMasterVersion ) {
 			// modify flavio.json
 			let flavioJson = await snapshot.getFlavioJson();
-			const newVersion = await getNextMasterVersion( snapshot, flavioJson.version );
-			if ( newVersion ) {
-				flavioJson.version = newVersion;
-				await util.saveFlavioJson( dir, flavioJson );
-				let filesArray = ['flavio.json'];
-				// if there is a package.json or a bower.json, change the version number in those too
-				if ( await writeVersionToJsonFile( path.join( dir, 'package.json' ), flavioJson.version ) ) {
-					filesArray.push( 'package.json' );
+			if ( flavioJson.version ) {
+				const newVersion = await getNextMasterVersion( snapshot, flavioJson.version );
+				if ( newVersion ) {
+					flavioJson.version = newVersion;
+					await util.saveFlavioJson( snapshot.dir, flavioJson );
+					let filesArray = ['flavio.json'];
+					// if there is a package.json or a bower.json, change the version number in those too
+					if ( await writeVersionToJsonFile( path.join( snapshot.dir, 'package.json' ), flavioJson.version ) ) {
+						filesArray.push( 'package.json' );
+					}
+					if ( await writeVersionToJsonFile( path.join( snapshot.dir, 'bower.json' ), flavioJson.version ) ) {
+						filesArray.push( 'bower.json' );
+					}
+					// commit new flavio.json
+					await snapshot.addAndCommit( filesArray, `Commiting new flavio.json for tag ${tagObject.tag}` );
+					await snapshot.push( ['origin', 'HEAD'] );
 				}
-				if ( await writeVersionToJsonFile( path.join( dir, 'bower.json' ), flavioJson.version ) ) {
-					filesArray.push( 'bower.json' );
-				}
-				// commit new flavio.json
-				await snapshot.addAndCommit( filesArray, `Commiting new flavio.json for tag ${tagObject.tag}` );
-				await snapshot.push( ['origin', 'HEAD'] );
 			}
 		}
 	}
