@@ -250,4 +250,19 @@ describe(`tag tests`, function() {
 		await result.assertTagNotExists( 'dep2', '0.1.0' );
 		await result.assertTagNotExists( 'dep2-1', '0.1.0' );
 	});
+
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Specific version tests (version numbers to use / recycle specified on the command line)
+	
+	helpers.test.only( 'Specify single version for main repository on the command line', async (tempDir) => {
+		const result = await TestRepo.create( tempDir, 'none' );
+
+		await result.assertTagNotExists( 'main', '8.9.4' );
+		await result.assertTagNotExists( 'main', '0.1.0' );
+		
+		await tag( { cwd: result.project.checkoutDir, version: "8.9.4", interactive: false } );
+
+		await result.assertTagExists( 'main', '8.9.4' );
+		await result.assertTagNotExists( 'main', '0.1.0' );
+	});
 });

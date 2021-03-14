@@ -197,12 +197,17 @@ export default function start() {
 				desc: 'Tags main project as well as any dependencies',
 				builder: (subyargs) => {
 					subyargs
-						.usage('Usage: flavio tag [options]')
-						.example('flavio tag', 'Creates a tag for main project and all linked dependencies')
+						.usage('Usage: flavio tag [version] [options]')
+						.example('flavio tag 2.3.1 --versions dep1=1.0.0 dep2=2.0.0', 'Creates a 2.3.1 tag for main project and all linked dependencies, using 1.0.0 for dep1 and 2.0.0 for dep2')
 						.help('help')
 						.option('cwd', {
 							describe: 'Working directory to use',
 							default: process.cwd()
+						})
+						.option('versions', {
+							describe: 'Series of dependency names and version numbers that should be used for tag names. If an existing version tag is specified, it will use that tag',
+							array: true,
+							default: []
 						})
 						.option('interactive', {
 							describe: 'Set to false so the user is not prompted any questions',
@@ -244,12 +249,17 @@ export default function start() {
 				desc: 'Tags a given dependency, and it\'s dependencies',
 				builder: (subyargs) => {
 					subyargs
-						.usage('Usage: flavio tagdep <dependency> [version]')
+						.usage('Usage: flavio tagdep <dependency> [version] [options]')
 						.example('flavio tagdep sausage 1.0.0', 'Tags the "sausage" dependency using version 1.0.0')
 						.help('help')
 						.option('cwd', {
 							describe: 'Working directory to use',
 							default: process.cwd()
+						})
+						.option('versions', {
+							describe: 'Series of dependency names and version numbers that should be used for tag names. If an existing version tag is specified, it will use that tag',
+							array: true,
+							default: []
 						})
 						.option('interactive', {
 							describe: 'Set to false so the user is not prompted any questions',

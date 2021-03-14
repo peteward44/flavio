@@ -21,7 +21,6 @@ function getNextAvailableVersion( tagList, version, versionType ) {
 async function determineTagName( options, snapshot ) {
 	const isInteractive = options.interactive !== false;
 	const flavioJson = await snapshot.getFlavioJson();
-	console.log( `flavioJson=${JSON.stringify( flavioJson )}` );
 	if ( _.isEmpty( flavioJson ) ) {
 		return null;
 	}
@@ -62,17 +61,37 @@ async function determineTagName( options, snapshot ) {
 	return tagName;
 }
 
-async function determineTagsRecursive( options, snapshotRoot, snapshot, recycleTagMap, tagMap ) {
+function getSpecificVersionTag( specificVersions, name ) {
+	const lcName = name.toLowerCase();
+	for ( const version of Object.keys( specificVersions ) ) {
+		if ( lcName === version.toLowerCase() ) {
+			return specificVersions[version];
+		}
+	}
+	return null;
+}
+
+async function determineTagsRecursive( options, snapshotRoot, snapshot, specificVersions, recycleTagMap, tagMap ) {
 	if ( !tagMap.has( snapshot.name ) ) {
 		await snapshot.fetch();
 		const target = await snapshot.getTarget();
-		const recycledTag = await getRecycledTag( snapshotRoot, snapshot, recycleTagMap );
+		let recycledTag;
+		const specificVersion = getSpecificVersionTag( specificVersions, snapshot.name );
+		if ( specificVersion ) {
+			// specific name for tag has been specified - check if it already exists and recycle that one if so
+			if ( ( await snapshot.listTags() ).includes( specificVersion ) ) {
+				recycledTag = specificVersion;
+			}
+		} else {
+			// normal tag - just check what's currently on disk to see what tag to create
+			recycledTag = await getRecycledTag( snapshotRoot, snapshot, recycleTagMap );
+		}
 		if ( recycledTag ) {
 			tagMap.set( snapshot.name, {
 				tag: recycledTag, originalTarget: target, create: false, snapshot
 			} );
 		} else {
-			const tagName = await determineTagName( options, snapshot );
+			const tagName = specificVersion ? specificVersion : await determineTagName( options, snapshot );
 			if ( tagName ) {
 				const branchName = `release/${tagName}`;
 				const incrementVersion = await snapshot.isUpToDate(); // only increment version in flavio.json if our local HEAD is up to date with the remote branch
@@ -87,16 +106,16 @@ async function determineTagsRecursive( options, snapshotRoot, snapshot, recycleT
 	if ( !options['ignore-dependencies'] ) {
 		const children = await snapshot.getChildren( snapshotRoot.deps );
 		for ( const depInfo of children.values() ) {
-			await determineTagsRecursive( options, snapshotRoot, depInfo.snapshot, recycleTagMap, tagMap );
+			await determineTagsRecursive( options, snapshotRoot, depInfo.snapshot, specificVersions, recycleTagMap, tagMap );
 		}
 	}
 }
 
-async function determineTags( options, snapshotRoot, snapshot ) {
+async function determineTags( options, snapshotRoot, snapshot, specificVersions ) {
 	// for every node in the tree, check to see if any of the dependencies are on a branch with change without a tag pointing at the current HEAD
 	let recycleTagMap = new Map(); // map of module dir names and a tag they can recycle to, so we don't calculate it multiple times
 	let tagMap = new Map(); // map of module dir names and tags which take into account if the children have valid tags too
-	await determineTagsRecursive( options, snapshotRoot, snapshot, recycleTagMap, tagMap );
+	await determineTagsRecursive( options, snapshotRoot, snapshot, specificVersions, recycleTagMap, tagMap );
 	return tagMap;
 }
 
@@ -234,7 +253,7 @@ async function confirmUser( options, reposToTag ) {
  *
  *
  */
-async function tagSnapshot( options, snapshotRoot, snapshot ) {
+async function tagSnapshot( options, snapshotRoot, snapshot, specificVersions ) {
 	// make sure there are no conflicts in any dependencies before doing tag
 	const conflicts = await checkForConflicts( snapshotRoot, snapshot, true );
 	if ( conflicts.length > 0 ) {
@@ -243,7 +262,7 @@ async function tagSnapshot( options, snapshotRoot, snapshot ) {
 	}
 	
 	// work out which repos need to be tagged, and what those tags are going to called
-	const reposToTag = await determineTags( options, snapshotRoot, snapshot );
+	const reposToTag = await determineTags( options, snapshotRoot, snapshot, specificVersions );
 	let count = 0;
 	for ( const tagObject of reposToTag.values() ) {
 		if ( tagObject.create ) {
