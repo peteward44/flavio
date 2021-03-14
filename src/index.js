@@ -11,6 +11,7 @@ import checkout from './commands/checkout.js';
 import when from './commands/when.js';
 import init from './commands/init.js';
 import clear from './commands/clear.js';
+import testMakeRepo from './commands/testMakeRepo.js';
 
 const commands = {
 	update,
@@ -25,6 +26,7 @@ const commands = {
 	init,
 	checkout,
 	when,
+	testMakeRepo,
 	'export': exportProject
 };
 

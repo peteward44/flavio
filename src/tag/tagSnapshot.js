@@ -63,9 +63,9 @@ async function determineTagName( options, snapshot ) {
 
 function getSpecificVersionTag( specificVersions, name ) {
 	const lcName = name.toLowerCase();
-	for ( const version of Object.keys( specificVersions ) ) {
-		if ( lcName === version.toLowerCase() ) {
-			return specificVersions[version];
+	for ( const depName of Object.keys( specificVersions ) ) {
+		if ( lcName === depName.toLowerCase() ) {
+			return specificVersions[depName];
 		}
 	}
 	return null;
@@ -76,6 +76,7 @@ async function determineTagsRecursive( options, snapshotRoot, snapshot, specific
 		await snapshot.fetch();
 		const target = await snapshot.getTarget();
 		let recycledTag;
+		console.log( `specificVersions=${JSON.stringify( specificVersions )}` );
 		const specificVersion = getSpecificVersionTag( specificVersions, snapshot.name );
 		if ( specificVersion ) {
 			// specific name for tag has been specified - check if it already exists and recycle that one if so
@@ -91,7 +92,7 @@ async function determineTagsRecursive( options, snapshotRoot, snapshot, specific
 				tag: recycledTag, originalTarget: target, create: false, snapshot
 			} );
 		} else {
-			const tagName = specificVersion ? specificVersion : await determineTagName( options, snapshot );
+			const tagName = specificVersion ?? await determineTagName( options, snapshot );
 			if ( tagName ) {
 				const branchName = `release/${tagName}`;
 				const incrementVersion = await snapshot.isUpToDate(); // only increment version in flavio.json if our local HEAD is up to date with the remote branch

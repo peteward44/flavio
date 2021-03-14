@@ -2,6 +2,7 @@ import * as util from '../core/util.js';
 import globalConfig from '../core/globalConfig.js';
 import * as getSnapshot from '../core/getSnapshot.js';
 import tagSnapshot from '../tag/tagSnapshot.js';
+import parseSpecificVersionsCommandLine from '../tag/parseSpecificVersionsCommandLine.js';
 
 /**
  *
@@ -19,7 +20,8 @@ async function tagdep( options ) {
 		return;
 	}
 	const dep = snapshotRoot.deps.get( options.dependency );
-	await tagSnapshot( options, snapshotRoot, dep.snapshot );
+	const specificVersions = parseSpecificVersionsCommandLine( options, snapshotRoot, dep.snapshot );
+	await tagSnapshot( options, snapshotRoot, dep.snapshot, specificVersions );
 }
 
 export default tagdep;

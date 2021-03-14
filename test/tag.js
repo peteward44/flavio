@@ -254,15 +254,125 @@ describe(`tag tests`, function() {
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Specific version tests (version numbers to use / recycle specified on the command line)
 	
-	helpers.test.only( 'Specify single version for main repository on the command line', async (tempDir) => {
+	helpers.test( '[tag] - Specify single version for main repository on the command line', async (tempDir) => {
 		const result = await TestRepo.create( tempDir, 'none' );
 
 		await result.assertTagNotExists( 'main', '8.9.4' );
 		await result.assertTagNotExists( 'main', '0.1.0' );
 		
-		await tag( { cwd: result.project.checkoutDir, version: "8.9.4", interactive: false } );
+		await tag( { cwd: result.project.checkoutDir, tag: "8.9.4", interactive: false } );
 
 		await result.assertTagExists( 'main', '8.9.4' );
+		await result.assertTagNotExists( 'main', '0.1.0' );
+	});
+
+	helpers.test( '[tag] - Specify version for a nested dependency on the command line', async (tempDir) => {
+		const result = await TestRepo.create( tempDir, 'complexNest' );
+		await update( { cwd: result.project.checkoutDir, interactive: false } );
+		
+		await result.assertTagNotExists( 'dep1-1-1', '8.9.4' );
+		await result.assertTagNotExists( 'main', '0.1.0' );
+		
+		await tag( { cwd: result.project.checkoutDir, versions: ['dep1-1-1=8.9.4'], interactive: false } );
+
+		await result.assertTagExists( 'dep1-1-1', '8.9.4' );
+		await result.assertTagExists( 'main', '0.1.0' );
+		await result.assertTagExists( 'dep1', '0.1.0' );
+		await result.assertTagExists( 'dep1-1', '0.1.0' );
+	});
+
+	helpers.test( '[tag] - Specify lots of versions for a nested dependency on the command line', async (tempDir) => {
+		const result = await TestRepo.create( tempDir, 'complexNest' );
+		
+		await update( { cwd: result.project.checkoutDir, interactive: false } );
+
+		await result.assertTagNotExists( 'dep1-1-1', '8.9.4' );
+		await result.assertTagNotExists( 'dep1-1', '4.6.3' );
+		await result.assertTagNotExists( 'dep1', '0.1.0' );
+		await result.assertTagNotExists( 'main', '3.1.4' );
+		
+		await tag( {
+			cwd: result.project.checkoutDir, tag: '3.1.4', versions: ['dep1-1=4.6.3', 'dep1-1-1=8.9.4'], interactive: false 
+		} );
+
+		await result.assertTagExists( 'dep1-1-1', '8.9.4' );
+		await result.assertTagExists( 'dep1-1', '4.6.3' );
+		await result.assertTagExists( 'dep1', '0.1.0' );
+		await result.assertTagExists( 'main', '3.1.4' );
+	});
+
+	helpers.test( '[tag] - Specify lots of versions for a nested dependency on the command line, checking that tags are recycled appropriately', async (tempDir) => {
+		const result = await TestRepo.create( tempDir, 'complexNest' );
+		
+		await update( { cwd: result.project.checkoutDir, interactive: false } );
+		
+		await tagdep( {
+			cwd: result.project.checkoutDir, dependency: 'dep1-1', tag: '3.1.4', interactive: false 
+		} );
+
+		await result.assertTagExists( 'dep1-1', '3.1.4' );
+		
+		await tag( {
+			cwd: result.project.checkoutDir, tag: '2.6.8', versions: ["dep1-1=3.1.4"], interactive: false 
+		} );
+
+		await result.assertTagExists( 'main', '2.6.8' );
+		await result.assertTagExists( 'dep1', '0.1.0' );
+		await result.assertTagNotExists( 'dep1-1', '0.1.0' );
+		await result.assertTagExists( 'dep1-1-1', '0.1.0' );
+	});
+
+	helpers.test( '[tagdep] - Specify single version for single dependency on the command line', async (tempDir) => {
+		const result = await TestRepo.create( tempDir, 'one' );
+		
+		await update( { cwd: result.project.checkoutDir, interactive: false } );
+
+		await result.assertTagNotExists( 'dep1', '8.9.4' );
+		await result.assertTagNotExists( 'dep1', '0.1.0' );
+		
+		await tagdep( {
+			cwd: result.project.checkoutDir, dependency: 'dep1', tag: "8.9.4", interactive: false 
+		} );
+
+		await result.assertTagExists( 'dep1', '8.9.4' );
+		await result.assertTagNotExists( 'dep1', '0.1.0' );
+	});
+
+	helpers.test( '[tagdep] - Specify single version for a nested dependency on the command line', async (tempDir) => {
+		const result = await TestRepo.create( tempDir, 'complexNest' );
+		
+		await update( { cwd: result.project.checkoutDir, interactive: false } );
+
+		await result.assertTagNotExists( 'dep1-1-1', '8.9.4' );
+		await result.assertTagNotExists( 'main', '0.1.0' );
+		
+		await tagdep( {
+			cwd: result.project.checkoutDir, dependency: 'dep1', versions: ['dep1-1-1=8.9.4'], interactive: false 
+		} );
+
+		await result.assertTagExists( 'dep1-1-1', '8.9.4' );
+		await result.assertTagNotExists( 'main', '0.1.0' );
+		await result.assertTagExists( 'dep1', '0.1.0' );
+		await result.assertTagExists( 'dep1-1', '0.1.0' );
+	});
+	
+	helpers.test( '[tagdep] - Specify lots of versions for a nested dependency on the command line', async (tempDir) => {
+		const result = await TestRepo.create( tempDir, 'complexNest' );
+		
+		await update( { cwd: result.project.checkoutDir, interactive: false } );
+
+		await result.assertTagNotExists( 'dep1-1-1', '8.9.4' );
+		await result.assertTagNotExists( 'dep1-1', '4.6.3' );
+		await result.assertTagNotExists( 'dep1', '9.1.4' );
+		await result.assertTagNotExists( 'main', '0.1.0' );
+		
+		await tagdep( {
+			cwd: result.project.checkoutDir, dependency: 'dep1', tag: '9.1.4', versions: ['dep1-1=4.6.3', 'dep1-1-1=8.9.4'], interactive: false 
+		} );
+
+		await result.assertTagExists( 'dep1-1-1', '8.9.4' );
+		await result.assertTagExists( 'dep1-1', '4.6.3' );
+		await result.assertTagExists( 'dep1', '9.1.4' );
 		await result.assertTagNotExists( 'main', '0.1.0' );
 	});
 });

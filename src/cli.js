@@ -91,6 +91,14 @@ export default function start() {
 						.usage('Usage: flavio add [options] <name> <repourl>')
 						.example('flavio add My_Repo http://github.com/myuser/myrepo.git#0.2.0', 'Adds myrepo.git to dependency list using the name My_Repo')
 						.help('help')
+						.positional('name', {
+							describe: 'Name of dependency to add',
+							string: true
+						})
+						.positional('url', {
+							describe: 'Git remote URL to clone for dependency',
+							string: true
+						})
 						.option('cwd', {
 							describe: 'Working directory to use',
 							default: process.cwd()
@@ -153,6 +161,10 @@ export default function start() {
 						.usage('Usage: flavio checkout [<branch>]')
 						.example('flavio branch my-branch-name', 'Checks out given branch on all dependencies')
 						.help('help')
+						.positional('branch', {
+							describe: 'Branch, tag or commit hash to checkout',
+							string: true
+						})
 						.option('cwd', {
 							describe: 'Working directory to use',
 							default: process.cwd()
@@ -193,13 +205,17 @@ export default function start() {
 				}
 			})
 			.command( {
-				command: 'tag [version]',
+				command: 'tag [tag]',
 				desc: 'Tags main project as well as any dependencies',
 				builder: (subyargs) => {
 					subyargs
-						.usage('Usage: flavio tag [version] [options]')
+						.usage('Usage: flavio tag [tag] [options]')
 						.example('flavio tag 2.3.1 --versions dep1=1.0.0 dep2=2.0.0', 'Creates a 2.3.1 tag for main project and all linked dependencies, using 1.0.0 for dep1 and 2.0.0 for dep2')
 						.help('help')
+						.positional('tag', {
+							describe: 'Tag name to use for main project',
+							string: true
+						})
 						.option('cwd', {
 							describe: 'Working directory to use',
 							default: process.cwd()
@@ -245,13 +261,21 @@ export default function start() {
 				}
 			} )
 			.command( {
-				command: 'tagdep <dependency> [version]',
+				command: 'tagdep <dependency> [tag]',
 				desc: 'Tags a given dependency, and it\'s dependencies',
 				builder: (subyargs) => {
 					subyargs
-						.usage('Usage: flavio tagdep <dependency> [version] [options]')
+						.usage('Usage: flavio tagdep <dependency> [tag] [options]')
 						.example('flavio tagdep sausage 1.0.0', 'Tags the "sausage" dependency using version 1.0.0')
 						.help('help')
+						.positional('dependency', {
+							describe: 'Dependency name to create tag for',
+							string: true
+						})
+						.positional('tag', {
+							describe: 'Tag name to use for main project',
+							string: true
+						})
 						.option('cwd', {
 							describe: 'Working directory to use',
 							default: process.cwd()
@@ -281,6 +305,10 @@ export default function start() {
 						.usage('Usage: flavio export <output directory> [options]')
 						.example('flavio export /home/user/myexport', 'Exports main project and all modules')
 						.help('help')
+						.positional('directory', {
+							describe: 'Directory to export to',
+							string: true
+						})
 						.option('cwd', {
 							describe: 'Working directory to use',
 							default: process.cwd()
@@ -334,6 +362,10 @@ export default function start() {
 						.usage('Usage: flavio clone <url> [options]')
 						.example('flavio clone user@server:/var/repo.git', 'Clones / checks out repo.git and any dependencies')
 						.help('help')
+						.positional('url', {
+							describe: 'Git remote URL to clone',
+							string: true
+						})
 						.option('cwd', {
 							describe: 'Directory to check project out to - defaults to the project name inferred from the project URL',
 							type: 'string'
@@ -370,6 +402,30 @@ export default function start() {
 				},
 				handler: (argv) => {
 					flavio.commands.init( _.cloneDeep( argv ) )
+						.then(resolve)
+						.catch(reject);
+				}
+			} )
+			.command( {
+				command: 'test-makerepo [template]',
+				desc: false,
+				builder: (subyargs) => {
+					subyargs
+						.usage('Usage: flavio test-makerepo [options]')
+						.example('flavio test-makerepo one', 'Creates a test repository using "one" template')
+						.help('help')
+						.positional('template', {
+							describe: 'Project template to use',
+							string: true,
+							default: 'complexNest'
+						})
+						.option('cwd', {
+							describe: 'Working directory to use',
+							default: process.cwd()
+						});
+				},
+				handler: (argv) => {
+					flavio.commands.testMakeRepo( _.cloneDeep( argv ) )
 						.then(resolve)
 						.catch(reject);
 				}
