@@ -71,6 +71,7 @@ export async function clone( pkgdir, options, repoUrl, isLinked, snapshot ) {
 		fs.symlinkSync( cloneDir, pkgdir, os.platform() === "win32" ? 'junction' : 'dir' );
 		console.log( `Linked ${pkgdir} -> ${cloneDir}` );
 	}
+	snapshot.markChanged();
 	return freshClone;
 }
 
@@ -186,6 +187,9 @@ export async function checkAndSwitch( snapshot, options, pkgdir, repo ) {
 			await snapshot.checkout( targetObj.branch || targetObj.tag || targetObj.commit );
 			status = "switch";
 		}
+	}
+	if ( status !== 'none' ) {
+		snapshot.markChanged();
 	}
 	return status;
 }

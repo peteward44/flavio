@@ -10,6 +10,7 @@ import globalConfig from '../core/globalConfig.js';
 import * as getSnapshot from '../core/getSnapshot.js';
 import checkForConflicts from '../core/checkForConflicts.js';
 import GitRepositorySnapshot from '../core/GitRepositorySnapshot.js';
+import getStatus from '../core/getStatus.js';
 
 async function stashAndPull( snapshot, pkgdir, options, propagateErrors = false ) {
 	const changed = !await snapshot.isUpToDate();
@@ -195,9 +196,10 @@ async function update( options ) {
 	} while ( hadChanges );
 
 	if ( !options.json ) {
-		const updateCount = 1;
-		const changeCount = 1;
-		console.log( chalk.yellow( `${updateCount}` ), `${updateCount === 1 ? 'repository' : 'repositories'} inspected,`, chalk.yellow( `${changeCount}` ), `changed` );
+		const status = await getStatus( options, snapshot, {
+			changed: true
+		} );
+		console.log( status );
 	}
 }
 
