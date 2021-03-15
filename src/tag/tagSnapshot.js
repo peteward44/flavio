@@ -76,7 +76,6 @@ async function determineTagsRecursive( options, snapshotRoot, snapshot, specific
 		await snapshot.fetch();
 		const target = await snapshot.getTarget();
 		let recycledTag;
-		console.log( `specificVersions=${JSON.stringify( specificVersions )}` );
 		const specificVersion = getSpecificVersionTag( specificVersions, snapshot.name );
 		if ( specificVersion ) {
 			// specific name for tag has been specified - check if it already exists and recycle that one if so

@@ -15,7 +15,7 @@ function executeGit( dir, args, options = {} ) {
 		let connected = true;
 		let stdo = '';
 		let stde = '';
-		console.log( `Executing git ${args.join(" ")} [dir=${dir}]` );
+	//	console.log( `Executing git ${args.join(" ")} [dir=${dir}]` );
 		let stderr = 'inherit';
 		if ( options.captureStderr ) {
 			stderr = 'pipe';

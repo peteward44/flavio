@@ -10,7 +10,7 @@ async function getDirForDependency( name ) {
 }
 
 function debug( str ) {
-	console.error( str );
+//	console.error( str );
 }
 
 function cached() {
@@ -329,7 +329,6 @@ class GitRepositorySnapshot {
 
 	async createTag( tagName, message ) {
 		debug( 'createTag' );
-		console.log( `createTag: ${tagName} ${message}` );
 		await this._executeGit( ['tag', '-a', tagName, '-m', message] );
 		this._cache.delete( 'push' );
 		this._cache.delete( 'listTags' );

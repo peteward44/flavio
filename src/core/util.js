@@ -115,7 +115,6 @@ let gDefaultOptions = {};
 
 export function defaultOptions( options ) {
 	_.defaults( options, gDefaultOptions );
-	console.log( `options=${JSON.stringify( options )}` );
 	if ( !options.linkdir ) {
 		options.linkdir = getDefaultLinkDir();
 	}

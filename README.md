@@ -1,5 +1,5 @@
 # flavio
-Really simple package manager for your own private packages hosted on any git or svn server. No registry or server hosting required. Can be used in conjunction with bower/npm
+Really simple package manager for your own private packages hosted on any git server. No registry or server hosting required. Can be used in conjunction with bower/npm
 
 ## Usage
 
@@ -101,6 +101,41 @@ It requires write access to the master branch of the repositories to successfull
 flavio tag
 ```
 
+You can tag an individual dependency (and any of it's dependencies) using the "tagdep" command.
+
+```
+flavio tagdep My_Dependency1
+```
+
+You can also specify a tag name to use with both commands if desired.
+
+```
+flavio tag 1.5.2
+flavio tagdep My_Dependency1 8.4.2
+```
+
+If you wish to specify the tag names of the dependencies that are automatically tagged, you can specify them using the ```--versions``` argument. You can repeat the ```--versions``` parameter as many times as necessary.
+
+```
+flavio tag --versions My_Dependency1=8.4.2 --versions My_Dependency2=4.2.6
+flavio tagdep 5.2.4 --versions My_Dependency1=8.4.2 --versions My_Dependency2=4.2.6
+```
+
+If you have a lot of dependencies, you can specify a filename which points to a JSON file containing this version information for dependencies:
+
+```
+flavio tag --input my_file.json
+```
+
+my_file.json looks like:
+
+```
+{
+   "My_Dependency1": "8.4.2",
+   "My_Dependency2": "4.2.6"
+}
+```
+
 ### Execute a git command on main project and dependencies
 
 Sometimes it may be useful to execute the same command on all dependencies - e.g. a git clean:
@@ -115,4 +150,18 @@ If you want to export files stored in git to another directory:
 
 ```
 flavio export /home/user/my_export_directory
+```
+
+### The dependency cache
+
+Flavio by default clones dependency repositories into a shared directory and then creates symbolic links to them from the flavio_modules directory. To disable this behaviour, use the ```--link=false``` command line argument.
+
+To clear all dependencies connected to a project, execute a clear command in the root folder:
+```
+flavio clear
+```
+
+To clear all dependencies for every project, use the clearall command:
+```
+flavio clearall
 ```

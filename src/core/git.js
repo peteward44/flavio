@@ -21,7 +21,7 @@ export function executeGit( args, options ) {
 		let connected = true;
 		let stdo = '';
 		let stde = '';
-		console.log( `Executing git ${args.join(" ")} [dir=${options.cwd ? options.cwd : process.cwd()}]` );
+	//	console.log( `Executing git ${args.join(" ")} [dir=${options.cwd ? options.cwd : process.cwd()}]` );
 		let stderr = 'inherit';
 		if ( options.captureStderr ) {
 			stderr = 'pipe';
