@@ -11,6 +11,7 @@ import * as getSnapshot from '../core/getSnapshot.js';
 import checkForConflicts from '../core/checkForConflicts.js';
 import GitRepositorySnapshot from '../core/GitRepositorySnapshot.js';
 import getStatus from '../core/getStatus.js';
+import logger from '../core/logger.js';
 
 async function stashAndPull( snapshot, pkgdir, options, propagateErrors = false ) {
 	const changed = !await snapshot.isUpToDate();
@@ -22,8 +23,6 @@ async function stashAndPull( snapshot, pkgdir, options, propagateErrors = false 
 	try {
 		await snapshot.pull();
 	} catch ( err ) {
-		console.error( `Error executing pull on repository` );
-		console.error( err.message || err );
 		if ( propagateErrors ) {
 			throw err;
 		}
@@ -36,13 +35,13 @@ async function updateMainProject( options, snapshot ) {
 	const target = await snapshot.getTarget();
 	if ( !target.branch ) {
 		if ( !options.json ) {
-			console.log( util.formatConsoleDependencyName( snapshot.name ), `Skipping update as not on a branch` );
+			logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Skipping update as not on a branch` );
 		}
 		return false;
 	}
 	let changed = false;
 	if ( !options.json ) {
-		console.log( util.formatConsoleDependencyName( snapshot.name ), `Updating...` );
+		logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Updating...` );
 	}
 	const stashName = await snapshot.stash();
 	if ( !await snapshot.isUpToDate() ) {
@@ -51,7 +50,7 @@ async function updateMainProject( options, snapshot ) {
 	try {
 		await snapshot.pull();
 	} catch ( err ) {
-		console.error( util.formatConsoleDependencyName( snapshot.name, true ), `Main project pull failed, does your branch exist on the remote?` );
+		logger.error( `${util.formatConsoleDependencyName( snapshot.name, true )} Main project pull failed, does your branch exist on the remote?` );
 	}
 	await snapshot.stashPop( stashName );
 	if ( !options.json ) {
@@ -60,7 +59,7 @@ async function updateMainProject( options, snapshot ) {
 			targetName = target.tag || target.commit || target.branch;
 		} catch ( err ) {
 		}
-		console.log( util.formatConsoleDependencyName( snapshot.name ), `Complete`, targetName ? `[${chalk.magenta(targetName)}]` : ``, changed ? `[${chalk.yellow( 'changes detected' )}]` : `` );
+		logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Complete`, targetName ? `[${chalk.magenta(targetName)}]` : ``, changed ? `[${chalk.yellow( 'changes detected' )}]` : `` );
 	}
 	return changed;
 }
@@ -72,7 +71,7 @@ async function cloneMissingDependencies( snapshot, options ) {
 		for ( const depInfo of snapshot.deps.values() ) {
 			if ( await depInfo.snapshot.getStatus() === 'missing' ) {
 				if ( !options.json ) {
-					console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Repository missing, performing fresh clone...` );
+					logger.log( 'info', util.formatConsoleDependencyName( depInfo.snapshot.name ), `Repository missing, performing fresh clone...` );
 				}
 
 				// update snapshot for new repo, and any dependencies it might have
@@ -111,9 +110,10 @@ async function update( options ) {
 	const conflicts = await checkForConflicts( initialSnapshot, initialSnapshot.main );
 	if ( conflicts.length > 0 ) {
 		for ( const ss of conflicts ) {
-			console.error( util.formatConsoleDependencyName( ss.name ), `Git conflict detected` );
+			logger.log( 'error', `${util.formatConsoleDependencyName( ss.name )} Git conflict detected` );
 		}
-		console.error( chalk.red( `${conflicts.length} conflict${conflicts.length === 1 ? '' : 's'} detected` ), `aborting update` );
+		const conflictString = `${conflicts.length} conflict${conflicts.length === 1 ? '' : 's'} detected`;
+		logger.log( 'error', `${chalk.red( conflictString )} aborting update` );
 		return;
 	}
 	await updateMainProject( options, initialSnapshot.main );	
@@ -154,7 +154,7 @@ async function update( options ) {
 			if ( await depInfo.snapshot.getStatus() === 'installed' ) {
 				const flavioDependencies = await depInfo.snapshot.getDependencies();
 				if ( !options.json ) {
-					console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Updating...` );
+					logger.log( 'info', util.formatConsoleDependencyName( depInfo.snapshot.name ), `Updating...` );
 				}
 				const targetObj = await getTargetFromRepoUrl( depInfo.snapshot, module, depInfo.snapshot.dir );
 				// check to see if the local branch still exists on the remote, reset if not
@@ -173,10 +173,10 @@ async function update( options ) {
 					const errout = await depInfo.snapshot.pullCaptureError();
 					if ( errout === 'fatal: refusing to merge unrelated histories' ) {
 						if ( await depInfo.snapshot.isWorkingCopyClean() ) {
-							console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Unrelated histories detected, performing hard reset...` );
+							logger.log( 'info', util.formatConsoleDependencyName( depInfo.snapshot.name ), `Unrelated histories detected, performing hard reset...` );
 							await depInfo.snapshot.fixUnrelatedHistory( targetObj );
 						} else {
-							console.log( util.formatConsoleDependencyName( depInfo.snapshot.name ), `Unrelated histories detected, but cannot reset due to local changes!` );
+							logger.log( 'info', util.formatConsoleDependencyName( depInfo.snapshot.name ), `Unrelated histories detected, but cannot reset due to local changes!` );
 						}
 					} else {
 						throw err;
@@ -199,7 +199,7 @@ async function update( options ) {
 		const status = await getStatus( options, snapshot, {
 			changed: true
 		} );
-		console.log( status );
+		logger.log( 'info', status );
 	}
 }
 

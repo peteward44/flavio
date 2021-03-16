@@ -5,6 +5,7 @@ import * as util from '../core/util.js';
 import update from './update.js';
 import globalConfig from '../core/globalConfig.js';
 import executeGit from '../core/executeGit.js';
+import logger from '../core/logger.js';
 
 /**
  *
@@ -25,14 +26,14 @@ async function clone( repo, options = {} ) {
 	if ( !options.force && cwd !== '.' && fs.existsSync( cwd ) ) {
 		throw new Error( `Target directory ${cwd} already exists!` );
 	}
-	console.log( util.formatConsoleDependencyName( gitname || 'main' ), `Cloning main respository to ${chalk.yellow(cwd)}` );
+	logger.log( 'info', util.formatConsoleDependencyName( gitname || 'main' ), `Cloning main respository to ${chalk.yellow(cwd)}` );
 	const args = ['clone', repoUrl.url, cwd];
 	if ( repoUrl.target && repoUrl.target !== 'master' ) {
 		args.push( `--branch=${repoUrl.target}` );
 	}
 	await executeGit( cwd, args );
 
-	console.log( util.formatConsoleDependencyName( gitname || 'main' ), `Clone complete, executing update...` );
+	logger.log( 'info', util.formatConsoleDependencyName( gitname || 'main' ), `Clone complete, executing update...` );
 	options.cwd = cwd;
 	options.fromCloneCommand = true;
 	await update( options );

@@ -1,11 +1,16 @@
 import fs from 'fs-extra';
 import { spawn } from 'child_process';
+import logger from './logger.js';
 
-function printError( err, args, cwd ) {
-	let argsString = args.join( " " );
-	console.error( `'git ${argsString}'` );
-	console.error( `'dir ${cwd}'` );
-	console.error( err.stack || err );
+function printError( err, combinedOut, args, cwd, exitCode ) {
+	const argsString = args.join( " " );
+	logger.log( 'error', `Git command "git ${argsString}" failed [exitCode=${exitCode}] [dir=${cwd}]` );
+	if ( err ) {
+		logger.log( 'error', err );
+	}
+	if ( combinedOut ) {
+		logger.log( 'error', combinedOut );
+	}
 }
 
 function executeGit( dir, args, options = {} ) {
@@ -15,23 +20,19 @@ function executeGit( dir, args, options = {} ) {
 		let connected = true;
 		let stdo = '';
 		let stde = '';
-	//	console.log( `Executing git ${args.join(" ")} [dir=${dir}]` );
-		let stderr = 'inherit';
-		if ( options.captureStderr ) {
-			stderr = 'pipe';
-		} else if ( options.outputStderr ) {
-			stderr = 'inherit';
-		}
-		let proc = spawn( 'git', args, { cwd: dir, stdio: ['ignore', options.captureStdout ? 'pipe' : 'inherit', stderr] } );
+		let combined = '';
+		logger.log( 'debug', `Executing git ${args.join(" ")} [dir=${dir}]` );
+		let proc = spawn( 'git', args, { cwd: dir, stdio: ['ignore', 'pipe', 'pipe'] } );
 
 		function unpipe( code ) {
 			if ( !connected ) {
 				return;
 			}
 			connected = false;
+			logger.log( 'debug', combined );
 			if ( code !== 0 && !options.ignoreError ) {
 				if ( !options.quiet ) {
-					printError( '', args, dir ); // eslint-disable-line no-underscore-dangle
+					printError( '', combined, args, dir, code ); // eslint-disable-line no-underscore-dangle
 				}
 				reject( new Error( "Error running git" ) );
 			} else {
@@ -39,23 +40,22 @@ function executeGit( dir, args, options = {} ) {
 			}
 		}
 
-		if ( options.captureStdout ) {
-			proc.stdout.on( 'data', ( data ) => {
-				stdo += data.toString();
-			} );
-		}
-		if ( options.captureStderr ) {
-			proc.stderr.on( 'data', ( data ) => {
-				stde += data.toString();
-			} );
-		}
+		proc.stdout.on( 'data', ( data ) => {
+			const s = data.toString();
+			stdo += s;
+			combined += s;
+		} );
+		proc.stderr.on( 'data', ( data ) => {
+			const s = data.toString();
+			stde += s;
+			combined += s;
+		} );
 		proc.on( 'error', ( err ) => {
 			if ( options.ignoreError ) {
 				resolve( { out: stdo, err: stde, code: 0 } );
 			} else {
-				console.log( stde );
 				if ( !options.quiet ) {
-					printError( err, args, dir );
+					printError( err, combined, args, dir, 0 );
 				}
 				reject( new Error( err ) );
 			}

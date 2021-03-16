@@ -8,6 +8,7 @@ import * as getSnapshot from '../core/getSnapshot.js';
 import getRecycledTag from '../tag/getRecycledTag.js';
 import getTagSuggestions from '../tag/getTagSuggestions.js';
 import getNextMasterVersion from '../tag/getNextMasterVersion.js';
+import logger from '../core/logger.js';
 
 async function getInfoObjectForDependency( snapshotRoot, snapshot, recycleTagMap ) {
 	const target = await snapshot.getTarget();
@@ -65,7 +66,7 @@ async function taginfo( options ) {
 		}
 		table.newRow();
 	}
-	console.log( table.toString() );
+	logger.log( 'info', table.toString() );
 }
 
 export default taginfo;

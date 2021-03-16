@@ -3,16 +3,17 @@ import _ from 'lodash';
 import fs from 'fs-extra';
 import * as uuid from 'uuid';
 import { spawn } from 'child_process';
+import logger from "./logger.js";
 
 function debug( str ) {
-	console.log( str );
+	logger.log( 'debug', str );
 }
 
 function printError( err, args, cwd ) {
 	let argsString = args.join( " " );
-	console.error( `'git ${argsString}'` );
-	console.error( `'dir ${cwd}'` );
-	console.error( err.stack || err );
+	logger.error( `'git ${argsString}'` );
+	logger.error( `'dir ${cwd}'` );
+	logger.error( 'Error running git', err );
 }
 
 export function executeGit( args, options ) {
@@ -21,7 +22,7 @@ export function executeGit( args, options ) {
 		let connected = true;
 		let stdo = '';
 		let stde = '';
-	//	console.log( `Executing git ${args.join(" ")} [dir=${options.cwd ? options.cwd : process.cwd()}]` );
+	//	logger.log( 'info', `Executing git ${args.join(" ")} [dir=${options.cwd ? options.cwd : process.cwd()}]` );
 		let stderr = 'inherit';
 		if ( options.captureStderr ) {
 			stderr = 'pipe';
@@ -59,7 +60,7 @@ export function executeGit( args, options ) {
 			if ( options.ignoreError ) {
 				resolve( { out: stdo, err: stde, code: 0 } );
 			} else {
-				console.log( stde );
+				logger.log( 'info', stde );
 				if ( !options.quiet ) {
 					printError( err, args, options.cwd ? options.cwd : process.cwd() );
 				}
@@ -107,7 +108,7 @@ export async function createRepo( dir, checkoutDir, options = {} ) {
 		await executeGit( ['remote', 'add', 'origin', dir], { cwd: checkoutDir } );
 		await executeGit( ['push', '-u', 'origin', 'master'], { cwd: checkoutDir } );
 	} else {
-		console.log( `Already exists ${dir} ${checkoutDir}` );
+		logger.log( 'info', `Already exists ${dir} ${checkoutDir}` );
 		fs.ensureDirSync( checkoutDir );
 		await executeGit( ['clone', dir, checkoutDir] );
 	}
@@ -130,7 +131,7 @@ export async function createRepo( dir, checkoutDir, options = {} ) {
 			const file = options.files[i];
 			const fullPath = path.join( checkoutDir, file.path );
 			if ( !fs.existsSync( fullPath ) ) {
-				console.log('Adding file', file.path);
+				logger.log( 'info', 'Adding file', file.path);
 				await touchFile( fullPath, file.contents || '' );
 				added++;
 			}
@@ -211,7 +212,7 @@ export async function addProject( tempDir, project, rootObj = null, repoMap = ne
 	}
 
 	await createRepo( repoDir, checkoutDir, { files, branch: project.branch, tag: project.tag } );
-	console.log(`Created repo ${repoDir}`);
+	logger.log( 'info', `Created repo ${repoDir}`);
 
 	return result;
 }

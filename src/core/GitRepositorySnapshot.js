@@ -3,6 +3,7 @@ import path from 'path';
 import * as uuid from 'uuid';
 import globalConfig from './globalConfig.js';
 import executeGit from './executeGit.js';
+import logger from './logger.js';
 
 async function getDirForDependency( name ) {
 	const root = globalConfig.getPackageRootPath();
@@ -10,7 +11,7 @@ async function getDirForDependency( name ) {
 }
 
 function debug( str ) {
-//	console.error( str );
+	logger.log( 'debug', str );
 }
 
 function cached() {
@@ -19,7 +20,7 @@ function cached() {
 		if ( typeof original === 'function' ) {
 			descriptor.value = function(...args) {
 				if ( !this._cache.has( name ) ) {
-					debug( `GitRepositorySnapshot.${name}` );
+					debug( `Calling GitRepositorySnapshot.${name}: ${this.name}` );
 					const result = original.apply( this, args );
 					this._cache.set( name, result );
 				}
@@ -422,16 +423,14 @@ class GitRepositorySnapshot {
 		try {
 			await this.fetch();
 		} catch ( err2 ) {
-			console.error( `Error executing fetch on repository` );
-			console.error( err2.message || err2 );
+			logger.log( 'error', `Error executing fetch on repository`, err2 );
 		}
 		await this.reset( targetObj );
 		this._cache.delete( 'pull' );
 		try {
 			await this.pull();
 		} catch ( err2 ) {
-			console.error( `Error executing pull on repository` );
-			console.error( err2.message || err2 );
+			logger.log( 'error', `Error executing pull on repository`, err2 );
 		}
 		this._hasChanged = true;
 	}
@@ -444,6 +443,7 @@ class GitRepositorySnapshot {
 
 	async doesRemoteBranchExist( branchName ) {
 		debug( 'doesRemoteBranchExist' );
+		await this.fetch();
 		const url = await this.getBareUrl();
 		const { code } = await this._executeGit( ['ls-remote', '--exit-code', url, branchName], { ignoreError: true, quiet: true } );
 		return code === 0;

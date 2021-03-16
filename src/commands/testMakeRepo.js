@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import TestRepo from '../../testutil/TestRepo.js';
+import logger from '../core/logger.js';
 
 function getTargetDirectory( cwd, baseName ) {
 	let attempt = 0;
@@ -21,9 +22,9 @@ async function testMakeRepo( options ) {
 	const dir = getTargetDirectory( options.cwd, 'testrepo' );
 	const result = await TestRepo.create( dir, options.template );
 	
-	console.log( `Created ${path.basename( dir )}` );
-	console.log( `Root repo dir=${result.project.repoDir}` );
-	console.log( `Root clone dir=${result.project.checkoutDir}` );
+	logger.log( 'info', `Created ${path.basename( dir )}` );
+	logger.log( 'info', `Root repo dir=${result.project.repoDir}` );
+	logger.log( 'info', `Root clone dir=${result.project.checkoutDir}` );
 }
 
 export default testMakeRepo;

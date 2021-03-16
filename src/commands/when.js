@@ -3,6 +3,7 @@ import * as moment from 'moment';
 import * as util from '../core/util.js';
 import globalConfig from '../core/globalConfig.js';
 import * as getSnapshot from '../core/getSnapshot.js';
+import logger from '../core/logger.js';
 
 async function getClosestRevision( snapshot, date ) {
 	const dateString = moment( date ).format( 'YYYY-MM-DD HH:mm' );
@@ -38,13 +39,12 @@ async function exe( name, snapshot, date ) {
 			const rev = await getClosestRevision( snapshot, date );
 			if ( rev ) {
 				await snapshot.checkout( rev );
-				console.log( `${name} set successfully to rev ${rev}` );
+				logger.log( 'info', `${name} set successfully to rev ${rev}` );
 			} else {
-				console.log( `${name} could not find appropriate revision for given date, leaving as is...` );
+				logger.log( 'info', `${name} could not find appropriate revision for given date, leaving as is...` );
 			}
 		} catch ( err ) {
-			console.error( `Error executing when command` );
-			console.error( err );
+			logger.log( 'error', `Error executing when command`, err );
 		}
 	}
 }
@@ -62,10 +62,10 @@ async function when( date, options = {} ) {
 	
 	const snapshot = await getSnapshot.getSnapshot( options.cwd );
 	
-	console.log( `Setting date as ${date.toString()}...` );
+	logger.log( 'info', `Setting date as ${date.toString()}...` );
 	await exe( 'root', snapshot.main, date );
 	
-	//console.log( `${modules.size} dependencies found` );
+	//logger.log( 'info', `${modules.size} dependencies found` );
 	for ( const [name, depInfo] of snapshot.deps.entries() ) {
 		await exe( name, depInfo.snapshot, date );
 	}

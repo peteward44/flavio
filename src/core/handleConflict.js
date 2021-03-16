@@ -2,12 +2,13 @@ import _ from 'lodash';
 import inquirer from 'inquirer';
 import semver from 'semver';
 import * as util from './util.js';
+import logger from "./logger.js";
 
 /**
  * @returns {module} - Returns the repo to use
  */
 async function handleConflict( options, name, moduleArray, rootFlavioJson ) {
-	console.log( `Conflict! ${name}` );
+	logger.log( 'info', `Conflict! ${name}` );
 
 	// check the root flavio.json to see if a conflict resolver has been defined already
 	if ( _.isObject( rootFlavioJson.resolutions ) ) {

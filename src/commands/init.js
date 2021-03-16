@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import * as util from '../core/util.js';
 import globalConfig from '../core/globalConfig.js';
+import logger from '../core/logger.js';
 
 async function guessProjectName( cwd ) {
 	// if a package.json or bower.json exists, take name from there
@@ -20,7 +21,7 @@ async function guessProjectName( cwd ) {
 async function init( options ) {
 	await globalConfig.init( options.cwd );
 	if ( fs.existsSync( path.join( options.cwd, 'flavio.json' ) ) ) {
-		console.error( `flavio.json already exists, aborting` );
+		logger.log( 'error', `flavio.json already exists, aborting` );
 		return;
 	}
 	const name = await guessProjectName( options.cwd );
@@ -29,7 +30,7 @@ async function init( options ) {
 		version: "0.1.0-snapshot.0"
 	};
 	await util.saveFlavioJson( options.cwd, json );
-	console.log( `Successfully wrote flavio.json` );
+	logger.log( 'info', `Successfully wrote flavio.json` );
 }
 
 export default init;

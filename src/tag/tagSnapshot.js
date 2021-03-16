@@ -9,6 +9,7 @@ import * as util from '../core/util.js';
 import checkForConflicts from '../core/checkForConflicts.js';
 import getRecycledTag from './getRecycledTag.js';
 import getNextMasterVersion from './getNextMasterVersion.js';
+import logger from '../core/logger.js';
 
 function getNextAvailableVersion( tagList, version, versionType ) {
 	let test = version;
@@ -47,7 +48,7 @@ async function determineTagName( options, snapshot ) {
 					customAnswer = await inquirer.prompt( [{ type: 'input', name: 'q', message: 'Custom tag name?' }] );
 					exists = tagList.indexOf( customAnswer.q ) >= 0;
 					if ( exists ) {
-						console.log( `Tag ${customAnswer.q} already exists` );
+						logger.log( 'info', `Tag ${customAnswer.q} already exists` );
 					}
 				} while ( exists );
 				return customAnswer.q;
@@ -99,7 +100,7 @@ async function determineTagsRecursive( options, snapshotRoot, snapshot, specific
 					tag: tagName, originalTarget: target, branch: branchName, create: true, snapshot, incrementMasterVersion: incrementVersion 
 				} );
 			} else {
-				console.log( util.formatConsoleDependencyName( snapshot.name ), `Dependency has no valid flavio.json, so will not be tagged` );
+				logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Dependency has no valid flavio.json, so will not be tagged` );
 			}
 		}
 	}
@@ -230,10 +231,10 @@ async function confirmUser( options, reposToTag ) {
 		table.cell( 'Up to date?', await tagObject.snapshot.isUpToDate() ? chalk.green( 'YES' ) : chalk.red( 'NO' ) );
 		table.newRow();
 	}
-	console.log( table.toString() );
+	logger.log( 'info', table.toString() );
 	for ( const [name, tagObject] of reposToTag ) {
 		if ( tagObject.create && !tagObject.incrementMasterVersion ) {
-			console.log( util.formatConsoleDependencyName( name ), `WARNING: Dependency is not up to date with it's upstream branch (${tagObject.originalTarget.branch || tagObject.originalTarget.commit}), and so will not have the flavio.json version automatically incremented` );
+			logger.log( 'info', util.formatConsoleDependencyName( name ), `WARNING: Dependency is not up to date with it's upstream branch (${tagObject.originalTarget.branch || tagObject.originalTarget.commit}), and so will not have the flavio.json version automatically incremented` );
 		}
 	}
 	const isInteractive = options.interactive !== false;
@@ -257,7 +258,7 @@ async function tagSnapshot( options, snapshotRoot, snapshot, specificVersions ) 
 	// make sure there are no conflicts in any dependencies before doing tag
 	const conflicts = await checkForConflicts( snapshotRoot, snapshot, true );
 	if ( conflicts.length > 0 ) {
-		console.error( `Tag can only be done on projects with no conflicts and no local changes` );
+		logger.log( 'error', `Tag can only be done on projects with no conflicts and no local changes` );
 		return;
 	}
 	
@@ -289,9 +290,9 @@ async function tagSnapshot( options, snapshotRoot, snapshot, specificVersions ) 
 	// No tag required - all dependencies have available version to use
 	if ( count === 0 ) {
 		// print out a version that they should use instead
-		console.log( `No valid repositories found to tag` );
+		logger.log( 'info', `No valid repositories found to tag` );
 		if ( mainRepoUrl ) {
-			console.log( `Use ${mainRepoUrl}` );
+			logger.log( 'info', `Use ${mainRepoUrl}` );
 		}
 		return;
 	}
@@ -306,7 +307,7 @@ async function tagSnapshot( options, snapshotRoot, snapshot, specificVersions ) 
 	// then push everything
 	await pushTags( options, reposToTag );
 	
-	console.log( `Tagging operation successful`, mainRepoUrl || '' );
+	logger.log( 'info', `Tagging operation successful`, mainRepoUrl || '' );
 }
 
 export default tagSnapshot;

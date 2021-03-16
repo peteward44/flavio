@@ -100,33 +100,33 @@ async function validateRecycledTagDependencies( snapshotRoot, snapshot, recycled
 		const url = flavioJson.dependencies[depName];
 		if ( !recycleTagMap.has( depName ) ) {
 			// tag contains depedency we don't have
-//			console.log( `Failing ${depName} because not in tag for ${snapshot.name} - ${recycledTag}` );
+//			logger.log( 'info', `Failing ${depName} because not in tag for ${snapshot.name} - ${recycledTag}` );
 			return false;
 		}
 		const repo = util.parseRepositoryUrl( url );
 		const childRecycledTag = recycleTagMap.get( depName );
 		if ( childRecycledTag !== repo.target ) {
 			// Child dependency tag doesn't match the one we have on disk - fail
-//			console.log( `Failing ${depName} - ${repo.target} because wrong tag for ${snapshot.name} - ${childRecycledTag}` );
+//			logger.log( 'info', `Failing ${depName} - ${repo.target} because wrong tag for ${snapshot.name} - ${childRecycledTag}` );
 			return false;
 		}
 	}
 	const children = await snapshot.getChildren( snapshotRoot.deps );
 	// make sure children match
 	if ( children.size !== Object.keys( flavioJson.dependencies ).length ) {
-//		console.log( `Failing because dependency count doesn't match: ${snapshot.name} - ${recycledTag}` );
+//		logger.log( 'info', `Failing because dependency count doesn't match: ${snapshot.name} - ${recycledTag}` );
 		return false;
 	}
 	for ( const [depName, depInfo] of children.entries() ) {
 		if ( !flavioJson.dependencies.hasOwnProperty( depName ) ) {
 			// we have a depedency that the tag doesn't have
-//			console.log( `Failing because dependency "${depName}" has been added to: ${snapshot.name} - ${recycledTag}` );
+//			logger.log( 'info', `Failing because dependency "${depName}" has been added to: ${snapshot.name} - ${recycledTag}` );
 			return false;
 		}
 		
 		// validate the dependencies' dependencies too
 		if ( !await validateRecycledTagDependencies( snapshotRoot, depInfo.snapshot, recycleTagMap.get( depName ), recycleTagMap ) ) {
-//			console.log( `Failing because dependency "${depName}" children have failed` );
+//			logger.log( 'info', `Failing because dependency "${depName}" children have failed` );
 			return false;
 		}
 	}

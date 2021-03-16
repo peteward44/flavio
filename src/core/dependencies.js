@@ -3,6 +3,7 @@ import path from 'path';
 import os from 'os';
 import * as resolve from './resolve.js';
 import * as util from './util.js';
+import logger from "./logger.js";
 
 function findNewRepoDir( pkgdir ) {
 	let index = 0;
@@ -69,7 +70,7 @@ export async function clone( pkgdir, options, repoUrl, isLinked, snapshot ) {
 			} catch (err) {}
 		}
 		fs.symlinkSync( cloneDir, pkgdir, os.platform() === "win32" ? 'junction' : 'dir' );
-		console.log( `Linked ${pkgdir} -> ${cloneDir}` );
+		logger.log( 'info', `Linked ${pkgdir} -> ${cloneDir}` );
 	}
 	snapshot.markChanged();
 	return freshClone;
@@ -148,7 +149,7 @@ export async function checkAndSwitch( snapshot, options, pkgdir, repo ) {
 				}
 			}
 			fs.symlinkSync( cloneDir, pkgdir, os.platform() === "win32" ? 'junction' : 'dir' );
-			console.log( `Linked ${path.basename(pkgdir)} -> ${cloneDir}` );
+			logger.log( 'info', `Linked ${path.basename(pkgdir)} -> ${cloneDir}` );
 		}
 	}
 
@@ -212,7 +213,7 @@ export async function checkRemoteResetRequired( snapshot, targetObj, name, pkgdi
 				}
 			}
 			if ( !options.json ) {
-				console.log( util.formatConsoleDependencyName( name ), `Switching branch to "${targetBranchName}" from "${target.branch}" as remote branch no longer exists` );
+				logger.log( 'info', util.formatConsoleDependencyName( name ), `Switching branch to "${targetBranchName}" from "${target.branch}" as remote branch no longer exists` );
 			}
 			
 			return checkAndSwitch( snapshot, options, pkgdir, `${repoUrl.url}#${targetBranchName}` );

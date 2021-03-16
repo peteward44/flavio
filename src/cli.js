@@ -6,11 +6,31 @@ import moment from 'moment';
 import pkgJson from '../package.json';
 import flavio from './index.js';
 import * as util from './core/util.js';
+import logger from './core/logger.js';
 
 moment.suppressDeprecationWarnings = true;
 
-export default function start() {
+process.on('unhandledRejection', (err) => {
+	console.error( err.message );
+});
+
+process.on('uncaughtException', (err, origin) => {
+	console.error( err.message );
+});
+
+function exceptionHandler( resolve, reject ) {
+	return ( err ) => {
+		if ( err instanceof Error ) {
+			logger.error( 'Fatal:', err );
+		}
+		process.exitCode = 1;
+		resolve();
+	};
+}
+
+function promisedStart() {
 	return new Promise((resolve, reject) => {
+		logger.init();
 		yargs(hideBin(process.argv)) // eslint-disable-line no-unused-expressions
 			.usage('Usage: flavio <command> [options]')
 			.example('flavio update', 'clones/checks out and/or updates all dependencies for project')
@@ -80,7 +100,7 @@ export default function start() {
 				handler: (argv) => {
 					flavio.commands.update( _.cloneDeep( argv ) )
 						.then(resolve)
-						.catch(reject);
+						.catch(exceptionHandler( resolve, reject ));
 				}
 			} )
 			.command( {
@@ -107,7 +127,7 @@ export default function start() {
 				handler: (argv) => {
 					flavio.commands.add( argv.name, argv.url, _.cloneDeep( argv ) )
 						.then(resolve)
-						.catch(reject);
+						.catch(exceptionHandler( resolve, reject ));
 				}
 			} )
 			.command( {
@@ -131,7 +151,7 @@ export default function start() {
 				handler: (argv) => {
 					flavio.commands.status( _.cloneDeep( argv ) )
 						.then(resolve)
-						.catch(reject);
+						.catch(exceptionHandler( resolve, reject ));
 				}
 			})
 			.command( {
@@ -150,7 +170,7 @@ export default function start() {
 				handler: (argv) => {
 					flavio.commands.execute( _.cloneDeep( argv ) )
 						.then(resolve)
-						.catch(reject);
+						.catch(exceptionHandler( resolve, reject ));
 				}
 			})
 			.command( {
@@ -173,7 +193,7 @@ export default function start() {
 				handler: (argv) => {
 					flavio.commands.checkout( argv.branch, _.cloneDeep( argv ) )
 						.then(resolve)
-						.catch(reject);
+						.catch(exceptionHandler( resolve, reject ));
 				}
 			})
 			.command( {
@@ -198,9 +218,9 @@ export default function start() {
 					if ( date.isValid() ) {
 						flavio.commands.when( date, _.cloneDeep( argv ) )
 							.then(resolve)
-							.catch(reject);
+							.catch(exceptionHandler( resolve, reject ));
 					} else {
-						console.error( `"${dateString}" not a valid date: Use format YYYY-MM-DD HH:SS` );
+						logger.log( 'error', `"${dateString}" not a valid date: Use format YYYY-MM-DD HH:SS` );
 					}
 				}
 			})
@@ -239,7 +259,7 @@ export default function start() {
 				handler: (argv) => {
 					flavio.commands.tag(_.cloneDeep( argv ))
 						.then(resolve)
-						.catch(reject);
+						.catch(exceptionHandler( resolve, reject ));
 				}
 			} )
 			.command( {
@@ -262,7 +282,7 @@ export default function start() {
 				handler: (argv) => {
 					flavio.commands.taginfo(_.cloneDeep( argv ))
 						.then(resolve)
-						.catch(reject);
+						.catch(exceptionHandler( resolve, reject ));
 				}
 			} )
 			.command( {
@@ -304,7 +324,7 @@ export default function start() {
 				handler: (argv) => {
 					flavio.commands.tagdep(_.cloneDeep( argv ))
 						.then(resolve)
-						.catch(reject);
+						.catch(exceptionHandler( resolve, reject ));
 				}
 			} )
 			.command( {
@@ -327,7 +347,7 @@ export default function start() {
 				handler: (argv) => {
 					flavio.commands.export( argv.directory, _.cloneDeep( argv ) )
 						.then(resolve)
-						.catch(reject);
+						.catch(exceptionHandler( resolve, reject ));
 				}
 			})
 			.command( {
@@ -346,7 +366,7 @@ export default function start() {
 				handler: (argv) => {
 					flavio.commands.clear( _.cloneDeep( argv ) )
 						.then(resolve)
-						.catch(reject);
+						.catch(exceptionHandler( resolve, reject ));
 				}
 			})
 			.command( {
@@ -361,7 +381,7 @@ export default function start() {
 				handler: (argv) => {
 					flavio.commands.clear( _.cloneDeep(argv), true)
 						.then(resolve)
-						.catch(reject);
+						.catch(exceptionHandler( resolve, reject ));
 				}
 			} )
 			.command( {
@@ -394,7 +414,7 @@ export default function start() {
 				handler: (argv) => {
 					flavio.commands.clone( argv.url, { ..._.cloneDeep( argv ), cwd: path.resolve( argv.folder ) } )
 						.then(resolve)
-						.catch(reject);
+						.catch(exceptionHandler( resolve, reject ));
 				}
 			} )
 			.command( {
@@ -413,7 +433,7 @@ export default function start() {
 				handler: (argv) => {
 					flavio.commands.init( _.cloneDeep( argv ) )
 						.then(resolve)
-						.catch(reject);
+						.catch(exceptionHandler( resolve, reject ));
 				}
 			} )
 			.command( {
@@ -437,7 +457,7 @@ export default function start() {
 				handler: (argv) => {
 					flavio.commands.testMakeRepo( _.cloneDeep( argv ) )
 						.then(resolve)
-						.catch(reject);
+						.catch(exceptionHandler( resolve, reject ));
 				}
 			} )
 			.strictCommands()
@@ -446,4 +466,10 @@ export default function start() {
 			.epilog('Use "flavio <command> --help" for help on specific commands')
 			.argv;
 	});
+}
+
+export default function start() {
+	return promisedStart()
+		.catch( (err) => {
+		} );
 }
