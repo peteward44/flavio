@@ -36,7 +36,7 @@ function executeGit( dir, args, options = {} ) {
 				}
 				reject( new Error( "Error running git" ) );
 			} else {
-				resolve( { out: stdo, err: stde, code: code } );
+				resolve( { out: stdo, err: stde, combined, code: code } );
 			}
 		}
 

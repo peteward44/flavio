@@ -64,9 +64,10 @@ async function taginfo( options ) {
 		} else if ( Array.isArray( depInfo.suggestions ) && depInfo.suggestions.length > 0 ) {
 			table.cell( 'Tag', chalk.green( depInfo.suggestions[0] ) );
 		}
+		table.cell( 'New tag?', depInfo.recycledTag ? chalk.yellow( 'NO' ) : chalk.blue( 'YES' ) );
 		table.newRow();
 	}
-	logger.log( 'info', table.toString() );
+	console.log( table.toString() );
 }
 
 export default taginfo;

@@ -462,8 +462,8 @@ class GitRepositorySnapshot {
 		}
 	}
 	
-	async execute( args ) {
-		await this._executeGit( args, { outputStderr: true } );
+	execute( args ) {
+		return this._executeGit( args, { outputStderr: true } );
 	}
 
 	_executeGit( args, options = {} ) {

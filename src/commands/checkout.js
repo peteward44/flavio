@@ -12,15 +12,14 @@ async function exe( snapshot, options, branch ) {
 			const local = await snapshot.doesLocalBranchExist( branch );
 			const remote = await snapshot.doesRemoteBranchExist( branch );
 			if ( local || remote ) {
-				logger.log( 'info', `${snapshot.name}: Checking out target ${branch}` );
+				logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Checking out target ${branch}` );
 				const repo = await snapshot.getUrl();
 				const repoUrl = util.parseRepositoryUrl( repo );
 				await checkAndSwitch( snapshot, options, snapshot.dir, `${repoUrl.url}#${branch}` );
 			} else {
-				logger.log( 'info', `${snapshot.name}: "${branch}" does not exist in this repository` );
+				logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `"${branch}" does not exist in this repository` );
 			}
 		} catch ( err ) {
-			logger.log( 'error', `Error executing checkout` );
 			logger.log( 'error', err );
 		}
 	}

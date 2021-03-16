@@ -5,9 +5,10 @@ import logger from '../core/logger.js';
 
 async function exe( snapshot, args ) {
 	if ( await snapshot.getStatus() === 'installed' ) {
-		logger.log( 'debug', `${snapshot.name}: "git ${args.join( " " )}"` );
+		logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Executing "git ${args.join( " " )}"..` );
 		try {
-			await snapshot.execute( args );
+			const result = await snapshot.execute( args );
+			logger.log( 'info', result.combined );
 		} catch ( err ) {
 			logger.log( 'error', `Error executing command`, err );
 		}
@@ -26,8 +27,6 @@ async function execute( options ) {
 	const snapshot = await getSnapshot.getSnapshot( options.cwd );
 	
 	await exe( snapshot.main, args );
-	
-	logger.log( 'info', `${snapshot.deps.size} dependencies found` );
 	
 	for ( const depInfo of snapshot.deps.values() ) {
 		await exe( depInfo.snapshot, args );

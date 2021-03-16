@@ -182,6 +182,9 @@ async function update( options ) {
 						throw err;
 					}
 				}
+				// if ( !options.json ) {
+					// logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Complete`, targetName ? `[${chalk.magenta(targetName)}]` : ``, changed ? `[${chalk.yellow( 'changes detected' )}]` : `` );
+				// }
 				const newDependencies = await depInfo.snapshot.getDependencies();
 				if ( !hadChanges && JSON.stringify( flavioDependencies ) !== JSON.stringify( newDependencies ) ) {
 					hadChanges = true;
@@ -199,7 +202,7 @@ async function update( options ) {
 		const status = await getStatus( options, snapshot, {
 			changed: true
 		} );
-		logger.log( 'info', status );
+		console.log( status );
 	}
 }
 

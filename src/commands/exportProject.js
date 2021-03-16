@@ -31,7 +31,7 @@ async function exportProject( destDir, options = {} ) {
 	if ( !options['ignore-dependencies'] ) {
 		// copy over dependencies
 		for ( const depInfo of snapshot.deps.values() ) {
-			logger.log( 'info', `Exporting ${depInfo.snapshot.name} dependency` );
+			logger.log( 'info', util.formatConsoleDependencyName( depInfo.snapshot.name ), `Exporting..` );
 			const destMod = path.relative( options.cwd, depInfo.snapshot.dir );
 			await copyFiles( depInfo.snapshot, path.join( destDir, destMod ) );
 		}

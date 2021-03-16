@@ -10,7 +10,7 @@ async function status( options ) {
 	
 	const snapshotRoot = await getSnapshot.getSnapshot( options.cwd );
 	const table = await getStatus( options, snapshotRoot );
-	logger.log( 'info', table.toString() );
+	console.log( table.toString() );
 }
 
 export default status;

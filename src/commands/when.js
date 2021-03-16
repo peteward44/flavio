@@ -39,12 +39,12 @@ async function exe( name, snapshot, date ) {
 			const rev = await getClosestRevision( snapshot, date );
 			if ( rev ) {
 				await snapshot.checkout( rev );
-				logger.log( 'info', `${name} set successfully to rev ${rev}` );
+				logger.log( 'info', util.formatConsoleDependencyName( name ), `successfully set to rev ${rev}` );
 			} else {
-				logger.log( 'info', `${name} could not find appropriate revision for given date, leaving as is...` );
+				logger.log( 'info', util.formatConsoleDependencyName( name ), `could not find appropriate revision for given date, leaving as is...` );
 			}
 		} catch ( err ) {
-			logger.log( 'error', `Error executing when command`, err );
+			logger.error( `Error executing when command`, err );
 		}
 	}
 }
