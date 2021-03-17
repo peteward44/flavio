@@ -1,43 +1,76 @@
+import _ from 'lodash';
 import Table from 'easy-table';
 import chalk from 'chalk';
+import * as util from './util.js';
 
-async function addTableRow( table, name, snapshot, options, statusOptions ) {
-	const target = await snapshot.getTarget();
-	table.cell( 'Repository', name );
-	table.cell( 'Target', chalk.magenta( target.commit || target.tag || target.branch ) );
+async function addTableRow( table, depInfo, options, statusOptions ) {
+	let diff = false;
+	const { snapshot } = depInfo;
 	
-	let uptodate = '';
-	if ( target.commit ) {
-		uptodate = chalk.yellow( '(commit)' );
-	} else if ( target.tag ) {
-		uptodate = chalk.yellow( '(tag)' );
-	} else {
-		if ( !options.nofetch ) {
-			uptodate = ( await snapshot.isUpToDate() ) ? chalk.green( 'YES' ) : chalk.yellow( 'NO' );
+	table.cell( 'Repository', snapshot.name );
+	
+	const target = await snapshot.getTarget();
+	// TODO: maybe move this comparison between ref / target logic somewhere else as checkForCorrectRefs.js does the same thing
+	
+	const parsedRef = _.isArray( depInfo.refs ) ? util.parseRepositoryUrl( depInfo.refs[0] ) : null;
+	let targetTableEntry;
+	if ( target ) {
+		const targetString = target.commit || target.tag || target.branch;
+		if ( parsedRef && parsedRef.target !== targetString ) {
+			targetTableEntry = chalk.magenta( `${targetString}` ) + ' [' + chalk.yellow( `${parsedRef.target}` ) + `]`;
+			diff = true;
 		} else {
-			uptodate = chalk.yellow( 'n/a' );
+			targetTableEntry = chalk.magenta( `${targetString}` );
+		}
+	} else {
+		targetTableEntry = chalk.red( 'missing' );
+		diff = true;
+	}
+	table.cell( 'Target', targetTableEntry );
+	
+	if ( target ) {
+		let uptodate = '';
+		if ( target.commit ) {
+			uptodate = chalk.yellow( '(commit)' );
+		} else if ( target.tag ) {
+			uptodate = chalk.yellow( '(tag)' );
+		} else {
+			if ( !options.nofetch ) {
+				uptodate = ( await snapshot.isUpToDate() ) ? chalk.green( 'YES' ) : chalk.yellow( 'NO' );
+			} else {
+				uptodate = chalk.yellow( 'n/a' );
+			}
+		}
+		table.cell( 'Up to date?', uptodate );
+
+		table.cell( 'Conflicts?', await snapshot.isConflicted() ? chalk.red( 'CONFLICT' ) : chalk.green( 'CLEAN' ) );
+		table.cell( 'Local changes?', await snapshot.isWorkingCopyClean() ? chalk.green( 'CLEAN' ) : chalk.yellow( 'CHANGES' ) );
+		if ( statusOptions?.changed ) {
+			table.cell( 'Changed?', snapshot.changeID > 0 ? chalk.green( 'YES' ) : chalk.yellow( 'NO' ) );
 		}
 	}
-	table.cell( 'Up to date?', uptodate );
-
-	table.cell( 'Conflicts?', await snapshot.isConflicted() ? chalk.red( 'CONFLICT' ) : chalk.green( 'CLEAN' ) );
-	table.cell( 'Local changes?', await snapshot.isWorkingCopyClean() ? chalk.green( 'CLEAN' ) : chalk.yellow( 'CHANGES' ) );
-	if ( statusOptions?.changed ) {
-		table.cell( 'Changed?', snapshot.hasChanged ? chalk.green( 'YES' ) : chalk.yellow( 'NO' ) );
-	}
-	table.cell( 'URL', await snapshot.getUrl() );
+	table.cell( 'URL', ( await snapshot.getUrl() ) || depInfo.refs[0] );
 	table.newRow();
+	return diff;
 }
 
 async function getStatus( options, snapshotRoot, statusOptions ) {
 	const table = new Table();
-	await addTableRow( table, 'main', snapshotRoot.main, options, statusOptions );
+	await addTableRow( table, { snapshot: snapshotRoot.main }, options, statusOptions );
 
-	for ( const [depName, depInfo] of snapshotRoot.deps.entries() ) {
-		await addTableRow( table, depName, depInfo.snapshot, options, statusOptions );
+	let diffCount = 0;
+	for ( const depInfo of snapshotRoot.deps.values() ) {
+		if ( await addTableRow( table, depInfo, options, statusOptions ) ) {
+			diffCount++;
+		}
 	}
 
-	return table.toString();
+	if ( diffCount > 0 ) {
+		return `${table.toString()}
+${diffCount} repositories have different targets to their flavio.json definitions: Use "flavio update --switch" to fix`;
+	} else {
+		return table.toString();
+	}
 }
 
 export default getStatus;

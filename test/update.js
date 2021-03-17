@@ -253,12 +253,14 @@ describe(`update tests`, function() {
 		// set up first
 		await update( { 'cwd': result.checkoutDir } );
 
+		chai.assert.equal( ( await git.getCurrentTarget( path.join( result.checkoutDir, 'flavio_modules', 'main2' ) ) ).branch, 'my_branch', 'main2 dependency is on branch "my_branch"' );
+
 		await git.deleteRemoteBranch( path.join( result.checkoutDir, 'flavio_modules', 'main2' ), 'my_branch' );
 
 		// then this should perform branch reset on main2 to master
 		await update( { 'cwd': result.checkoutDir, 'remote-reset': true } );
 
-		chai.assert.equal( ( await git.getCurrentTarget( path.join( result.checkoutDir, 'flavio_modules', 'main2' ) ) ).branch, 'master', 'main3 dependency installed' );
+		chai.assert.equal( ( await git.getCurrentTarget( path.join( result.checkoutDir, 'flavio_modules', 'main2' ) ) ).branch, 'master', 'main2 dependency installed' );
 	});
 
 	helpers.test('remote-reset flag resets the branch on a module which has a missing upstream branch, with outstanding merge conflict', async (tempDir) => {

@@ -8,7 +8,6 @@ import * as getSnapshot from '../core/getSnapshot.js';
 import getRecycledTag from '../tag/getRecycledTag.js';
 import getTagSuggestions from '../tag/getTagSuggestions.js';
 import getNextMasterVersion from '../tag/getNextMasterVersion.js';
-import logger from '../core/logger.js';
 
 async function getInfoObjectForDependency( snapshotRoot, snapshot, recycleTagMap ) {
 	const target = await snapshot.getTarget();

@@ -140,7 +140,7 @@ class Logger {
 	}
 	
 	report() {
-	//	openBrowser( 'mailto:peteward44@gmail.com' );
+		openBrowser( 'mailto:peteward44@gmail.com' );
 	}
 }
 

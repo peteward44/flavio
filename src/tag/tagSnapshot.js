@@ -7,8 +7,10 @@ import Table from 'easy-table';
 import chalk from 'chalk';
 import * as util from '../core/util.js';
 import checkForConflicts from '../core/checkForConflicts.js';
+import checkForCorrectRefs from '../core/checkForCorrectRefs.js';
 import getRecycledTag from './getRecycledTag.js';
 import getNextMasterVersion from './getNextMasterVersion.js';
+import * as getSnapshot from '../core/getSnapshot.js';
 import logger from '../core/logger.js';
 
 function getNextAvailableVersion( tagList, version, versionType ) {
@@ -231,7 +233,7 @@ async function confirmUser( options, reposToTag ) {
 		table.cell( 'Up to date?', await tagObject.snapshot.isUpToDate() ? chalk.green( 'YES' ) : chalk.red( 'NO' ) );
 		table.newRow();
 	}
-	logger.log( 'info', table.toString() );
+	console.log( table.toString() );
 	for ( const [name, tagObject] of reposToTag ) {
 		if ( tagObject.create && !tagObject.incrementMasterVersion ) {
 			logger.log( 'info', util.formatConsoleDependencyName( name ), `WARNING: Dependency is not up to date with it's upstream branch (${tagObject.originalTarget.branch || tagObject.originalTarget.commit}), and so will not have the flavio.json version automatically incremented` );
@@ -242,10 +244,66 @@ async function confirmUser( options, reposToTag ) {
 		const question = {
 			type: 'confirm',
 			name: 'q',
-			message: `Commit changes?`
+			message: `Commit changes?`,
+			default: false
 		};
 		const answer = await inquirer.prompt( [question] );
 		return answer.q;
+	}
+	return true;
+}
+
+async function validate( options, snapshotRoot, snapshot ) {
+	// check no missing dependencies
+	const depMap = new Map();
+	await getSnapshot.walk( depMap, snapshot, snapshotRoot );
+	let missingCount = 0;
+	for ( const depInfo of depMap.values() ) {
+		if ( await depInfo.snapshot.getStatus() === 'missing' ) {
+			logger.log( 'error', util.formatConsoleDependencyName( depInfo.snapshot.name, true ), `is missing - run "flavio update" to fix` );
+			missingCount++;
+		}
+	}
+	if ( missingCount > 0 ) {
+		return false;
+	}
+	
+	// make sure there are no conflicts in any dependencies before doing tag
+	const conflicts = await checkForConflicts( snapshotRoot, snapshot, true );
+	if ( conflicts.length > 0 ) {
+		for ( const conflict of conflicts ) {
+			logger.log( 'error', util.formatConsoleDependencyName( conflict.name, true ), 'has local changes or git conflicts that need to be resolved' );
+		}
+		logger.log( 'error', `Tag can only be done on projects with no conflicts and no local changes - Correct these and run again` );
+		return false;
+	}
+	
+	const bustRefs = await checkForCorrectRefs( snapshotRoot, snapshotRoot.main );
+	if ( bustRefs.length > 0 ) {
+		for ( const bustRef of bustRefs ) {
+			let msg;
+			if ( bustRef.urlActual ) {
+				msg = `Repository URL is "${bustRef.urlActual}" but expected "${bustRef.urlExpected}"`;
+			} else {
+				msg = `Repository target is "${bustRef.targetActual}" but expected "${bustRef.targetExpected}"`;
+			}
+			logger.log( 'error', util.formatConsoleDependencyName( bustRef.snapshot.name, true ), msg );
+		}
+		logger.log( 'error', `WARNING: ${bustRefs.length} dependencies have incorrect targets - Use "flavio update --switch" to correct them` );
+		logger.log( 'error', `You can continue creating the tag, but the tag will be based on the state of your repositories as they are on disk` );
+		const isInteractive = options.interactive !== false;
+		if ( isInteractive ) {
+			const question = {
+				type: 'confirm',
+				name: 'q',
+				message: `Continue creating tag?`,
+				default: false
+			};
+			const answer = await inquirer.prompt( [question] );
+			if ( !answer.q ) {
+				return false;
+			}
+		}
 	}
 	return true;
 }
@@ -255,13 +313,11 @@ async function confirmUser( options, reposToTag ) {
  *
  */
 async function tagSnapshot( options, snapshotRoot, snapshot, specificVersions ) {
-	// make sure there are no conflicts in any dependencies before doing tag
-	const conflicts = await checkForConflicts( snapshotRoot, snapshot, true );
-	if ( conflicts.length > 0 ) {
-		logger.log( 'error', `Tag can only be done on projects with no conflicts and no local changes` );
+	if ( !await validate( options, snapshotRoot, snapshot ) ) {
+		process.exitCode = 1;
 		return;
 	}
-	
+
 	// work out which repos need to be tagged, and what those tags are going to called
 	const reposToTag = await determineTags( options, snapshotRoot, snapshot, specificVersions );
 	let count = 0;

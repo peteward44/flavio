@@ -39,7 +39,7 @@ class GitRepositorySnapshot {
 		this._name = name;
 		this._dir = dir;
 		this._cache = new Map();
-		this._hasChanged = false;
+		this._changeID = 0;
 	}
 	
 	get name() {
@@ -50,8 +50,8 @@ class GitRepositorySnapshot {
 		return this._dir;
 	}
 	
-	get hasChanged() {
-		return this._hasChanged;
+	get changeID() {
+		return this._changeID;
 	}
 	
 	static async fromDir( dir ) {
@@ -66,7 +66,7 @@ class GitRepositorySnapshot {
 	}
 	
 	markChanged() {
-		this._hasChanged = true;
+		this._changeID++;
 	}
 	
 	@cached()
@@ -325,7 +325,7 @@ class GitRepositorySnapshot {
 		this._cache.set( 'fetch', undefined );
 		this._cache.set( 'pull', undefined );
 		this._cache.set( 'push', undefined );
-		this._hasChanged = true;
+		this.markChanged();
 	}
 
 	async initLFS() {
@@ -369,7 +369,7 @@ class GitRepositorySnapshot {
 			if ( !isUpToDate ) {
 				const remoteBranch = await this.getRemoteTrackingBranch();
 				result = await this._executeGit( [`merge`, remoteBranch], { outputStderr: true } );
-				this._hasChanged = true;
+				this.markChanged();
 				this._clearCacheExcept( ['getBareUrl'] );
 				this._cache.set( 'fetch', undefined );
 				this._cache.set( 'pull', undefined );
@@ -432,7 +432,7 @@ class GitRepositorySnapshot {
 		} catch ( err2 ) {
 			logger.log( 'error', `Error executing pull on repository`, err2 );
 		}
-		this._hasChanged = true;
+		this.markChanged();
 	}
 	
 	async doesLocalBranchExist( branchName ) {

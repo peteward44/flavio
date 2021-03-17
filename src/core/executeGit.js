@@ -32,11 +32,13 @@ function executeGit( dir, args, options = {} ) {
 			logger.log( 'debug', combined );
 			if ( code !== 0 && !options.ignoreError ) {
 				if ( !options.quiet ) {
-					printError( '', combined, args, dir, code ); // eslint-disable-line no-underscore-dangle
+					printError( '', combined, args, dir, code );
 				}
 				reject( new Error( "Error running git" ) );
 			} else {
-				resolve( { out: stdo, err: stde, combined, code: code } );
+				resolve( {
+					out: stdo, err: stde, combined, code: code 
+				} );
 			}
 		}
 
@@ -52,7 +54,9 @@ function executeGit( dir, args, options = {} ) {
 		} );
 		proc.on( 'error', ( err ) => {
 			if ( options.ignoreError ) {
-				resolve( { out: stdo, err: stde, code: 0 } );
+				resolve( {
+					out: stdo, err: stde, combined, code: 0 
+				} );
 			} else {
 				if ( !options.quiet ) {
 					printError( err, combined, args, dir, 0 );

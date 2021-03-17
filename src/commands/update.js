@@ -53,14 +53,14 @@ async function updateMainProject( options, snapshot ) {
 		logger.error( `${util.formatConsoleDependencyName( snapshot.name, true )} Main project pull failed, does your branch exist on the remote?` );
 	}
 	await snapshot.stashPop( stashName );
-	if ( !options.json ) {
-		let targetName;
-		try {
-			targetName = target.tag || target.commit || target.branch;
-		} catch ( err ) {
-		}
-		logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Complete`, targetName ? `[${chalk.magenta(targetName)}]` : ``, changed ? `[${chalk.yellow( 'changes detected' )}]` : `` );
-	}
+	// if ( !options.json ) {
+		// let targetName;
+		// try {
+			// targetName = target.tag || target.commit || target.branch;
+		// } catch ( err ) {
+		// }
+		// logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Complete`, targetName ? `[${chalk.magenta(targetName)}]` : ``, changed ? `[${chalk.yellow( 'changes detected' )}]` : `` );
+	// }
 	return changed;
 }
 
@@ -150,13 +150,20 @@ async function update( options ) {
 	do {
 		hadChanges = false;
 		for ( const depInfo of snapshot.deps.values() ) {
+			const { changeID } = depInfo.snapshot;
 			const module = depInfo.refs[0];
 			if ( await depInfo.snapshot.getStatus() === 'installed' ) {
 				const flavioDependencies = await depInfo.snapshot.getDependencies();
 				if ( !options.json ) {
 					logger.log( 'info', util.formatConsoleDependencyName( depInfo.snapshot.name ), `Updating...` );
 				}
-				const targetObj = await getTargetFromRepoUrl( depInfo.snapshot, module, depInfo.snapshot.dir );
+				let targetObj = null;
+				try {
+					targetObj = await getTargetFromRepoUrl( depInfo.snapshot, module, depInfo.snapshot.dir );
+				} catch ( err ) {
+					// desired branch / tag does not exist - fall back to master
+					targetObj = { branch: 'master' };
+				}
 				// check to see if the local branch still exists on the remote, reset if not
 				if ( options['remote-reset'] !== false ) {
 					const repoUrl = util.parseRepositoryUrl( module );
@@ -185,6 +192,10 @@ async function update( options ) {
 				// if ( !options.json ) {
 					// logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Complete`, targetName ? `[${chalk.magenta(targetName)}]` : ``, changed ? `[${chalk.yellow( 'changes detected' )}]` : `` );
 				// }
+				if ( changeID !== depInfo.snapshot.changeID ) {
+					hadChanges = true;
+					break;
+				}
 				const newDependencies = await depInfo.snapshot.getDependencies();
 				if ( !hadChanges && JSON.stringify( flavioDependencies ) !== JSON.stringify( newDependencies ) ) {
 					hadChanges = true;

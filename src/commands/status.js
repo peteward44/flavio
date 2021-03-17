@@ -2,7 +2,6 @@ import * as util from '../core/util.js';
 import globalConfig from '../core/globalConfig.js';
 import * as getSnapshot from '../core/getSnapshot.js';
 import getStatus from '../core/getStatus.js';
-import logger from '../core/logger.js';
 
 async function status( options ) {
 	util.defaultOptions( options );

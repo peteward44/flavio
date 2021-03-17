@@ -184,9 +184,16 @@ export async function checkAndSwitch( snapshot, options, pkgdir, repo ) {
 				}
 			}
 		} else if ( repoState === 'target' ) {
-			const targetObj = await resolve.getTargetFromRepoUrl( snapshot, repo, cloneDir );
-			await snapshot.checkout( targetObj.branch || targetObj.tag || targetObj.commit );
-			status = "switch";
+			let targetObj = null;
+			try {
+				targetObj = await resolve.getTargetFromRepoUrl( snapshot, repo, cloneDir );
+			} catch ( err ) {
+				// "correct" branch not available - don't do checkout
+			}
+			if ( targetObj ) {
+				await snapshot.checkout( targetObj.branch || targetObj.tag || targetObj.commit );
+				status = "switch";
+			}
 		}
 	}
 	if ( status !== 'none' ) {
