@@ -410,8 +410,17 @@ class GitRepositorySnapshot {
 
 	async show( branch, file ) {
 		debug( 'show' );
-		const output = ( await this._executeGit( ['show', `${branch}:${file}`], { quiet: true, captureStdout: true } ) ).out;
+		const output = ( await this._executeGit( ['show', `${branch}:${file}`], { quiet: true, captureStdout: true, ignoreError: true } ) ).out;
 		return output;
+	}
+	
+	async getFlavioJsonFromBranch( branch ) {
+		try {
+			const str = await this.show( branch, 'flavio.json' );
+			return JSON.parse( str );
+		} catch ( err ) {
+		}
+		return null;
 	}
 	
 	async reset( targetObj ) {

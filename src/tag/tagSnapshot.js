@@ -10,6 +10,7 @@ import checkForConflicts from '../core/checkForConflicts.js';
 import checkForCorrectRefs from '../core/checkForCorrectRefs.js';
 import getRecycledTag from './getRecycledTag.js';
 import getNextMasterVersion from './getNextMasterVersion.js';
+import fixDependencyChildrenVersions from './fixDependencyChildrenVersions.js';
 import * as getSnapshot from '../core/getSnapshot.js';
 import logger from '../core/logger.js';
 
@@ -93,6 +94,10 @@ async function determineTagsRecursive( options, snapshotRoot, snapshot, specific
 			tagMap.set( snapshot.name, {
 				tag: recycledTag, originalTarget: target, create: false, snapshot
 			} );
+			// if it's a recycled tag, make sure to use it's proper childrens version numbers
+			if ( !options['ignore-dependencies'] ) {
+				await fixDependencyChildrenVersions( snapshotRoot, snapshot, recycledTag, tagMap );
+			}
 		} else {
 			const tagName = specificVersion ?? await determineTagName( options, snapshot );
 			if ( tagName ) {
@@ -103,13 +108,13 @@ async function determineTagsRecursive( options, snapshotRoot, snapshot, specific
 				} );
 			} else {
 				logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Dependency has no valid flavio.json, so will not be tagged` );
+			}			
+			if ( !options['ignore-dependencies'] ) {
+				const children = await snapshot.getChildren( snapshotRoot.deps );
+				for ( const depInfo of children.values() ) {
+					await determineTagsRecursive( options, snapshotRoot, depInfo.snapshot, specificVersions, recycleTagMap, tagMap );
+				}
 			}
-		}
-	}
-	if ( !options['ignore-dependencies'] ) {
-		const children = await snapshot.getChildren( snapshotRoot.deps );
-		for ( const depInfo of children.values() ) {
-			await determineTagsRecursive( options, snapshotRoot, depInfo.snapshot, specificVersions, recycleTagMap, tagMap );
 		}
 	}
 }

@@ -43,8 +43,8 @@ async function getTagPointingAtCurrentHEAD( snapshot ) {
 	let tagFound = '';
 	for ( const tag of tags ) {
 		try {
-			const tagFlavioJson = JSON.parse( await snapshot.show( tag, 'flavio.json' ) );
-			if ( _.isObject( tagFlavioJson.tag ) ) {
+			const tagFlavioJson = await snapshot.getFlavioJsonFromBranch( tag );
+			if ( _.isObject( tagFlavioJson?.tag ) ) {
 				// if this object exists in the flavio.json, it means the tag was created by flavio's tagging process previously
 				let isEqual = false;
 				if ( tagFlavioJson.tag.branch ) {
@@ -94,10 +94,10 @@ async function validateRecycledTagDependencies( snapshotRoot, snapshot, recycled
 		return false;
 	}
 	// load the flavio.json so we know the dependencies
-	const flavioJson = JSON.parse( await snapshot.show( recycledTag, 'flavio.json' ) );
-	
-	for ( const depName of Object.keys( flavioJson.dependencies ) ) {
-		const url = flavioJson.dependencies[depName];
+	const flavioJson = await snapshot.getFlavioJsonFromBranch( recycledTag );
+	const dependencies = flavioJson?.dependencies || {};
+	for ( const depName of Object.keys( dependencies ) ) {
+		const url = dependencies[depName];
 		if ( !recycleTagMap.has( depName ) ) {
 			// tag contains depedency we don't have
 //			logger.log( 'info', `Failing ${depName} because not in tag for ${snapshot.name} - ${recycledTag}` );
@@ -113,12 +113,12 @@ async function validateRecycledTagDependencies( snapshotRoot, snapshot, recycled
 	}
 	const children = await snapshot.getChildren( snapshotRoot.deps );
 	// make sure children match
-	if ( children.size !== Object.keys( flavioJson.dependencies ).length ) {
+	if ( children.size !== Object.keys( dependencies ).length ) {
 //		logger.log( 'info', `Failing because dependency count doesn't match: ${snapshot.name} - ${recycledTag}` );
 		return false;
 	}
 	for ( const [depName, depInfo] of children.entries() ) {
-		if ( !flavioJson.dependencies.hasOwnProperty( depName ) ) {
+		if ( !dependencies.hasOwnProperty( depName ) ) {
 			// we have a depedency that the tag doesn't have
 //			logger.log( 'info', `Failing because dependency "${depName}" has been added to: ${snapshot.name} - ${recycledTag}` );
 			return false;
