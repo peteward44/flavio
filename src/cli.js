@@ -7,6 +7,7 @@ import pkgJson from '../package.json';
 import flavio from './index.js';
 import * as util from './core/util.js';
 import logger from './core/logger.js';
+import gitVersionCheck from './core/gitVersionCheck.js';
 
 moment.suppressDeprecationWarnings = true;
 
@@ -28,9 +29,13 @@ function exceptionHandler( resolve, reject ) {
 	};
 }
 
-function promisedStart() {
-	return new Promise((resolve, reject) => {
-		logger.init();
+async function promisedStart() {
+	logger.init();
+	if ( !await gitVersionCheck() ) {
+		process.exitCode = 1;
+		return Promise.resolve();
+	}
+	return new Promise( (resolve, reject) => {
 		yargs(hideBin(process.argv)) // eslint-disable-line no-unused-expressions
 			.usage('Usage: flavio <command> [options]')
 			.example('flavio update', 'clones/checks out and/or updates all dependencies for project')
