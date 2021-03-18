@@ -12,6 +12,7 @@ import when from './commands/when.js';
 import init from './commands/init.js';
 import clear from './commands/clear.js';
 import testMakeRepo from './commands/testMakeRepo.js';
+import log from './commands/log.js';
 
 const commands = {
 	update,
@@ -26,6 +27,7 @@ const commands = {
 	init,
 	checkout,
 	when,
+	log,
 	testMakeRepo,
 	'export': exportProject
 };

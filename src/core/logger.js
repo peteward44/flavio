@@ -5,6 +5,8 @@ import os from 'os';
 import path from 'path';
 import fs from 'fs-extra';
 
+const logRoot = path.join( os.homedir(), '.flavio' );
+
 const infoColours = {
 	'emerg': chalk.red,
 	'alert': chalk.red,
@@ -85,10 +87,13 @@ class Logger {
 	constructor() {
 		this._log = null;
 	}
+	
+	getLogFilePath( all = false ) {
+		return path.join( logRoot, all ? 'combined.log' : 'error.log' );
+	}
 
 	init( level = 'info' ) {
 		try {
-			const logRoot = path.join( os.homedir(), '.flavio' );
 			fs.ensureDirSync( logRoot );
 			const consoleFormat = winston.format.combine( myFormat({ stack: false }) );
 			const fileFormat = winston.format.combine( winston.format.timestamp(), myFormat( { stack: true } ), winston.format.uncolorize() );
@@ -97,10 +102,10 @@ class Logger {
 				transports: [
 					new winston.transports.Console( { format: consoleFormat, level: 'info' } ),
 					new winston.transports.File({
-						format: fileFormat, filename: path.join( logRoot, 'error.log' ), level: 'error', maxsize: 1024 * 1024, maxFiles: 1 
+						format: fileFormat, filename: this.getLogFilePath( false ), level: 'error', maxsize: 1024 * 1024, maxFiles: 1 
 					}),
 					new winston.transports.File({
-						format: fileFormat, filename: path.join( logRoot, 'combined.log' ), level: 'debug', maxsize: 1024 * 1024, maxFiles: 1 
+						format: fileFormat, filename: this.getLogFilePath( true ), level: 'debug', maxsize: 1024 * 1024, maxFiles: 1 
 					})
 				]
 			});

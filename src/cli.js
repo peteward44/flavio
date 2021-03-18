@@ -136,6 +136,26 @@ async function promisedStart() {
 				}
 			} )
 			.command( {
+				command: 'log',
+				desc: 'Prints out the flavio error log',
+				builder: (subyargs) => {
+					subyargs
+						.usage('Usage: flavio log [options]')
+						.example('flavio log', 'Prints out flavio error log')
+						.help('help')
+						.option('all', {
+							describe: 'Prints out the debug log as well as errors',
+							boolean: true,
+							default: false
+						});
+				},
+				handler: (argv) => {
+					flavio.commands.log( _.cloneDeep( argv ) )
+						.then(resolve)
+						.catch(exceptionHandler( resolve, reject ));
+				}
+			})
+			.command( {
 				command: 'status',
 				desc: 'Prints out dependency status to console',
 				builder: (subyargs) => {
