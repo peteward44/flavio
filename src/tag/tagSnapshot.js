@@ -102,7 +102,7 @@ async function determineTagsRecursive( options, snapshotRoot, snapshot, specific
 			const tagName = specificVersion ?? await determineTagName( options, snapshot );
 			if ( tagName ) {
 				const branchName = `release/${tagName}`;
-				const incrementVersion = await snapshot.isUpToDate(); // only increment version in flavio.json if our local HEAD is up to date with the remote branch
+				const incrementVersion = specificVersion ? false : await snapshot.isUpToDate(); // only increment version in flavio.json if our local HEAD is up to date with the remote branch
 				tagMap.set( snapshot.name, {
 					tag: tagName, originalTarget: target, branch: branchName, create: true, snapshot, incrementMasterVersion: incrementVersion 
 				} );

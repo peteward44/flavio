@@ -414,10 +414,14 @@ async function promisedStart() {
 				desc: 'Clones / Checks out fresh project and installs all dependencies',
 				builder: (subyargs) => {
 					subyargs
-						.usage('Usage: flavio clone <url> [options]')
+						.usage('Usage: flavio clone <url> [folder] [options]')
 						.example('flavio clone user@server:/var/repo.git', 'Clones / checks out repo.git and any dependencies')
 						.help('help')
 						.positional('url', {
+							describe: 'Git remote URL to clone',
+							string: true
+						})
+						.positional('folder', {
 							describe: 'Git remote URL to clone',
 							string: true
 						})
@@ -437,7 +441,14 @@ async function promisedStart() {
 						});
 				},
 				handler: (argv) => {
-					flavio.commands.clone( argv.url, { ..._.cloneDeep( argv ), cwd: path.resolve( argv.folder ) } )
+					let cwd;
+					try {
+						if ( argv.folder ) {
+							cwd = path.resolve( argv.folder );
+						}
+					} catch ( err ) {
+					}
+					flavio.commands.clone( argv.url, { ..._.cloneDeep( argv ), cwd } )
 						.then(resolve)
 						.catch(exceptionHandler( resolve, reject ));
 				}
