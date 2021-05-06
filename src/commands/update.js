@@ -32,6 +32,10 @@ async function stashAndPull( snapshot, pkgdir, options, propagateErrors = false 
 }
 
 async function updateMainProject( options, snapshot ) {
+	if ( snapshot.getStatus() !== 'installed' ) {
+		// root project is not a git repository, just continue
+		return;
+	}
 	const target = await snapshot.getTarget();
 	if ( !target.branch ) {
 		if ( !options.json ) {
@@ -90,6 +94,38 @@ async function cloneMissingDependencies( snapshot, options ) {
 	}
 }
 
+function getExistingKeyName( depMap, key ) {
+	const lkey = key.toLowerCase();
+	for ( const lhs of depMap.keys() ) {
+		if ( lhs.toLowerCase() === lkey ) {
+			return lhs;
+		}
+	}
+	return key;
+}
+
+async function checkDependencies( depMap, snapshot ) {
+	const dependencies = await snapshot.getDependencies();
+	for ( const depName of Object.keys( dependencies ) ) {
+		const depUrl = dependencies[depName];
+		const keyName = getExistingKeyName( depMap, depName );
+		if ( !depMap.has( keyName ) ) {
+			let snapshot = await GitRepositorySnapshot.fromName( keyName );
+			depMap.set( keyName, {
+				snapshot,
+				refs: [depUrl],
+				children: {}
+			} );
+			await checkDependencies( depMap, snapshot );
+		} else {
+			const depInfo = depMap.get( keyName );
+			if ( !depInfo.refs.includes( depUrl ) ) {
+				depInfo.refs.push( depUrl );
+			}
+		}
+	}
+}
+
 /**
  * Executes update on given directory
  *
@@ -125,8 +161,11 @@ async function update( options ) {
 	// re-read config file in case the .flaviorc has changed
 	await globalConfig.init( options.cwd );
 
-	let snapshot = await getSnapshot.getSnapshot( options.cwd );
+	// walk the dependency tree, checking each dependency as we go that it's not missing, points to the right thing and is up-to-date
+	//const depMap = new Map();
+	//await checkDependencies( depMap, await GitRepositorySnapshot.fromDir( options.cwd ) );
 
+	let snapshot = await getSnapshot.getSnapshot( options.cwd );
 	// keep listing children until we have no more missing modules	
 	await cloneMissingDependencies( snapshot, options );
 	

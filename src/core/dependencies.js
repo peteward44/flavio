@@ -170,6 +170,8 @@ export async function checkAndSwitch( snapshot, options, pkgdir, repo ) {
 		recreateLinkIfRequired();
 	} else {
 		recreateLinkIfRequired();
+		// need to check repo state again as could have changed if link wasn't correct
+		repoState = await hasRepoChanged( snapshot, repo, pkgdir );
 		// switch to right target if necessary
 		if ( repoState === 'url' ) {
 			// completely different repo - rename old directory to preverse data

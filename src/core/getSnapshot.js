@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import GitRepositorySnapshot from './GitRepositorySnapshot.js';
 
 function getExistingKeyName( depMap, key ) {
@@ -25,7 +26,8 @@ export async function walk( depMap, repo, oldSnapshotRoot ) {
 			}
 			depMap.set( keyName, {
 				snapshot,
-				refs: [depUrl]
+				refs: [depUrl],
+				children: {}
 			} );
 			await walk( depMap, snapshot, oldSnapshotRoot );
 		} else {
