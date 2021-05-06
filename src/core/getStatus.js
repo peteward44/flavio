@@ -3,7 +3,7 @@ import Table from 'easy-table';
 import chalk from 'chalk';
 import * as util from './util.js';
 
-async function addTableRow( table, depInfo, options, statusOptions ) {
+async function addTableRow( table, depInfo, options, statusOptions, isRoot = false ) {
 	let diff = false;
 	const { snapshot } = depInfo;
 	
@@ -23,8 +23,12 @@ async function addTableRow( table, depInfo, options, statusOptions ) {
 			targetTableEntry = chalk.magenta( `${targetString}` );
 		}
 	} else {
-		targetTableEntry = chalk.red( 'missing' );
-		diff = true;
+		if ( isRoot ) {
+			targetTableEntry = chalk.blue( 'no repo' );
+		} else {
+			targetTableEntry = chalk.red( 'missing' );
+			diff = true;
+		}
 	}
 	table.cell( 'Target', targetTableEntry );
 	
@@ -49,14 +53,22 @@ async function addTableRow( table, depInfo, options, statusOptions ) {
 			table.cell( 'Changed?', snapshot.changeID > 0 ? chalk.green( 'YES' ) : chalk.yellow( 'NO' ) );
 		}
 	}
-	table.cell( 'URL', ( await snapshot.getUrl() ) || depInfo.refs[0] );
+	let url = await snapshot.getUrl();
+	if ( !url ) {
+		if ( _.isArray( depInfo.refs ) && depInfo.refs.length > 0 ) {
+			url = depInfo.refs[0];
+		}
+	}
+	if ( url ) {
+		table.cell( 'URL', url );
+	}
 	table.newRow();
 	return diff;
 }
 
 async function getStatus( options, snapshotRoot, statusOptions ) {
 	const table = new Table();
-	await addTableRow( table, { snapshot: snapshotRoot.main }, options, statusOptions );
+	await addTableRow( table, { snapshot: snapshotRoot.main }, options, statusOptions, true );
 
 	let diffCount = 0;
 	for ( const depInfo of snapshotRoot.deps.values() ) {
