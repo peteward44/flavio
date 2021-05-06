@@ -443,7 +443,9 @@ async function promisedStart() {
 				handler: (argv) => {
 					let cwd;
 					try {
-						if ( argv.folder ) {
+						if ( argv.cwd ) {
+							cwd = path.resolve( argv.cwd );
+						} else if ( argv.folder ) {
 							cwd = path.resolve( argv.folder );
 						}
 					} catch ( err ) {
