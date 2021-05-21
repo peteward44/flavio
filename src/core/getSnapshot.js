@@ -11,7 +11,7 @@ function getExistingKeyName( depMap, key ) {
 	return key;
 }
 
-export async function walk( depMap, repo, oldSnapshotRoot ) {
+export async function walk( depMap, repo, oldSnapshotRoot, overwriteRef = false ) {
 	const dependencies = await repo.getDependencies();
 	for ( const depName of Object.keys( dependencies ) ) {
 		const depUrl = dependencies[depName];
@@ -39,13 +39,28 @@ export async function walk( depMap, repo, oldSnapshotRoot ) {
 	}
 }
 
+// export async function updateNode( graph, repoName, depUrl, oldSnapshot ) {
+	// let snapshot;
+	// if ( !oldSnapshot ) {
+		// snapshot = await GitRepositorySnapshot.fromName( repoName );
+	// } else {
+		// snapshot = oldSnapshot;
+	// }
+	// depMap.set( keyName, {
+		// snapshot,
+		// refs: [depUrl],
+		// children: {}
+	// } );
+	// await walk( depMap, snapshot, oldSnapshotRoot, true );
+// }
+
 export async function getSnapshot( dir, oldSnapshot ) {
 	const main = oldSnapshot ? oldSnapshot.main : await GitRepositorySnapshot.fromDir( dir );
-	const result = {
+	const graph = {
 		main,
 		deps: new Map()
 	};
 	// build map of all dependencies - excluding ones that haven't been cloned yet. They will have a status of "missing" and their dependencies will be missing too
-	await walk( result.deps, main, oldSnapshot );
-	return result;
+	await walk( graph.deps, main, oldSnapshot );
+	return graph;
 }

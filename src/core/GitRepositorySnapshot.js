@@ -35,9 +35,10 @@ function cached() {
 // has changed underneath. If you change a git repository, you should discard any GitRepositorySnapshot instances
 // you may have and recreate them
 class GitRepositorySnapshot {
-	constructor( name, dir ) {
+	constructor( name, dir, ref ) {
 		this._name = name;
 		this._dir = dir;
+		this._givenRef = ref;
 		this._cache = new Map();
 		this._changeID = 0;
 	}
@@ -60,9 +61,9 @@ class GitRepositorySnapshot {
 		return snapshot;
 	}
 	
-	static async fromName( name ) {
+	static async fromName( name, ref ) {
 		const dir = await getDirForDependency( name );
-		return new GitRepositorySnapshot( name, dir );
+		return new GitRepositorySnapshot( name, dir, ref );
 	}
 	
 	markChanged() {

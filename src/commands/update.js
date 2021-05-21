@@ -10,6 +10,7 @@ import globalConfig from '../core/globalConfig.js';
 import * as getSnapshot from '../core/getSnapshot.js';
 import checkForConflicts from '../core/checkForConflicts.js';
 import GitRepositorySnapshot from '../core/GitRepositorySnapshot.js';
+import dependencyGraph from '../core/dependencyGraph.js';
 import getStatus from '../core/getStatus.js';
 import logger from '../core/logger.js';
 
@@ -232,20 +233,33 @@ async function update( options ) {
 					// logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Complete`, targetName ? `[${chalk.magenta(targetName)}]` : ``, changed ? `[${chalk.yellow( 'changes detected' )}]` : `` );
 				// }
 				if ( changeID !== depInfo.snapshot.changeID ) {
-					hadChanges = true;
 					break;
 				}
 				const newDependencies = await depInfo.snapshot.getDependencies();
-				if ( !hadChanges && JSON.stringify( flavioDependencies ) !== JSON.stringify( newDependencies ) ) {
+				if ( JSON.stringify( flavioDependencies ) !== JSON.stringify( newDependencies ) ) {
+					// figure out which ones have changed
+					let changed = [];
+					for ( const key of Object.keys( newDependencies ) ) {
+						const oldDep = flavioDependencies[key];
+						const newDep = newDependencies[key];
+						if ( oldDep !== newDep ) {
+							changed.push( { name: key, url: newDep } );
+						}
+					}
+					for ( const changedDep of changed ) {
+						const url = '';
+						const newRepo = await GitRepositorySnapshot.fromName( changedDep.name );
+						await getSnapshot.walk( snapshot.deps, newRepo, snapshot );
+					}
 					hadChanges = true;
 					break;
 				}
 			}
 		}
-		if ( hadChanges ) {
-			// rebuild snapshot dependency map if it's changed
-			snapshot = await getSnapshot.getSnapshot( snapshot.main.dir, snapshot );
-		}
+		// if ( hadChanges ) {
+			// // rebuild snapshot dependency map if it's changed
+			// snapshot = await getSnapshot.getSnapshot( snapshot.main.dir, snapshot );
+		// }
 	} while ( hadChanges );
 
 	if ( !options.json ) {
