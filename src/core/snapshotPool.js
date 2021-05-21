@@ -19,6 +19,10 @@ class SnapshotPool {
 			this._cache.delete( name );
 		}
 	}
+	
+	clearAll() {
+		this._cache.clear();
+	}
 }
 
 export default new SnapshotPool();

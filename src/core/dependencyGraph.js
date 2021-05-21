@@ -19,7 +19,8 @@ async function walk( graph, node ) {
 		const child = {
 			snapshot,
 			ref,
-			children: {}
+			children: {},
+			dirty: true
 		};
 		node.children[depName] = child;
 		await walk( graph, child );
@@ -32,7 +33,8 @@ export async function build( rootDir ) {
 		root: {
 			snapshot,
 			ref: '',
-			children: {}
+			children: {},
+			dirty: true
 		}
 	};
 	// build map of all dependencies - excluding ones that haven't been cloned yet. They will have a status of "missing" and their dependencies will be missing too
@@ -40,6 +42,34 @@ export async function build( rootDir ) {
 	return graph;
 }
 
-export async function flatten( graph ) {
-	
+export async function buildFromNode( node, ref ) {
+	await snapshotPool.clear( node.snapshot.name );
+	const snapshot = await snapshotPool.fromName( node.snapshot.name, ref );
+	const graph = {
+		root: {
+			snapshot,
+			ref,
+			children: {}
+		}
+	};
+	await walk( graph, graph.root );
+	return graph;
+}
+
+export async function flattenWalk( graph, node, nodeMap ) {
+	for ( const name of Object.keys( node.children ) ) {
+		const child = node.children[name];
+		if ( nodeMap.has( name ) ) {
+			nodeMap.get( name ).push( child );
+		} else {
+			nodeMap.set( name, [child] );
+		}
+		await flattenWalk( graph, child, nodeMap );
+	}
+}
+
+export async function flatten( graph, node = graph.root ) {
+	const nodeMap = new Map();
+	await flattenWalk( graph, node, nodeMap );
+	return nodeMap;
 }

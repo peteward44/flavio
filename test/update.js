@@ -390,7 +390,7 @@ describe(`update tests`, function() {
 		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file3.txt' ) ), 'Repo recreated and updated successfully' );
 	});
 	
-	helpers.test.only( 'Clone a plain repository with dependencies and nested dependencies. Move one of the dependencies to a tag and make sure it changes on update --switch', async (tempDir) => {
+	helpers.test( 'Clone a plain repository with dependencies and nested dependencies. Move one of the dependencies to a tag and make sure it changes on update --switch', async (tempDir) => {
 		const result = await TestRepo.create( tempDir, 'none', {
 			name: 'main',
 			version: '0.1.0-snapshot.0',

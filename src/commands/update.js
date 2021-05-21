@@ -10,7 +10,8 @@ import globalConfig from '../core/globalConfig.js';
 import * as getSnapshot from '../core/getSnapshot.js';
 import checkForConflicts from '../core/checkForConflicts.js';
 import GitRepositorySnapshot from '../core/GitRepositorySnapshot.js';
-import dependencyGraph from '../core/dependencyGraph.js';
+import * as dependencyGraph from '../core/dependencyGraph.js';
+import snapshotPool from '../core/snapshotPool.js';
 import getStatus from '../core/getStatus.js';
 import logger from '../core/logger.js';
 
@@ -69,28 +70,23 @@ async function updateMainProject( options, snapshot ) {
 	return changed;
 }
 
-async function cloneMissingDependencies( snapshot, options ) {
-	let keepGoing = true;
-	while ( keepGoing ) {
-		keepGoing = false;
-		for ( const depInfo of snapshot.deps.values() ) {
-			if ( await depInfo.snapshot.getStatus() === 'missing' ) {
-				if ( !options.json ) {
-					logger.log( 'info', util.formatConsoleDependencyName( depInfo.snapshot.name ), `Repository missing, performing fresh clone...` );
-				}
-
-				// update snapshot for new repo, and any dependencies it might have
-				depInfo.snapshot = await GitRepositorySnapshot.fromName( depInfo.snapshot.name );
-
-				// TODO: sort refs / deal with multiple ref conflicts
-				const repoUrl = util.parseRepositoryUrl( depInfo.refs[0] );
-				
-				await clone( depInfo.snapshot.dir, options, repoUrl, options.link, depInfo.snapshot );
-				
-				await getSnapshot.walk( snapshot.deps, depInfo.snapshot );
-				keepGoing = true;
-				break;
+async function cloneMissingDependencies( options, graph, parent ) {
+	const depMap = await dependencyGraph.flatten( graph, parent );
+	for ( const [name, nodeArray] of depMap.entries() ) {
+		const node = nodeArray[0];
+		if ( await node.snapshot.getStatus() === 'missing' ) {
+			if ( !options.json ) {
+				logger.log( 'info', util.formatConsoleDependencyName( node.snapshot.name ), `Repository missing, performing fresh clone...` );
 			}
+
+			// clone new repository
+			const repoUrl = util.parseRepositoryUrl( node.ref );
+			await clone( node.snapshot.dir, options, repoUrl, options.link, node.snapshot );
+			
+			snapshotPool.clear( name );
+			
+			const depGraph = await dependencyGraph.buildFromNode( node, node.ref );
+			await cloneMissingDependencies( options, depGraph, depGraph.root );
 		}
 	}
 }
@@ -105,25 +101,85 @@ function getExistingKeyName( depMap, key ) {
 	return key;
 }
 
-async function checkDependencies( depMap, snapshot ) {
-	const dependencies = await snapshot.getDependencies();
-	for ( const depName of Object.keys( dependencies ) ) {
-		const depUrl = dependencies[depName];
-		const keyName = getExistingKeyName( depMap, depName );
-		if ( !depMap.has( keyName ) ) {
-			let snapshot = await GitRepositorySnapshot.fromName( keyName );
-			depMap.set( keyName, {
-				snapshot,
-				refs: [depUrl],
-				children: {}
-			} );
-			await checkDependencies( depMap, snapshot );
-		} else {
-			const depInfo = depMap.get( keyName );
-			if ( !depInfo.refs.includes( depUrl ) ) {
-				depInfo.refs.push( depUrl );
+async function resolveConflicts( options ) {
+	// this module list may contain multiple versions of the same repo.
+	// resolve all conflicts
+	// const rootFlavioJson = await snapshot.main.getFlavioJson();
+	// for ( const depInfo of snapshot.deps.values() ) {
+		// if ( depInfo.refs.length > 1 ) {
+			// const module = await handleConflict( options, depInfo.snapshot.name, depInfo.refs, rootFlavioJson );
+			
+			// if ( !fs.existsSync( path.join( depInfo.snapshot.dir, '.git' ) ) ) {
+				// const repoUrl = util.parseRepositoryUrl( module );
+				// await clone( depInfo.snapshot.dir, options, repoUrl, options.link, depInfo.snapshot );
+			// } else {
+				// await checkAndSwitch( depInfo.snapshot, options, depInfo.snapshot.dir, module );
+			// }
+		// }
+	// }
+}
+
+async function switchIncorrectBaseRefs( options ) {
+	// const depMap = await dependencyGraph.flatten( graph, parent );
+	// for ( const [name, nodeArray] from depMap.entries() ) {
+		// let targetObj = null;
+		// try {
+			// targetObj = await getTargetFromRepoUrl( depInfo.snapshot, module, depInfo.snapshot.dir );
+		// } catch ( err ) {
+			// // desired branch / tag does not exist - fall back to master
+			// targetObj = { branch: 'master' };
+		// }
+	// }
+}
+
+async function switchIncorrectBranchRefs( options, snapshot, ref ) {
+	if ( !options.json ) {
+		logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Updating...` );
+	}
+	const flavioDependencies = await snapshot.getDependencies();
+	
+	let targetObj = null;
+	try {
+		targetObj = await getTargetFromRepoUrl( snapshot, ref, snapshot.dir );
+	} catch ( err ) {
+		// desired branch / tag does not exist - fall back to master
+		targetObj = { branch: 'master' };
+	}
+
+	// check to see if the local branch still exists on the remote, reset if not
+	if ( options['remote-reset'] !== false ) {
+		const repoUrl = util.parseRepositoryUrl( ref );
+		await checkRemoteResetRequired( snapshot, targetObj, snapshot.name, snapshot.dir, options, repoUrl );
+	}
+	if ( options.switch ) {
+		await checkAndSwitch( snapshot, options, snapshot.dir, ref );
+	}
+	try {
+		await stashAndPull( snapshot, snapshot.dir, options, true );
+	} catch ( err ) {
+		// On a repo that looks like everything should work fine but doesn't, the repo has probably been recreated.
+		// if the repo is clean, hard reset and pull.
+		const errout = await snapshot.pullCaptureError();
+		if ( errout === 'fatal: refusing to merge unrelated histories' ) {
+			if ( await snapshot.isWorkingCopyClean() ) {
+				logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Unrelated histories detected, performing hard reset...` );
+				await snapshot.fixUnrelatedHistory( targetObj );
+			} else {
+				logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Unrelated histories detected, but cannot reset due to local changes!` );
 			}
+		} else {
+			throw err;
 		}
+	}
+}
+
+async function iterateDeps( options, snapshot ) {
+	const deps = await snapshot.getDependencies();
+	for ( const name of Object.keys( deps ) ) {
+		const ref = deps[name];
+		const childSnapshot = await snapshotPool.fromName( name, ref );
+		await switchIncorrectBranchRefs( options, childSnapshot, ref );
+		await iterateDeps( options, childSnapshot );
 	}
 }
 
@@ -140,6 +196,8 @@ async function update( options ) {
 	}
 	await globalConfig.init( options.cwd );
 	util.defaultOptions( options );
+	
+	snapshotPool.clearAll();
 	
 	const initialSnapshot = await getSnapshot.getSnapshot( options.cwd );
 
@@ -162,108 +220,22 @@ async function update( options ) {
 	// re-read config file in case the .flaviorc has changed
 	await globalConfig.init( options.cwd );
 
-	// walk the dependency tree, checking each dependency as we go that it's not missing, points to the right thing and is up-to-date
-	//const depMap = new Map();
-	//await checkDependencies( depMap, await GitRepositorySnapshot.fromDir( options.cwd ) );
+	// First pass: Detect all missing modules & make clones of any missing ones
+	const missingGraph = await dependencyGraph.build( options.cwd );
+	await cloneMissingDependencies( options, missingGraph, missingGraph.root );
 
-	let snapshot = await getSnapshot.getSnapshot( options.cwd );
-	// keep listing children until we have no more missing modules	
-	await cloneMissingDependencies( snapshot, options );
+	// Second pass: Resolve any multiple reference conflicts
+	await resolveConflicts( options );
+
+	// Third pass: Switch any incorrect base URL refs (rare for this to occur)
+	await switchIncorrectBaseRefs( options );
 	
-	// this module list may contain multiple versions of the same repo.
-	// resolve all conflicts
-	const rootFlavioJson = await snapshot.main.getFlavioJson();
-	for ( const depInfo of snapshot.deps.values() ) {
-		if ( depInfo.refs.length > 1 ) {
-			const module = await handleConflict( options, depInfo.snapshot.name, depInfo.refs, rootFlavioJson );
-			
-			if ( !fs.existsSync( path.join( depInfo.snapshot.dir, '.git' ) ) ) {
-				const repoUrl = util.parseRepositoryUrl( module );
-				await clone( depInfo.snapshot.dir, options, repoUrl, options.link, depInfo.snapshot );
-			} else {
-				await checkAndSwitch( depInfo.snapshot, options, depInfo.snapshot.dir, module );
-			}
-		}
-	}
-	// now make sure all modules point to the right bits
-	let hadChanges = false;
-	do {
-		hadChanges = false;
-		for ( const depInfo of snapshot.deps.values() ) {
-			const { changeID } = depInfo.snapshot;
-			const module = depInfo.refs[0];
-			if ( await depInfo.snapshot.getStatus() === 'installed' ) {
-				const flavioDependencies = await depInfo.snapshot.getDependencies();
-				if ( !options.json ) {
-					logger.log( 'info', util.formatConsoleDependencyName( depInfo.snapshot.name ), `Updating...` );
-				}
-				let targetObj = null;
-				try {
-					targetObj = await getTargetFromRepoUrl( depInfo.snapshot, module, depInfo.snapshot.dir );
-				} catch ( err ) {
-					// desired branch / tag does not exist - fall back to master
-					targetObj = { branch: 'master' };
-				}
-				// check to see if the local branch still exists on the remote, reset if not
-				if ( options['remote-reset'] !== false ) {
-					const repoUrl = util.parseRepositoryUrl( module );
-					await checkRemoteResetRequired( depInfo.snapshot, targetObj, depInfo.snapshot.name, depInfo.snapshot.dir, options, repoUrl );
-				}
-				if ( options.switch ) {
-					await checkAndSwitch( depInfo.snapshot, options, depInfo.snapshot.dir, module );
-				}
-				try {
-					await stashAndPull( depInfo.snapshot, depInfo.snapshot.dir, options, true );
-				} catch ( err ) {
-					// On a repo that looks like everything should work fine but doesn't, the repo has probably been recreated.
-					// if the repo is clean, hard reset and pull.
-					const errout = await depInfo.snapshot.pullCaptureError();
-					if ( errout === 'fatal: refusing to merge unrelated histories' ) {
-						if ( await depInfo.snapshot.isWorkingCopyClean() ) {
-							logger.log( 'info', util.formatConsoleDependencyName( depInfo.snapshot.name ), `Unrelated histories detected, performing hard reset...` );
-							await depInfo.snapshot.fixUnrelatedHistory( targetObj );
-						} else {
-							logger.log( 'info', util.formatConsoleDependencyName( depInfo.snapshot.name ), `Unrelated histories detected, but cannot reset due to local changes!` );
-						}
-					} else {
-						throw err;
-					}
-				}
-				// if ( !options.json ) {
-					// logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Complete`, targetName ? `[${chalk.magenta(targetName)}]` : ``, changed ? `[${chalk.yellow( 'changes detected' )}]` : `` );
-				// }
-				if ( changeID !== depInfo.snapshot.changeID ) {
-					break;
-				}
-				const newDependencies = await depInfo.snapshot.getDependencies();
-				if ( JSON.stringify( flavioDependencies ) !== JSON.stringify( newDependencies ) ) {
-					// figure out which ones have changed
-					let changed = [];
-					for ( const key of Object.keys( newDependencies ) ) {
-						const oldDep = flavioDependencies[key];
-						const newDep = newDependencies[key];
-						if ( oldDep !== newDep ) {
-							changed.push( { name: key, url: newDep } );
-						}
-					}
-					for ( const changedDep of changed ) {
-						const url = '';
-						const newRepo = await GitRepositorySnapshot.fromName( changedDep.name );
-						await getSnapshot.walk( snapshot.deps, newRepo, snapshot );
-					}
-					hadChanges = true;
-					break;
-				}
-			}
-		}
-		// if ( hadChanges ) {
-			// // rebuild snapshot dependency map if it's changed
-			// snapshot = await getSnapshot.getSnapshot( snapshot.main.dir, snapshot );
-		// }
-	} while ( hadChanges );
-
+	// Fourth pass: Switch any incorrect branch refs (more common)
+	await iterateDeps( options, await GitRepositorySnapshot.fromDir( options.cwd ) );
+	
 	if ( !options.json ) {
-		const status = await getStatus( options, snapshot, {
+		const statusSnapshot = await getSnapshot.getSnapshot( options.cwd );
+		const status = await getStatus( options, statusSnapshot, {
 			changed: true
 		} );
 		console.log( status );
