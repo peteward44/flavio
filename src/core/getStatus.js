@@ -56,7 +56,7 @@ async function addTableRow( table, depInfo, options, statusOptions, isRoot = fal
 	let url = await snapshot.getUrl();
 	if ( !url ) {
 		if ( _.isArray( depInfo.refs ) && depInfo.refs.length > 0 ) {
-			url = depInfo.refs[0];
+			url = depInfo.refs[0]; // eslint-disable-line prefer-destructuring
 		}
 	}
 	if ( url ) {

@@ -29,10 +29,8 @@ function exceptionHandler( resolve, reject ) {
 	};
 }
 
-
 async function promisedStart() {
 	return new Promise( (resolve, reject) => {
-
 		function commandHandler( func ) {
 			return async ( argv ) => {
 				logger.init();

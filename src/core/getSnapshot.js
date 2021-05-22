@@ -1,4 +1,3 @@
-import _ from 'lodash';
 import GitRepositorySnapshot from './GitRepositorySnapshot.js';
 
 function getExistingKeyName( depMap, key ) {

@@ -1,16 +1,12 @@
 import _ from 'lodash';
 import chalk from 'chalk';
-import fs from 'fs-extra';
-import path from 'path';
 import * as util from '../core/util.js';
-import handleConflict from '../core/handleConflict.js';
 import { clone, checkAndSwitch, checkRemoteResetRequired } from '../core/dependencies.js';
 import { getTargetFromRepoUrl } from '../core/resolve.js';
 import globalConfig from '../core/globalConfig.js';
 import * as getSnapshot from '../core/getSnapshot.js';
 import checkForConflicts from '../core/checkForConflicts.js';
 import GitRepositorySnapshot from '../core/GitRepositorySnapshot.js';
-import * as dependencyGraph from '../core/dependencyGraph.js';
 import snapshotPool from '../core/snapshotPool.js';
 import getStatus from '../core/getStatus.js';
 import logger from '../core/logger.js';
@@ -58,45 +54,6 @@ async function updateMainProject( options, snapshot ) {
 	// }
 }
 
-async function cloneMissingDependencies( options, graph, parent ) {
-	const depMap = await dependencyGraph.flatten( graph, parent );
-	for ( const [name, nodeArray] of depMap.entries() ) {
-		const node = nodeArray[0];
-		if ( await node.snapshot.getStatus() === 'missing' ) {
-			if ( !options.json ) {
-				logger.log( 'info', util.formatConsoleDependencyName( node.snapshot.name ), `Repository missing, performing fresh clone...` );
-			}
-
-			// clone new repository
-			const repoUrl = util.parseRepositoryUrl( node.ref );
-			await clone( node.snapshot.dir, options, repoUrl, options.link, node.snapshot );
-			
-			snapshotPool.clear( name );
-			
-			const depGraph = await dependencyGraph.buildFromNode( node, node.ref );
-			await cloneMissingDependencies( options, depGraph, depGraph.root );
-		}
-	}
-}
-
-async function resolveConflicts( options ) {
-	// this module list may contain multiple versions of the same repo.
-	// resolve all conflicts
-	// const rootFlavioJson = await snapshot.main.getFlavioJson();
-	// for ( const depInfo of snapshot.deps.values() ) {
-		// if ( depInfo.refs.length > 1 ) {
-			// const module = await handleConflict( options, depInfo.snapshot.name, depInfo.refs, rootFlavioJson );
-			
-			// if ( !fs.existsSync( path.join( depInfo.snapshot.dir, '.git' ) ) ) {
-				// const repoUrl = util.parseRepositoryUrl( module );
-				// await clone( depInfo.snapshot.dir, options, repoUrl, options.link, depInfo.snapshot );
-			// } else {
-				// await checkAndSwitch( depInfo.snapshot, options, depInfo.snapshot.dir, module );
-			// }
-		// }
-	// }
-}
-
 async function switchIncorrectBranchRefs( options, snapshot, ref ) {
 	if ( !options.json ) {
 		logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Updating...` );
@@ -110,8 +67,6 @@ async function switchIncorrectBranchRefs( options, snapshot, ref ) {
 		const repoUrl = util.parseRepositoryUrl( ref );
 		await clone( snapshot.dir, options, repoUrl, options.link, snapshot );
 	}	
-	
-	const flavioDependencies = await snapshot.getDependencies();
 	
 	let targetObj = null;
 	try {
