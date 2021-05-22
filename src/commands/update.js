@@ -38,21 +38,10 @@ async function updateMainProject( options, snapshot ) {
 		// root project is not a git repository, just continue
 		return;
 	}
-	const target = await snapshot.getTarget();
-	if ( !target.branch ) {
-		if ( !options.json ) {
-			logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Skipping update as not on a branch` );
-		}
-		return false;
-	}
-	let changed = false;
 	if ( !options.json ) {
 		logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Updating...` );
 	}
 	const stashName = await snapshot.stash();
-	if ( !await snapshot.isUpToDate() ) {
-		changed = true;
-	}
 	try {
 		await snapshot.pull();
 	} catch ( err ) {
@@ -67,7 +56,6 @@ async function updateMainProject( options, snapshot ) {
 		// }
 		// logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Complete`, targetName ? `[${chalk.magenta(targetName)}]` : ``, changed ? `[${chalk.yellow( 'changes detected' )}]` : `` );
 	// }
-	return changed;
 }
 
 async function cloneMissingDependencies( options, graph, parent ) {
@@ -91,16 +79,6 @@ async function cloneMissingDependencies( options, graph, parent ) {
 	}
 }
 
-function getExistingKeyName( depMap, key ) {
-	const lkey = key.toLowerCase();
-	for ( const lhs of depMap.keys() ) {
-		if ( lhs.toLowerCase() === lkey ) {
-			return lhs;
-		}
-	}
-	return key;
-}
-
 async function resolveConflicts( options ) {
 	// this module list may contain multiple versions of the same repo.
 	// resolve all conflicts
@@ -119,23 +97,20 @@ async function resolveConflicts( options ) {
 	// }
 }
 
-async function switchIncorrectBaseRefs( options ) {
-	// const depMap = await dependencyGraph.flatten( graph, parent );
-	// for ( const [name, nodeArray] from depMap.entries() ) {
-		// let targetObj = null;
-		// try {
-			// targetObj = await getTargetFromRepoUrl( depInfo.snapshot, module, depInfo.snapshot.dir );
-		// } catch ( err ) {
-			// // desired branch / tag does not exist - fall back to master
-			// targetObj = { branch: 'master' };
-		// }
-	// }
-}
-
 async function switchIncorrectBranchRefs( options, snapshot, ref ) {
 	if ( !options.json ) {
 		logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Updating...` );
 	}
+
+	// clone new repository if it's missing
+	if ( await snapshot.getStatus() === 'missing' ) {
+		if ( !options.json ) {
+			logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Repository missing, performing fresh clone...` );
+		}
+		const repoUrl = util.parseRepositoryUrl( ref );
+		await clone( snapshot.dir, options, repoUrl, options.link, snapshot );
+	}	
+	
 	const flavioDependencies = await snapshot.getDependencies();
 	
 	let targetObj = null;
@@ -219,18 +194,8 @@ async function update( options ) {
 	
 	// re-read config file in case the .flaviorc has changed
 	await globalConfig.init( options.cwd );
-
-	// First pass: Detect all missing modules & make clones of any missing ones
-	const missingGraph = await dependencyGraph.build( options.cwd );
-	await cloneMissingDependencies( options, missingGraph, missingGraph.root );
-
-	// Second pass: Resolve any multiple reference conflicts
-	await resolveConflicts( options );
-
-	// Third pass: Switch any incorrect base URL refs (rare for this to occur)
-	await switchIncorrectBaseRefs( options );
 	
-	// Fourth pass: Switch any incorrect branch refs (more common)
+	// Iterate over all dependencies
 	await iterateDeps( options, await GitRepositorySnapshot.fromDir( options.cwd ) );
 	
 	if ( !options.json ) {

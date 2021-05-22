@@ -29,13 +29,22 @@ function exceptionHandler( resolve, reject ) {
 	};
 }
 
+
 async function promisedStart() {
-	logger.init();
-	if ( !await gitVersionCheck() ) {
-		process.exitCode = 1;
-		return Promise.resolve();
-	}
 	return new Promise( (resolve, reject) => {
+
+		function commandHandler( func ) {
+			return async ( argv ) => {
+				logger.init();
+				if ( !await gitVersionCheck() ) {
+					process.exitCode = 1;
+					return;
+				}
+				func( _.cloneDeep( argv ) ).then(resolve)
+					.catch(exceptionHandler( resolve, reject ));
+			};
+		}
+		
 		yargs(hideBin(process.argv)) // eslint-disable-line no-unused-expressions
 			.usage('Usage: flavio <command> [options]')
 			.example('flavio update', 'clones/checks out and/or updates all dependencies for project')
@@ -102,11 +111,9 @@ async function promisedStart() {
 							default: false
 						});
 				},
-				handler: (argv) => {
-					flavio.commands.update( _.cloneDeep( argv ) )
-						.then(resolve)
-						.catch(exceptionHandler( resolve, reject ));
-				}
+				handler: commandHandler( (argv) => {
+					return flavio.commands.update( argv );
+				} )
 			} )
 			.command( {
 				command: 'add <name> <url>',
@@ -129,11 +136,9 @@ async function promisedStart() {
 							default: process.cwd()
 						});
 				},
-				handler: (argv) => {
-					flavio.commands.add( argv.name, argv.url, _.cloneDeep( argv ) )
-						.then(resolve)
-						.catch(exceptionHandler( resolve, reject ));
-				}
+				handler: commandHandler( (argv) => {
+					return flavio.commands.add( argv.name, argv.url, argv );
+				} )
 			} )
 			.command( {
 				command: 'log',
@@ -149,11 +154,9 @@ async function promisedStart() {
 							default: false
 						});
 				},
-				handler: (argv) => {
-					flavio.commands.log( _.cloneDeep( argv ) )
-						.then(resolve)
-						.catch(exceptionHandler( resolve, reject ));
-				}
+				handler: commandHandler( (argv) => {
+					return flavio.commands.log( argv );
+				} )
 			})
 			.command( {
 				command: 'status',
@@ -173,11 +176,9 @@ async function promisedStart() {
 							default: false
 						});
 				},
-				handler: (argv) => {
-					flavio.commands.status( _.cloneDeep( argv ) )
-						.then(resolve)
-						.catch(exceptionHandler( resolve, reject ));
-				}
+				handler: commandHandler( (argv) => {
+					return flavio.commands.status( argv );
+				} )
 			})
 			.command( {
 				command: 'execute',
@@ -192,11 +193,9 @@ async function promisedStart() {
 							default: process.cwd()
 						});
 				},
-				handler: (argv) => {
-					flavio.commands.execute( _.cloneDeep( argv ) )
-						.then(resolve)
-						.catch(exceptionHandler( resolve, reject ));
-				}
+				handler: commandHandler( (argv) => {
+					return flavio.commands.execute( argv );
+				} )
 			})
 			.command( {
 				command: 'checkout <branch>',
@@ -215,11 +214,9 @@ async function promisedStart() {
 							default: process.cwd()
 						});
 				},
-				handler: (argv) => {
-					flavio.commands.checkout( argv.branch, _.cloneDeep( argv ) )
-						.then(resolve)
-						.catch(exceptionHandler( resolve, reject ));
-				}
+				handler: commandHandler( (argv) => {
+					return flavio.commands.checkout( argv.branch, argv );
+				} )
 			})
 			.command( {
 				command: 'when <date..>',
@@ -237,17 +234,16 @@ async function promisedStart() {
 							default: process.cwd()
 						});
 				},
-				handler: (argv) => {
+				handler: commandHandler( (argv) => {
 					const dateString = argv.date.join( " " );
 					const date = moment( dateString, argv.format );
 					if ( date.isValid() ) {
-						flavio.commands.when( date, _.cloneDeep( argv ) )
-							.then(resolve)
-							.catch(exceptionHandler( resolve, reject ));
+						return flavio.commands.when( date, argv );
 					} else {
 						logger.log( 'error', `"${dateString}" not a valid date: Use format YYYY-MM-DD HH:SS` );
 					}
-				}
+					return Promise.resolve();
+				} )
 			})
 			.command( {
 				command: 'tag [tag]',
@@ -281,11 +277,9 @@ async function promisedStart() {
 							default: true
 						});
 				},
-				handler: (argv) => {
-					flavio.commands.tag(_.cloneDeep( argv ))
-						.then(resolve)
-						.catch(exceptionHandler( resolve, reject ));
-				}
+				handler: commandHandler( (argv) => {
+					return flavio.commands.tag( argv );
+				} )
 			} )
 			.command( {
 				command: 'taginfo',
@@ -304,11 +298,9 @@ async function promisedStart() {
 							default: process.cwd()
 						});
 				},
-				handler: (argv) => {
-					flavio.commands.taginfo(_.cloneDeep( argv ))
-						.then(resolve)
-						.catch(exceptionHandler( resolve, reject ));
-				}
+				handler: commandHandler( (argv) => {
+					return flavio.commands.taginfo( argv );
+				} )
 			} )
 			.command( {
 				command: 'tagdep <dependency> [tag]',
@@ -346,11 +338,9 @@ async function promisedStart() {
 							default: true
 						});
 				},
-				handler: (argv) => {
-					flavio.commands.tagdep(_.cloneDeep( argv ))
-						.then(resolve)
-						.catch(exceptionHandler( resolve, reject ));
-				}
+				handler: commandHandler( (argv) => {
+					return flavio.commands.tagdep( argv );
+				} )
 			} )
 			.command( {
 				command: 'export <directory>',
@@ -369,11 +359,9 @@ async function promisedStart() {
 							default: process.cwd()
 						});
 				},
-				handler: (argv) => {
-					flavio.commands.export( argv.directory, _.cloneDeep( argv ) )
-						.then(resolve)
-						.catch(exceptionHandler( resolve, reject ));
-				}
+				handler: commandHandler( (argv) => {
+					return flavio.commands.export( argv.directory, argv );
+				} )
 			})
 			.command( {
 				command: 'clear',
@@ -388,11 +376,9 @@ async function promisedStart() {
 							default: process.cwd()
 						});
 				},
-				handler: (argv) => {
-					flavio.commands.clear( _.cloneDeep( argv ) )
-						.then(resolve)
-						.catch(exceptionHandler( resolve, reject ));
-				}
+				handler: commandHandler( (argv) => {
+					return flavio.commands.clear( argv );
+				} )
 			})
 			.command( {
 				command: 'clearall',
@@ -403,11 +389,9 @@ async function promisedStart() {
 						.example('flavio clearall', 'Deletes all linked dependency repositories for all projects')
 						.help('help');
 				},
-				handler: (argv) => {
-					flavio.commands.clear( _.cloneDeep(argv), true)
-						.then(resolve)
-						.catch(exceptionHandler( resolve, reject ));
-				}
+				handler: commandHandler( (argv) => {
+					return flavio.commands.clear( argv, true);
+				} )
 			} )
 			.command( {
 				command: 'clone <url> [folder]',
@@ -440,7 +424,7 @@ async function promisedStart() {
 							default: undefined
 						});
 				},
-				handler: (argv) => {
+				handler: commandHandler( (argv) => {
 					let cwd;
 					try {
 						if ( argv.cwd ) {
@@ -450,10 +434,8 @@ async function promisedStart() {
 						}
 					} catch ( err ) {
 					}
-					flavio.commands.clone( argv.url, { ..._.cloneDeep( argv ), cwd } )
-						.then(resolve)
-						.catch(exceptionHandler( resolve, reject ));
-				}
+					return flavio.commands.clone( argv.url, { ...argv, cwd } );
+				} )
 			} )
 			.command( {
 				command: 'init',
@@ -468,11 +450,9 @@ async function promisedStart() {
 							default: process.cwd()
 						});
 				},
-				handler: (argv) => {
-					flavio.commands.init( _.cloneDeep( argv ) )
-						.then(resolve)
-						.catch(exceptionHandler( resolve, reject ));
-				}
+				handler: commandHandler( (argv) => {
+					return flavio.commands.init( argv );
+				} )
 			} )
 			.command( {
 				command: 'test-makerepo [template]',
@@ -492,11 +472,9 @@ async function promisedStart() {
 							default: process.cwd()
 						});
 				},
-				handler: (argv) => {
-					flavio.commands.testMakeRepo( _.cloneDeep( argv ) )
-						.then(resolve)
-						.catch(exceptionHandler( resolve, reject ));
-				}
+				handler: commandHandler( (argv) => {
+					return flavio.commands.testMakeRepo( argv );
+				} )
 			} )
 			.strictCommands()
 			.demandCommand(1)

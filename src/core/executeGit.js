@@ -22,7 +22,7 @@ function executeGit( dir, args, options = {} ) {
 		let stde = '';
 		let combined = '';
 		logger.log( 'debug', `Executing git ${args.join(" ")} [dir=${dir}]` );
-		let proc = spawn( 'git', args, { cwd: dir, stdio: ['ignore', 'pipe', 'pipe'] } );
+		let proc = spawn( 'git', args, { cwd: dir, stdio: [options.inherit ? 'inherit' : 'ignore', options.inherit ? 'inherit' : 'pipe', options.inherit ? 'inherit' : 'pipe'] } );
 
 		function unpipe( code ) {
 			if ( !connected ) {
@@ -41,17 +41,18 @@ function executeGit( dir, args, options = {} ) {
 				} );
 			}
 		}
-
-		proc.stdout.on( 'data', ( data ) => {
-			const s = data.toString();
-			stdo += s;
-			combined += s;
-		} );
-		proc.stderr.on( 'data', ( data ) => {
-			const s = data.toString();
-			stde += s;
-			combined += s;
-		} );
+		if ( !options.inherit ) {
+			proc.stdout.on( 'data', ( data ) => {
+				const s = data.toString();
+				stdo += s;
+				combined += s;
+			} );
+			proc.stderr.on( 'data', ( data ) => {
+				const s = data.toString();
+				stde += s;
+				combined += s;
+			} );
+		}
 		proc.on( 'error', ( err ) => {
 			if ( options.ignoreError ) {
 				resolve( {

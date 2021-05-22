@@ -352,7 +352,7 @@ class GitRepositorySnapshot {
 			if ( await this.getStatus() === 'missing' ) {
 				return;
 			}
-			await this._executeGit( ['fetch', '--all'], { outputStderr: true } );
+			await this._executeGit( ['fetch', '--all'], { inherit: true } );
 			this._fetched = true;
 		}
 	}
