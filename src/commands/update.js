@@ -159,7 +159,7 @@ async function update( options ) {
 		//snapshotPool.clearAll();
 		const statusSnapshot = await getSnapshot.getSnapshot( options.cwd );
 		const status = await getStatus( { ...options, nofetch: true }, statusSnapshot, {
-			changed: true
+			changed: !options.fromCloneCommand
 		} );
 		console.log( status );
 	}
