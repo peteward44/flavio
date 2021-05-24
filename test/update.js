@@ -336,6 +336,36 @@ describe(`update tests`, function() {
 		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'flavio_modules', 'main2', 'file2.txt' ) ), 'main2 dependency installed' );
 	});
 
+	helpers.test('Root repository gets updated', async (tempDir) => {
+		const result = await helpers.addProject( tempDir, {
+			name: 'main',
+			version: '0.1.0-snapshot.0',
+			files: [
+				{
+					path: 'file.txt',
+					contents: 'this is on the main project'
+				}
+			],
+			modules: [
+				{
+					name: 'main2',
+					branch: 'branchname',
+					version: '0.2.0-snapshot.0',
+					files: [
+						{
+							path: 'file2.txt',
+							contents: 'this is on the main2 project'
+						}
+					]
+				}
+			]
+		} );
+		
+		await addFileToRepo( tempDir, result.repoDir, 'file_added1.txt', 'file contents' );
+		await update( { cwd: result.checkoutDir } );
+		chai.assert.ok( fs.existsSync( path.join( result.checkoutDir, 'file_added1.txt' ) ), 'Main repository updated' );
+	});
+
 	helpers.test.skip('one dependency on a specific commit', async (tempDir) => {
 
 	});

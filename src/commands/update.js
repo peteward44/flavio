@@ -127,8 +127,6 @@ async function update( options ) {
 	await globalConfig.init( options.cwd );
 	util.defaultOptions( options );
 	
-	snapshotPool.clearAll();
-	
 	const initialSnapshot = await getSnapshot.getSnapshot( options.cwd );
 
 	// make sure there are no conflicts in any dependencies before doing update
@@ -141,8 +139,10 @@ async function update( options ) {
 		logger.log( 'error', `${chalk.red( conflictString )} aborting update` );
 		return;
 	}
-	await updateMainProject( options, initialSnapshot.main );	
-
+	if ( !options.fromCloneCommand ) {
+		await updateMainProject( options, initialSnapshot.main );	
+	}
+	
 	if (options['ignore-dependencies']) {
 		return;
 	}

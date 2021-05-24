@@ -39,21 +39,6 @@ export async function walk( depMap, repo, oldSnapshotRoot, overwriteRef = false 
 	}
 }
 
-// export async function updateNode( graph, repoName, depUrl, oldSnapshot ) {
-	// let snapshot;
-	// if ( !oldSnapshot ) {
-		// snapshot = await GitRepositorySnapshot.fromName( repoName );
-	// } else {
-		// snapshot = oldSnapshot;
-	// }
-	// depMap.set( keyName, {
-		// snapshot,
-		// refs: [depUrl],
-		// children: {}
-	// } );
-	// await walk( depMap, snapshot, oldSnapshotRoot, true );
-// }
-
 export async function getSnapshot( dir, oldSnapshot ) {
 	const main = oldSnapshot ? oldSnapshot.main : await GitRepositorySnapshot.fromDir( dir );
 	const graph = {

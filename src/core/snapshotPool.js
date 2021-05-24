@@ -1,8 +1,13 @@
 import GitRepositorySnapshot from './GitRepositorySnapshot.js';
+import globalConfig from './globalConfig.js';
 
 class SnapshotPool {
 	constructor() {
 		this._cache = new Map();
+
+		globalConfig.onInit = () => {
+			this.clearAll();
+		};
 	}
 
 	async fromName( name, ref ) {

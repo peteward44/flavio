@@ -6,6 +6,7 @@ class GlobalConfig {
 	constructor() {
 		this._cwd = '';
 		this._config = null;
+		this.onInit = null;
 	}
 	
 	async init( cwd ) {
@@ -16,6 +17,9 @@ class GlobalConfig {
 				this._config = JSON.parse( fs.readFileSync( rc ) );
 			}
 		} catch ( err ) {
+		}
+		if ( _.isFunction( this.onInit ) ) {
+			this.onInit();
 		}
 	}
 
