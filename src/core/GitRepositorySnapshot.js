@@ -80,7 +80,6 @@ class GitRepositorySnapshot {
 		return map;
 	}
 
-	@cached()
 	async getStatus() {
 		if ( !fs.existsSync( path.join( this._dir, '.git' ) ) ) {
 			return 'missing';
@@ -162,7 +161,11 @@ class GitRepositorySnapshot {
 		}
 		const url = await this.getBareUrl();
 		const target = await this.getTarget();
-		return `${url}#${target.branch || target.tag || target.commit}`;
+		if ( target ) {
+			return `${url}#${target.branch || target.tag || target.commit}`;
+		} else {
+			return `${url}#master`;
+		}
 	}
 
 	@cached()
@@ -191,7 +194,8 @@ class GitRepositorySnapshot {
 			return false;
 		}
 		try {
-			if ( ( await this.getTarget() ).branch ) {
+			const target = await this.getTarget();
+			if ( target && target.branch ) {
 				await this.fetch();
 				const local = ( await this._executeGit( ['rev-parse', 'HEAD'], { quiet: true, captureStdout: true } ) ).out;
 				const remote = ( await this._executeGit( ['rev-parse', '@{u}'], { quiet: true, captureStdout: true } ) ).out;
@@ -296,7 +300,7 @@ class GitRepositorySnapshot {
 	async checkout( branchName, create = false ) {
 		debug( 'checkout' );
 		const currentTarget = await this.getTarget();
-		if ( currentTarget.branch && branchName === currentTarget.branch ) {
+		if ( currentTarget && currentTarget.branch && branchName === currentTarget.branch ) {
 			return;
 		}
 		const stash = await this.stash();
@@ -364,7 +368,7 @@ class GitRepositorySnapshot {
 		}
 		let result = null;
 		const target = await this.getTarget();
-		if ( target.branch ) {
+		if ( target && target.branch ) {
 			await this.fetch();
 			const isUpToDate = await this.isUpToDate();
 			if ( !isUpToDate ) {

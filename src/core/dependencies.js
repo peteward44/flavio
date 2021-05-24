@@ -93,14 +93,16 @@ async function hasRepoChanged( snapshot, repo, dir ) {
 		return 'url';
 	}
 	const targetCur = await snapshot.getTarget();
-	if ( targetCur.tag && targetCur.tag !== repoUrl.target ) {
-		return 'target';
-	}
-	if ( targetCur.commit && targetCur.commit !== repoUrl.target ) {
-		return 'target';
-	}
-	if ( targetCur.branch && targetCur.branch !== repoUrl.target ) {
-		return 'target';
+	if ( targetCur ) {
+		if ( targetCur.tag && targetCur.tag !== repoUrl.target ) {
+			return 'target';
+		}
+		if ( targetCur.commit && targetCur.commit !== repoUrl.target ) {
+			return 'target';
+		}
+		if ( targetCur.branch && targetCur.branch !== repoUrl.target ) {
+			return 'target';
+		}
 	}
 	return '';
 }
@@ -212,7 +214,7 @@ export async function checkAndSwitch( snapshot, options, pkgdir, repo ) {
 export async function checkRemoteResetRequired( snapshot, targetObj, name, pkgdir, options, repoUrl ) {
 	// either reset to name of branch specified in flavio.json, or to master if that doesn't exist
 	const target = await snapshot.getTarget();
-	if ( target.branch && targetObj.branch ) {
+	if ( target && target.branch && targetObj.branch ) {
 		if ( !await snapshot.doesRemoteBranchExist( target.branch ) ) {
 			let targetBranchName = 'master';
 			if ( targetObj.branch !== target.branch ) {

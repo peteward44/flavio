@@ -72,6 +72,8 @@ async function switchIncorrectBranchRefs( options, snapshot, ref ) {
 	try {
 		targetObj = await getTargetFromRepoUrl( snapshot, ref, snapshot.dir );
 	} catch ( err ) {
+	}
+	if ( !targetObj ) {
 		// desired branch / tag does not exist - fall back to master
 		targetObj = { branch: 'master' };
 	}
@@ -154,8 +156,9 @@ async function update( options ) {
 	await iterateDeps( options, await GitRepositorySnapshot.fromDir( options.cwd ) );
 	
 	if ( !options.json ) {
+		//snapshotPool.clearAll();
 		const statusSnapshot = await getSnapshot.getSnapshot( options.cwd );
-		const status = await getStatus( options, statusSnapshot, {
+		const status = await getStatus( { ...options, nofetch: true }, statusSnapshot, {
 			changed: true
 		} );
 		console.log( status );

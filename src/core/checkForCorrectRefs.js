@@ -17,7 +17,7 @@ async function checkForCorrectRefs( snapshotRoot, snapshot ) {
 			bustRefs.push( { snapshot: depInfo.snapshot, urlActual: url, urlExpected: rurl } );
 			continue;
 		}
-		if ( !( target.branch === rtarget || target.tag === rtarget || target.commit === rtarget ) ) {
+		if ( target && rtarget && !( target.branch === rtarget || target.tag === rtarget || target.commit === rtarget ) ) {
 			bustRefs.push( { snapshot: depInfo.snapshot, targetActual: target.branch || target.tag || target.commit, targetExpected: rtarget } );
 			continue;			
 		}

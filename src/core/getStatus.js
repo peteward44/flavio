@@ -33,19 +33,17 @@ async function addTableRow( table, depInfo, options, statusOptions, isRoot = fal
 	table.cell( 'Target', targetTableEntry );
 	
 	if ( target ) {
-		let uptodate = '';
-		if ( target.commit ) {
-			uptodate = chalk.yellow( '(commit)' );
-		} else if ( target.tag ) {
-			uptodate = chalk.yellow( '(tag)' );
-		} else {
-			if ( !options.nofetch ) {
-				uptodate = ( await snapshot.isUpToDate() ) ? chalk.green( 'YES' ) : chalk.yellow( 'NO' );
+		if ( !options.nofetch ) {
+			let uptodate = '';
+			if ( target.commit ) {
+				uptodate = chalk.yellow( '(commit)' );
+			} else if ( target.tag ) {
+				uptodate = chalk.yellow( '(tag)' );
 			} else {
-				uptodate = chalk.yellow( 'n/a' );
+				uptodate = ( await snapshot.isUpToDate() ) ? chalk.green( 'YES' ) : chalk.yellow( 'NO' );
 			}
+			table.cell( 'Up to date?', uptodate );
 		}
-		table.cell( 'Up to date?', uptodate );
 
 		table.cell( 'Conflicts?', await snapshot.isConflicted() ? chalk.red( 'CONFLICT' ) : chalk.green( 'CLEAN' ) );
 		table.cell( 'Local changes?', await snapshot.isWorkingCopyClean() ? chalk.green( 'CLEAN' ) : chalk.yellow( 'CHANGES' ) );
