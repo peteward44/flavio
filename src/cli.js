@@ -34,7 +34,8 @@ async function promisedStart() {
 		function commandHandler( func ) {
 			return async ( argv ) => {
 				logger.init();
-				if ( !await gitVersionCheck() ) {
+				const interactiveDisabled = _.isBoolean( argv.interactive ) && argv.interactive === false;
+				if ( !interactiveDisabled && !await gitVersionCheck() ) {
 					process.exitCode = 1;
 					return;
 				}

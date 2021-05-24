@@ -10,11 +10,19 @@ const allowedManagers = ['manager', 'manager-core'];
 async function checkCredentialManager() {
 	if ( os.platform() === 'win32' ) {
 		try {
-			const credentialManager = execSync( `git config --global credential.helper` ).toString().trim();
+			let credentialManager;
+			try {
+				credentialManager = execSync( `git config --global credential.helper` ).toString().trim();
+			} catch ( err2 ) {
+			}
 			if ( allowedManagers.includes( credentialManager ) ) {
 				return false;
 			} else {
-				logger.error( `Warning: Credential manager '${credentialManager}' is not supported. We recommend you use the manager-core credential manager.` );
+				if ( credentialManager ) {
+					logger.error( `Warning: Credential manager '${credentialManager}' is not supported. We recommend you use the manager-core credential manager.` );
+				} else {
+					logger.error( `Warning: No credential manager set. We recommend you use the manager-core credential manager.` );
+				}
 				logger.log( 'info', `You can set this using the command "git config --global credential.helper manager-core".` );
 				logger.log( 'info', `We can do that for you now if you want.` );
 				const question = {
@@ -35,7 +43,7 @@ async function checkCredentialManager() {
 				}
 			}
 		} catch ( err ) {
-			logger.error( `Error attempting to get credential manager executing "git config --global credential.helper"`, err );
+			logger.error( `Error when testing git credential manager`, err );
 		}
 		return true;
 	}
