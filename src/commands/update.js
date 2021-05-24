@@ -30,7 +30,7 @@ async function stashAndPull( snapshot, pkgdir, options, propagateErrors = false 
 }
 
 async function updateMainProject( options, snapshot ) {
-	if ( snapshot.getStatus() !== 'installed' ) {
+	if ( await snapshot.getStatus() !== 'installed' ) {
 		// root project is not a git repository, just continue
 		return;
 	}

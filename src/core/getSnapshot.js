@@ -1,3 +1,4 @@
+import snapshotPool from './snapshotPool.js';
 import GitRepositorySnapshot from './GitRepositorySnapshot.js';
 
 function getExistingKeyName( depMap, key ) {
@@ -21,7 +22,7 @@ export async function walk( depMap, repo, oldSnapshotRoot, overwriteRef = false 
 				snapshot = oldSnapshotRoot.deps.get( keyName ).snapshot;
 			}
 			if ( !snapshot ) {
-				snapshot = await GitRepositorySnapshot.fromName( keyName );
+				snapshot = await snapshotPool.fromName( keyName, depUrl );
 			}
 			depMap.set( keyName, {
 				snapshot,
