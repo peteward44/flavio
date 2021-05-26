@@ -54,7 +54,7 @@ async function updateMainProject( options, snapshot ) {
 	// }
 }
 
-async function switchIncorrectBranchRefs( options, snapshot, ref ) {
+async function processDependency( options, snapshot, ref ) {
 	if ( !options.json ) {
 		logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Updating...` );
 	}
@@ -66,8 +66,14 @@ async function switchIncorrectBranchRefs( options, snapshot, ref ) {
 		}
 		const repoUrl = util.parseRepositoryUrl( ref );
 		await clone( snapshot.dir, options, repoUrl, options.link, snapshot );
-	}	
-	
+	}
+
+	const url = await snapshot.getBareUrl();
+	const { url: rurl } = util.parseRepositoryUrl( ref );	
+	if ( url.toLowerCase() !== rurl.toLowerCase() ) {
+		logger.log( "warning", `[${snapshot.name}] Repository URL "${url}" does not match dependency reference "${rurl}"` );
+	}
+
 	let targetObj = null;
 	try {
 		targetObj = await getTargetFromRepoUrl( snapshot, ref, snapshot.dir );
@@ -110,7 +116,7 @@ async function iterateDeps( options, snapshot ) {
 	for ( const name of Object.keys( deps ) ) {
 		const ref = deps[name];
 		const childSnapshot = await snapshotPool.fromName( name, ref );
-		await switchIncorrectBranchRefs( options, childSnapshot, ref );
+		await processDependency( options, childSnapshot, ref );
 		await iterateDeps( options, childSnapshot );
 	}
 }
