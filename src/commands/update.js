@@ -71,7 +71,7 @@ async function processDependency( options, snapshot, ref ) {
 	const url = await snapshot.getBareUrl();
 	const { url: rurl } = util.parseRepositoryUrl( ref );	
 	if ( url.toLowerCase() !== rurl.toLowerCase() ) {
-		logger.log( "warning", `[${snapshot.name}] Repository URL "${url}" does not match dependency reference "${rurl}"` );
+		logger.log( "warn", `[${snapshot.name}] Repository URL "${url}" does not match dependency reference "${rurl}"` );
 	}
 
 	let targetObj = null;
