@@ -104,7 +104,7 @@ async function determineTagsRecursive( options, snapshotRoot, snapshot, specific
 				const branchName = `release/${tagName}`;
 				const incrementVersion = specificVersion ? false : await snapshot.isUpToDate(); // only increment version in flavio.json if our local HEAD is up to date with the remote branch
 				tagMap.set( snapshot.name, {
-					tag: tagName, originalTarget: target, branch: branchName, create: true, snapshot, incrementMasterVersion: incrementVersion 
+					tag: tagName, originalTarget: target, branch: branchName, create: true, snapshot, incrementMasterVersion: incrementVersion, specificVersion
 				} );
 			} else {
 				logger.log( 'info', util.formatConsoleDependencyName( snapshot.name ), `Dependency has no valid flavio.json, so will not be tagged` );
@@ -240,7 +240,7 @@ async function confirmUser( options, reposToTag ) {
 	}
 	console.log( table.toString() );
 	for ( const [name, tagObject] of reposToTag ) {
-		if ( tagObject.create && !tagObject.incrementMasterVersion ) {
+		if ( tagObject.create && !tagObject.incrementMasterVersion && !tagObject.specificVersion ) {
 			logger.log( 'info', util.formatConsoleDependencyName( name ), `WARNING: Dependency is not up to date with it's upstream branch (${tagObject.originalTarget.branch || tagObject.originalTarget.commit}), and so will not have the flavio.json version automatically incremented` );
 		}
 	}
