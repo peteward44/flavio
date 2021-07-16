@@ -367,19 +367,16 @@ class GitRepositorySnapshot {
 			return null;
 		}
 		let result = null;
-		const target = await this.getTarget();
-		if ( target && target.branch ) {
-			await this.fetch();
-			const isUpToDate = await this.isUpToDate();
-			if ( !isUpToDate ) {
-				const remoteBranch = await this.getRemoteTrackingBranch();
-				result = await this._executeGit( [`merge`, remoteBranch], { outputStderr: true } );
-				this.markChanged();
-				this._clearCacheExcept( ['getBareUrl'] );
-				this._cache.set( 'fetch', undefined );
-				this._cache.set( 'pull', undefined );
-				this._cache.set( 'push', undefined );
-			}
+		await this.fetch();
+		const isUpToDate = await this.isUpToDate();
+		if ( !isUpToDate ) {
+			const remoteBranch = await this.getRemoteTrackingBranch();
+			result = await this._executeGit( [`merge`, remoteBranch], { outputStderr: true } );
+			this.markChanged();
+			this._clearCacheExcept( ['getBareUrl'] );
+			this._cache.set( 'fetch', undefined );
+			this._cache.set( 'pull', undefined );
+			this._cache.set( 'push', undefined );
 		}
 		return result;
 	}
@@ -441,6 +438,7 @@ class GitRepositorySnapshot {
 		}
 		await this.reset( targetObj );
 		this._cache.delete( 'pull' );
+		this._cache.delete( 'pullCaptureError' );
 		try {
 			await this.pull();
 		} catch ( err2 ) {
