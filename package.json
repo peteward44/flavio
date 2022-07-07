@@ -27,7 +27,7 @@
     "inquirer": "7.3.3",
     "lodash": "4.17.20",
     "lodash-decorators": "^6.0.1",
-    "moment": "2.29.1",
+    "moment": "2.29.4",
     "semver": "7.3.4",
     "uuid": "8.3.2",
     "winston": "^3.3.3",
