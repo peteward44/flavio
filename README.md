@@ -1,6 +1,9 @@
 # flavio
 Really simple package manager for your own private packages hosted on any git server. No registry or server hosting required. Can be used in conjunction with bower/npm
 
+## NOTE: NO LONGER MAINTAINED BY ORIGINAL AUTHOR
+If you are using this from Inspired Entertainment, then contact the technical lead of the mobile team for further advice.
+
 ## Usage
 
 ### Add flavio support to an existing project
